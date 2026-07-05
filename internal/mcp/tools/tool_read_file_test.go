@@ -1,0 +1,187 @@
+package tools
+
+import (
+	"context"
+	"encoding/json"
+	"testing"
+
+	"github.com/blacksheepkhan/fileserver-mcp/internal/fs"
+	"github.com/blacksheepkhan/fileserver-mcp/internal/protocol"
+)
+
+func TestReadFileToolDefinition(t *testing.T) {
+	t.Parallel()
+
+	filesystem := newFakeFileSystem()
+	tool := NewReadFileTool(filesystem, 1024)
+
+	if tool.Name() != "read_file" {
+		t.Fatalf("expected read_file, got %q", tool.Name())
+	}
+
+	if tool.Description() == "" {
+		t.Fatal("expected description")
+	}
+
+	if tool.InputSchema() == nil {
+		t.Fatal("expected input schema")
+	}
+
+	definition := tool.Definition()
+
+	if definition.Name != "read_file" {
+		t.Fatalf("expected definition name read_file, got %q", definition.Name)
+	}
+
+	if definition.Description == "" {
+		t.Fatal("expected definition description")
+	}
+
+	if definition.InputSchema == nil {
+		t.Fatal("expected definition input schema")
+	}
+}
+
+func TestReadFileToolExecute(t *testing.T) {
+	t.Parallel()
+
+	filesystem := newFakeFileSystem()
+	filesystem.readContent = []byte("hello world")
+
+	tool := NewReadFileTool(filesystem, 1024)
+
+	result, rpcErr := tool.Execute(
+		context.Background(),
+		json.RawMessage(`{"path":"README.md","maxBytes":256}`),
+	)
+
+	if rpcErr != nil {
+		t.Fatalf("expected no error, got %v", rpcErr)
+	}
+
+	if filesystem.readPath != "README.md" {
+		t.Fatalf("expected path README.md, got %q", filesystem.readPath)
+	}
+
+	if filesystem.readMaxBytes != 256 {
+		t.Fatalf("expected maxBytes 256, got %d", filesystem.readMaxBytes)
+	}
+
+	encoded, err := json.Marshal(result)
+	if err != nil {
+		t.Fatalf("expected marshalable result, got %v", err)
+	}
+
+	var decoded struct {
+		Content string `json:"content"`
+		Size    int64  `json:"size"`
+	}
+
+	if err := json.Unmarshal(encoded, &decoded); err != nil {
+		t.Fatalf("expected valid result JSON, got %v", err)
+	}
+
+	if decoded.Content != "hello world" {
+		t.Fatalf("expected content hello world, got %q", decoded.Content)
+	}
+
+	if decoded.Size != int64(len("hello world")) {
+		t.Fatalf("expected size %d, got %d", len("hello world"), decoded.Size)
+	}
+}
+
+func TestReadFileToolUsesDefaultMaxBytes(t *testing.T) {
+	t.Parallel()
+
+	filesystem := newFakeFileSystem()
+	filesystem.readContent = []byte("abc")
+
+	tool := NewReadFileTool(filesystem, 4096)
+
+	_, rpcErr := tool.Execute(
+		context.Background(),
+		json.RawMessage(`{"path":"README.md"}`),
+	)
+
+	if rpcErr != nil {
+		t.Fatalf("expected no error, got %v", rpcErr)
+	}
+
+	if filesystem.readMaxBytes != 4096 {
+		t.Fatalf("expected default maxBytes 4096, got %d", filesystem.readMaxBytes)
+	}
+}
+
+func TestReadFileToolReturnsInvalidParamsForMalformedJSON(t *testing.T) {
+	t.Parallel()
+
+	filesystem := newFakeFileSystem()
+	tool := NewReadFileTool(filesystem, 1024)
+
+	result, rpcErr := tool.Execute(
+		context.Background(),
+		json.RawMessage(`{"path":`),
+	)
+
+	if result != nil {
+		t.Fatalf("expected nil result, got %#v", result)
+	}
+
+	if rpcErr == nil {
+		t.Fatal("expected rpc error")
+	}
+
+	if rpcErr.Code != protocol.ErrInvalidParams {
+		t.Fatalf("expected ErrInvalidParams, got %d", rpcErr.Code)
+	}
+}
+
+func TestReadFileToolReturnsInvalidParamsForMissingPath(t *testing.T) {
+	t.Parallel()
+
+	filesystem := newFakeFileSystem()
+	tool := NewReadFileTool(filesystem, 1024)
+
+	result, rpcErr := tool.Execute(
+		context.Background(),
+		json.RawMessage(`{}`),
+	)
+
+	if result != nil {
+		t.Fatalf("expected nil result, got %#v", result)
+	}
+
+	if rpcErr == nil {
+		t.Fatal("expected rpc error")
+	}
+
+	if rpcErr.Code != protocol.ErrInvalidParams {
+		t.Fatalf("expected ErrInvalidParams, got %d", rpcErr.Code)
+	}
+}
+
+func TestReadFileToolReturnsInvalidParamsForFilesystemError(t *testing.T) {
+	t.Parallel()
+
+	filesystem := newFakeFileSystem()
+	filesystem.readErr = fs.ErrPathIsDirectory
+
+	tool := NewReadFileTool(filesystem, 1024)
+
+	result, rpcErr := tool.Execute(
+		context.Background(),
+		json.RawMessage(`{"path":"docs"}`),
+	)
+
+	if result != nil {
+		t.Fatalf("expected nil result, got %#v", result)
+	}
+
+	if rpcErr == nil {
+		t.Fatal("expected rpc error")
+	}
+
+	if rpcErr.Code != protocol.ErrInvalidParams {
+		t.Fatalf("expected ErrInvalidParams, got %d", rpcErr.Code)
+	}
+}

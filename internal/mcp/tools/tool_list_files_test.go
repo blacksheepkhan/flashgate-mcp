@@ -184,9 +184,13 @@ func TestListFilesToolReturnsInvalidParamsForFilesystemError(t *testing.T) {
 }
 
 type fakeFileSystem struct {
-	entries  []fs.Entry
-	err      error
-	listPath string
+	entries      []fs.Entry
+	err          error
+	listPath     string
+	readPath     string
+	readMaxBytes int64
+	readContent  []byte
+	readErr      error
 }
 
 func newFakeFileSystem() *fakeFileSystem {
@@ -203,8 +207,15 @@ func (f *fakeFileSystem) List(path string) ([]fs.Entry, error) {
 	return f.entries, nil
 }
 
-func (f *fakeFileSystem) Read(_ string, _ int64) ([]byte, error) {
-	panic("not implemented")
+func (f *fakeFileSystem) Read(path string, maxBytes int64) ([]byte, error) {
+	f.readPath = path
+	f.readMaxBytes = maxBytes
+
+	if f.readErr != nil {
+		return nil, f.readErr
+	}
+
+	return f.readContent, nil
 }
 
 func (f *fakeFileSystem) Stat(_ string) (fs.Metadata, error) {
