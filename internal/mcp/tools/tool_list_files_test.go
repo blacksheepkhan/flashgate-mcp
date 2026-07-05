@@ -206,6 +206,10 @@ type fakeFileSystem struct {
 	deletePath      string
 	deleteRecursive bool
 	deleteErr       error
+	moveSource      string
+	moveTarget      string
+	moveOverwrite   bool
+	moveErr         error
 }
 
 func newFakeFileSystem() *fakeFileSystem {
@@ -286,8 +290,16 @@ func (f *fakeFileSystem) Delete(path string, recursive bool) error {
 	return nil
 }
 
-func (f *fakeFileSystem) Move(_ string, _ string, _ bool) error {
-	panic("not implemented")
+func (f *fakeFileSystem) Move(source string, target string, overwrite bool) error {
+	f.moveSource = source
+	f.moveTarget = target
+	f.moveOverwrite = overwrite
+
+	if f.moveErr != nil {
+		return f.moveErr
+	}
+
+	return nil
 }
 
 func (f *fakeFileSystem) Copy(_ string, _ string, _ bool) error {
