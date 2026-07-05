@@ -138,6 +138,194 @@ func TestLocalFileSystemListReturnsErrorForMissingDirectory(t *testing.T) {
 	}
 }
 
+func TestLocalFileSystemReadReturnsFileContent(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	writeTestFile(t, filepath.Join(root, "file.txt"), "hello world")
+
+	filesystem := mustNewLocalFileSystem(t, root)
+
+	content, err := filesystem.Read("file.txt", 1024)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if string(content) != "hello world" {
+		t.Fatalf("expected %q, got %q", "hello world", string(content))
+	}
+}
+
+func TestLocalFileSystemReadRejectsDirectory(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	mkdir(t, filepath.Join(root, "subdir"))
+
+	filesystem := mustNewLocalFileSystem(t, root)
+
+	_, err := filesystem.Read("subdir", 1024)
+
+	if !errors.Is(err, ErrPathIsDirectory) {
+		t.Fatalf("expected ErrPathIsDirectory, got %v", err)
+	}
+}
+
+func TestLocalFileSystemReadRejectsTooLargeFile(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	writeTestFile(t, filepath.Join(root, "file.txt"), "hello world")
+
+	filesystem := mustNewLocalFileSystem(t, root)
+
+	_, err := filesystem.Read("file.txt", 5)
+
+	if !errors.Is(err, ErrFileTooLarge) {
+		t.Fatalf("expected ErrFileTooLarge, got %v", err)
+	}
+}
+
+func TestLocalFileSystemReadRejectsZeroLimit(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	writeTestFile(t, filepath.Join(root, "file.txt"), "hello")
+
+	filesystem := mustNewLocalFileSystem(t, root)
+
+	_, err := filesystem.Read("file.txt", 0)
+
+	if !errors.Is(err, ErrFileTooLarge) {
+		t.Fatalf("expected ErrFileTooLarge, got %v", err)
+	}
+}
+
+func TestLocalFileSystemReadRejectsTraversal(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	filesystem := mustNewLocalFileSystem(t, root)
+
+	_, err := filesystem.Read("..", 1024)
+
+	if !errors.Is(err, security.ErrPathTraversal) {
+		t.Fatalf("expected ErrPathTraversal, got %v", err)
+	}
+}
+
+func TestLocalFileSystemStatReturnsMetadata(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	writeTestFile(t, filepath.Join(root, "file.txt"), "hello")
+
+	filesystem := mustNewLocalFileSystem(t, root)
+
+	metadata, err := filesystem.Stat("file.txt")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if metadata.Name != "file.txt" {
+		t.Fatalf("expected name %q, got %q", "file.txt", metadata.Name)
+	}
+
+	if metadata.IsDir {
+		t.Fatal("expected file.txt to be a file")
+	}
+
+	if metadata.Size != int64(len("hello")) {
+		t.Fatalf("expected size %d, got %d", len("hello"), metadata.Size)
+	}
+}
+
+func TestLocalFileSystemStatReturnsDirectoryMetadata(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	mkdir(t, filepath.Join(root, "subdir"))
+
+	filesystem := mustNewLocalFileSystem(t, root)
+
+	metadata, err := filesystem.Stat("subdir")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if metadata.Name != "subdir" {
+		t.Fatalf("expected name %q, got %q", "subdir", metadata.Name)
+	}
+
+	if !metadata.IsDir {
+		t.Fatal("expected subdir to be a directory")
+	}
+}
+
+func TestLocalFileSystemStatRejectsTraversal(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	filesystem := mustNewLocalFileSystem(t, root)
+
+	_, err := filesystem.Stat("..")
+
+	if !errors.Is(err, security.ErrPathTraversal) {
+		t.Fatalf("expected ErrPathTraversal, got %v", err)
+	}
+}
+
+func TestLocalFileSystemExistsReturnsTrueForExistingFile(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	writeTestFile(t, filepath.Join(root, "file.txt"), "hello")
+
+	filesystem := mustNewLocalFileSystem(t, root)
+
+	exists, err := filesystem.Exists("file.txt")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if !exists {
+		t.Fatal("expected file to exist")
+	}
+}
+
+func TestLocalFileSystemExistsReturnsFalseForMissingFile(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	filesystem := mustNewLocalFileSystem(t, root)
+
+	exists, err := filesystem.Exists("missing.txt")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if exists {
+		t.Fatal("expected file to be missing")
+	}
+}
+
+func TestLocalFileSystemExistsRejectsTraversal(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	filesystem := mustNewLocalFileSystem(t, root)
+
+	exists, err := filesystem.Exists("..")
+
+	if !errors.Is(err, security.ErrPathTraversal) {
+		t.Fatalf("expected ErrPathTraversal, got %v", err)
+	}
+
+	if exists {
+		t.Fatal("expected traversal path to not exist")
+	}
+}
+
 func mustNewLocalFileSystem(t *testing.T, root string) *LocalFileSystem {
 	t.Helper()
 
