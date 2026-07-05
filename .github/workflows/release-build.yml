@@ -2,6 +2,11 @@
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: Release version label
+        required: false
+        default: manual
 
 permissions:
   contents: read
@@ -35,8 +40,19 @@ jobs:
       - name: Test
         run: go test ./...
 
+      - name: Set build date
+        id: build_date
+        shell: bash
+        run: echo "date=$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
+
       - name: Build
-        run: go build -trimpath -ldflags="-s -w" -o ${{ matrix.output_path }} ./cmd/server
+        shell: bash
+        run: |
+          go build \
+            -trimpath \
+            -ldflags="-s -w -X github.com/blacksheepkhan/fileserver-mcp/internal/version.version=${{ inputs.version }} -X github.com/blacksheepkhan/fileserver-mcp/internal/version.commit=${{ github.sha }} -X github.com/blacksheepkhan/fileserver-mcp/internal/version.date=${{ steps.build_date.outputs.date }}" \
+            -o "${{ matrix.output_path }}" \
+            ./cmd/server
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -53,3 +69,6 @@ jobs:
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "- Artifact: \`${{ matrix.artifact_name }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- Path: \`${{ matrix.output_path }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Version: \`${{ inputs.version }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Commit: \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Build date: \`${{ steps.build_date.outputs.date }}\`" >> "$GITHUB_STEP_SUMMARY"
