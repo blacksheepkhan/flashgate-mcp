@@ -11,9 +11,15 @@ import (
 	"github.com/blacksheepkhan/fileserver-mcp/internal/mcp/router"
 	"github.com/blacksheepkhan/fileserver-mcp/internal/mcp/server"
 	"github.com/blacksheepkhan/fileserver-mcp/internal/mcp/tools"
+	"github.com/blacksheepkhan/fileserver-mcp/internal/version"
 )
 
 func main() {
+	if len(os.Args) == 2 && os.Args[1] == "--version" {
+		fmt.Println(version.Get().String())
+		return
+	}
+
 	if err := run(context.Background()); err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "fileserver-mcp: %v\n", err)
 		os.Exit(1)
