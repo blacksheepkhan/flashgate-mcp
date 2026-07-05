@@ -1,0 +1,46 @@
+package main
+
+import (
+	"context"
+	"os"
+
+	"github.com/blacksheepkhan/fileserver-mcp/internal/config"
+	"github.com/blacksheepkhan/fileserver-mcp/internal/fs"
+	"github.com/blacksheepkhan/fileserver-mcp/internal/mcp/initialize"
+	"github.com/blacksheepkhan/fileserver-mcp/internal/mcp/router"
+	"github.com/blacksheepkhan/fileserver-mcp/internal/mcp/server"
+	"github.com/blacksheepkhan/fileserver-mcp/internal/mcp/tools"
+)
+
+func run(ctx context.Context) error {
+	cfg, err := config.LoadFromEnvironment()
+	if err != nil {
+		return err
+	}
+
+	filesystem, err := fs.NewLocalFileSystem(cfg.Filesystem().RootPath())
+	if err != nil {
+		return err
+	}
+
+	toolRegistry := tools.NewRegistry()
+	toolRegistry.Register(tools.NewListFilesTool(filesystem))
+	toolRegistry.Register(tools.NewReadFileTool(filesystem, cfg.Filesystem().MaxFileSize()))
+	toolRegistry.Register(tools.NewStatPathTool(filesystem))
+	toolRegistry.Register(tools.NewExistsPathTool(filesystem))
+	toolRegistry.Register(tools.NewWriteFileTool(filesystem))
+	toolRegistry.Register(tools.NewMkdirTool(filesystem))
+	toolRegistry.Register(tools.NewDeletePathTool(filesystem))
+	toolRegistry.Register(tools.NewMovePathTool(filesystem))
+	toolRegistry.Register(tools.NewCopyPathTool(filesystem))
+	toolRegistry.Register(tools.NewRenamePathTool(filesystem))
+
+	mcpRouter := router.New()
+	mcpRouter.Register(initialize.NewHandler(cfg.Server().Name(), cfg.Server().Version()))
+	mcpRouter.Register(tools.NewListHandler(toolRegistry))
+	mcpRouter.Register(tools.NewCallHandler(toolRegistry))
+
+	mcpServer := server.New(os.Stdin, os.Stdout, mcpRouter)
+
+	return mcpServer.Run(ctx)
+}
