@@ -24,10 +24,15 @@ type LocalFileSystem struct {
 }
 
 // NewLocalFileSystem creates a new local filesystem.
-func NewLocalFileSystem(root string) *LocalFileSystem {
-	return &LocalFileSystem{
-		guard: security.NewPathGuard(root),
+func NewLocalFileSystem(root string) (*LocalFileSystem, error) {
+	guard, err := security.NewPathGuard(root)
+	if err != nil {
+		return nil, err
 	}
+
+	return &LocalFileSystem{
+		guard: guard,
+	}, nil
 }
 
 // List lists directory entries.

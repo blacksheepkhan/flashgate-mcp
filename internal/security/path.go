@@ -6,12 +6,26 @@ import (
 	"strings"
 )
 
+var (
+	// ErrEmptyRoot is returned when the configured root path is empty.
+	ErrEmptyRoot = errors.New("root path must not be empty")
+
+	// ErrAbsolutePath is returned when a user path is absolute.
+	ErrAbsolutePath = errors.New("absolute paths are not allowed")
+
+	// ErrPathTraversal is returned when a user path attempts to escape the root.
+	ErrPathTraversal = errors.New("path traversal detected")
+
+	// ErrOutsideRoot is returned when the resolved path is outside the configured root.
+	ErrOutsideRoot = errors.New("access outside root denied")
+)
+
 // SafePath represents a filesystem path that has passed validation.
 type SafePath struct {
 	path string
 }
 
-// String returns the safe absolute path.
+// String returns the absolute safe path.
 func (p SafePath) String() string {
 	return p.path
 }
@@ -26,54 +40,75 @@ func (p SafePath) Dir() string {
 	return filepath.Dir(p.path)
 }
 
-// PathGuard validates and resolves user-provided paths.
+// PathGuard validates and resolves user-provided paths against a sandbox root.
 type PathGuard struct {
 	root string
 }
 
-// NewPathGuard creates a new path guard.
-func NewPathGuard(root string) *PathGuard {
-	return &PathGuard{
-		root: filepath.Clean(root),
+// NewPathGuard creates a new PathGuard.
+func NewPathGuard(root string) (*PathGuard, error) {
+	if strings.TrimSpace(root) == "" {
+		return nil, ErrEmptyRoot
 	}
+
+	absoluteRoot, err := filepath.Abs(filepath.Clean(root))
+	if err != nil {
+		return nil, err
+	}
+
+	return &PathGuard{
+		root: absoluteRoot,
+	}, nil
 }
 
-// Resolve validates and resolves a user path against the configured root.
+// Root returns the absolute sandbox root.
+func (g *PathGuard) Root() string {
+	return g.root
+}
+
+// Resolve validates and resolves a user path against the sandbox root.
 func (g *PathGuard) Resolve(userPath string) (SafePath, error) {
-	if strings.TrimSpace(userPath) == "" {
-		userPath = "."
+	normalizedUserPath := normalizeUserPath(userPath)
+
+	if filepath.IsAbs(normalizedUserPath) {
+		return SafePath{}, ErrAbsolutePath
 	}
 
-	cleanedUserPath := filepath.Clean(userPath)
-
-	if cleanedUserPath == ".." || strings.HasPrefix(cleanedUserPath, ".."+string(filepath.Separator)) {
-		return SafePath{}, errors.New("path traversal detected")
+	if isTraversalPath(normalizedUserPath) {
+		return SafePath{}, ErrPathTraversal
 	}
 
-	if filepath.IsAbs(cleanedUserPath) {
-		return SafePath{}, errors.New("absolute paths are not allowed")
-	}
-
-	rootAbs, err := filepath.Abs(g.root)
+	resolvedPath, err := filepath.Abs(filepath.Join(g.root, normalizedUserPath))
 	if err != nil {
 		return SafePath{}, err
 	}
 
-	resolvedAbs, err := filepath.Abs(filepath.Join(rootAbs, cleanedUserPath))
-	if err != nil {
-		return SafePath{}, err
-	}
-
-	relative, err := filepath.Rel(rootAbs, resolvedAbs)
-	if err != nil {
-		return SafePath{}, err
-	}
-
-	if relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
-		return SafePath{}, errors.New("access outside root denied")
+	if !isInsideRoot(g.root, resolvedPath) {
+		return SafePath{}, ErrOutsideRoot
 	}
 
 	return SafePath{
-		path: resolvedAbs,
+		path: resolvedPath,
 	}, nil
+}
+
+func normalizeUserPath(userPath string) string {
+	if strings.TrimSpace(userPath) == "" {
+		return "."
+	}
+
+	return filepath.Clean(userPath)
+}
+
+func isTraversalPath(path string) bool {
+	return path == ".." || strings.HasPrefix(path, ".."+string(filepath.Separator))
+}
+
+func isInsideRoot(root string, resolvedPath string) bool {
+	relative, err := filepath.Rel(root, resolvedPath)
+	if err != nil {
+		return false
+	}
+
+	return relative == "." || (relative != ".." && !strings.HasPrefix(relative, ".."+string(filepath.Separator)))
 }
