@@ -326,6 +326,150 @@ func TestLocalFileSystemExistsRejectsTraversal(t *testing.T) {
 	}
 }
 
+func TestLocalFileSystemWriteCreatesFile(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	filesystem := mustNewLocalFileSystem(t, root)
+
+	err := filesystem.Write("created.txt", []byte("created-content"), false)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	content := readTestFile(t, filepath.Join(root, "created.txt"))
+	if content != "created-content" {
+		t.Fatalf("expected %q, got %q", "created-content", content)
+	}
+}
+
+func TestLocalFileSystemWriteRejectsExistingFileWithoutOverwrite(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	writeTestFile(t, filepath.Join(root, "file.txt"), "old-content")
+
+	filesystem := mustNewLocalFileSystem(t, root)
+
+	err := filesystem.Write("file.txt", []byte("new-content"), false)
+
+	if !errors.Is(err, ErrFileExists) {
+		t.Fatalf("expected ErrFileExists, got %v", err)
+	}
+
+	content := readTestFile(t, filepath.Join(root, "file.txt"))
+	if content != "old-content" {
+		t.Fatalf("expected file content to remain unchanged, got %q", content)
+	}
+}
+
+func TestLocalFileSystemWriteOverwritesExistingFile(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	writeTestFile(t, filepath.Join(root, "file.txt"), "old-content")
+
+	filesystem := mustNewLocalFileSystem(t, root)
+
+	err := filesystem.Write("file.txt", []byte("new-content"), true)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	content := readTestFile(t, filepath.Join(root, "file.txt"))
+	if content != "new-content" {
+		t.Fatalf("expected %q, got %q", "new-content", content)
+	}
+}
+
+func TestLocalFileSystemWriteRejectsDirectory(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	mkdir(t, filepath.Join(root, "subdir"))
+
+	filesystem := mustNewLocalFileSystem(t, root)
+
+	err := filesystem.Write("subdir", []byte("content"), true)
+
+	if !errors.Is(err, ErrPathIsDirectory) {
+		t.Fatalf("expected ErrPathIsDirectory, got %v", err)
+	}
+}
+
+func TestLocalFileSystemWriteRejectsTraversal(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	filesystem := mustNewLocalFileSystem(t, root)
+
+	err := filesystem.Write("..", []byte("content"), false)
+
+	if !errors.Is(err, security.ErrPathTraversal) {
+		t.Fatalf("expected ErrPathTraversal, got %v", err)
+	}
+}
+
+func TestLocalFileSystemWriteRejectsAbsolutePath(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	filesystem := mustNewLocalFileSystem(t, root)
+
+	err := filesystem.Write(filepath.Join(root, "file.txt"), []byte("content"), false)
+
+	if !errors.Is(err, security.ErrAbsolutePath) {
+		t.Fatalf("expected ErrAbsolutePath, got %v", err)
+	}
+}
+
+func TestLocalFileSystemMkdirCreatesDirectory(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	filesystem := mustNewLocalFileSystem(t, root)
+
+	err := filesystem.Mkdir(filepath.Join("alpha", "beta"))
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	info, err := os.Stat(filepath.Join(root, "alpha", "beta"))
+	if err != nil {
+		t.Fatalf("expected directory to exist, got %v", err)
+	}
+
+	if !info.IsDir() {
+		t.Fatal("expected created path to be a directory")
+	}
+}
+
+func TestLocalFileSystemMkdirRejectsTraversal(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	filesystem := mustNewLocalFileSystem(t, root)
+
+	err := filesystem.Mkdir("..")
+
+	if !errors.Is(err, security.ErrPathTraversal) {
+		t.Fatalf("expected ErrPathTraversal, got %v", err)
+	}
+}
+
+func TestLocalFileSystemMkdirRejectsAbsolutePath(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	filesystem := mustNewLocalFileSystem(t, root)
+
+	err := filesystem.Mkdir(filepath.Join(root, "alpha"))
+
+	if !errors.Is(err, security.ErrAbsolutePath) {
+		t.Fatalf("expected ErrAbsolutePath, got %v", err)
+	}
+}
+
 func mustNewLocalFileSystem(t *testing.T, root string) *LocalFileSystem {
 	t.Helper()
 
@@ -343,6 +487,17 @@ func writeTestFile(t *testing.T, path string, content string) {
 	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
 		t.Fatalf("failed to write test file: %v", err)
 	}
+}
+
+func readTestFile(t *testing.T, path string) string {
+	t.Helper()
+
+	content, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("failed to read test file: %v", err)
+	}
+
+	return string(content)
 }
 
 func mkdir(t *testing.T, path string) {

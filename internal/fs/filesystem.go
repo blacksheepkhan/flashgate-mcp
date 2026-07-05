@@ -13,6 +13,9 @@ var (
 
 	// ErrPathIsDirectory is returned when a file operation receives a directory path.
 	ErrPathIsDirectory = errors.New("path is a directory")
+
+	// ErrFileExists is returned when writing a file that already exists without overwrite permission.
+	ErrFileExists = errors.New("file already exists")
 )
 
 // Entry represents a filesystem directory entry.
@@ -35,6 +38,8 @@ type FileSystem interface {
 	Read(path string, maxBytes int64) ([]byte, error)
 	Stat(path string) (Metadata, error)
 	Exists(path string) (bool, error)
+	Write(path string, content []byte, overwrite bool) error
+	Mkdir(path string) error
 }
 
 // LocalFileSystem implements FileSystem using the local operating system.
@@ -146,4 +151,55 @@ func (f *LocalFileSystem) Exists(path string) (bool, error) {
 	}
 
 	return false, err
+}
+
+// Write writes a file. Existing files are only overwritten when overwrite is true.
+func (f *LocalFileSystem) Write(path string, content []byte, overwrite bool) error {
+	safePath, err := f.guard.Resolve(path)
+	if err != nil {
+		return err
+	}
+
+	info, err := os.Stat(safePath.String())
+	if err == nil {
+		if info.IsDir() {
+			return ErrPathIsDirectory
+		}
+
+		if !overwrite {
+			return ErrFileExists
+		}
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+
+	flags := os.O_WRONLY | os.O_CREATE
+	if overwrite {
+		flags |= os.O_TRUNC
+	} else {
+		flags |= os.O_EXCL
+	}
+
+	file, err := os.OpenFile(safePath.String(), flags, 0o600)
+	if err != nil {
+		if errors.Is(err, os.ErrExist) {
+			return ErrFileExists
+		}
+
+		return err
+	}
+	defer file.Close()
+
+	_, err = file.Write(content)
+	return err
+}
+
+// Mkdir creates a directory and any missing parent directories.
+func (f *LocalFileSystem) Mkdir(path string) error {
+	safePath, err := f.guard.Resolve(path)
+	if err != nil {
+		return err
+	}
+
+	return os.MkdirAll(safePath.String(), 0o700)
 }
