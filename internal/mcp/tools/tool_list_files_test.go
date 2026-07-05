@@ -194,6 +194,9 @@ type fakeFileSystem struct {
 	statPath     string
 	statMetadata fs.Metadata
 	statErr      error
+	existsPath   string
+	exists       bool
+	existsErr    error
 }
 
 func newFakeFileSystem() *fakeFileSystem {
@@ -231,8 +234,14 @@ func (f *fakeFileSystem) Stat(path string) (fs.Metadata, error) {
 	return f.statMetadata, nil
 }
 
-func (f *fakeFileSystem) Exists(_ string) (bool, error) {
-	panic("not implemented")
+func (f *fakeFileSystem) Exists(path string) (bool, error) {
+	f.existsPath = path
+
+	if f.existsErr != nil {
+		return false, f.existsErr
+	}
+
+	return f.exists, nil
 }
 
 func (f *fakeFileSystem) Write(_ string, _ []byte, _ bool) error {
