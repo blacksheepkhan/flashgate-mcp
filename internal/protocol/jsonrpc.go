@@ -13,7 +13,7 @@ type Request struct {
 	Params  json.RawMessage `json:"params,omitempty"`
 }
 
-// Notification represents a JSON-RPC notification.
+// Notification represents a JSON-RPC 2.0 notification.
 type Notification struct {
 	JSONRPC string          `json:"jsonrpc"`
 	Method  string          `json:"method"`
@@ -28,7 +28,7 @@ type Response struct {
 	Error   *Error          `json:"error,omitempty"`
 }
 
-// Error represents a JSON-RPC error object.
+// Error represents a JSON-RPC 2.0 error object.
 type Error struct {
 	Code    int             `json:"code"`
 	Message string          `json:"message"`
