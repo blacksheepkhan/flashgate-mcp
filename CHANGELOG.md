@@ -34,6 +34,7 @@ The format follows the spirit of [Keep a Changelog](https://keepachangelog.com/)
 
 - Moved protocol definitions from `pkg/protocol` to `internal/protocol`.
 - Refactored filesystem operations into focused files.
+- Updated supported MCP protocol version from `2025-06-18` to `2025-11-25`.
 
 ### Security
 

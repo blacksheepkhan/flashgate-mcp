@@ -26,7 +26,7 @@ func TestHandlerReturnsInitializeResult(t *testing.T) {
 	result, rpcErr := handler.Handle(
 		handlers.Context{},
 		json.RawMessage(`{
-			"protocolVersion":"2025-06-18",
+			"protocolVersion":"2025-11-25",
 			"capabilities":{},
 			"clientInfo":{
 				"name":"test-client",
