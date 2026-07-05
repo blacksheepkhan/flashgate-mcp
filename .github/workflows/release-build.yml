@@ -44,3 +44,12 @@ jobs:
           name: ${{ matrix.artifact_name }}
           path: ${{ matrix.output_path }}
           if-no-files-found: error
+          retention-days: 30
+
+      - name: Write build summary
+        shell: bash
+        run: |
+          echo "## Release artifact" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Artifact: \`${{ matrix.artifact_name }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Path: \`${{ matrix.output_path }}\`" >> "$GITHUB_STEP_SUMMARY"
