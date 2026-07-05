@@ -1,0 +1,106 @@
+package main
+
+import (
+	"errors"
+	"reflect"
+	"testing"
+
+	"github.com/blacksheepkhan/fileserver-mcp/internal/fs"
+)
+
+func TestCreateToolRegistryRegistersExpectedToolsInOrder(t *testing.T) {
+	filesystem := noopFileSystem{}
+
+	registry := createToolRegistry(filesystem, 1024)
+
+	registeredTools := registry.List()
+	gotNames := make([]string, 0, len(registeredTools))
+
+	for _, tool := range registeredTools {
+		gotNames = append(gotNames, tool.Name())
+	}
+
+	wantNames := []string{
+		"list_files",
+		"read_file",
+		"stat_path",
+		"exists_path",
+		"write_file",
+		"mkdir",
+		"delete_path",
+		"move_path",
+		"copy_path",
+		"rename_path",
+	}
+
+	if !reflect.DeepEqual(gotNames, wantNames) {
+		t.Fatalf("unexpected tool registration order\nwant: %v\n got: %v", wantNames, gotNames)
+	}
+}
+
+func TestCreateToolRegistryRegistersResolvableTools(t *testing.T) {
+	filesystem := noopFileSystem{}
+
+	registry := createToolRegistry(filesystem, 1024)
+
+	expectedNames := []string{
+		"list_files",
+		"read_file",
+		"stat_path",
+		"exists_path",
+		"write_file",
+		"mkdir",
+		"delete_path",
+		"move_path",
+		"copy_path",
+		"rename_path",
+	}
+
+	for _, name := range expectedNames {
+		if _, ok := registry.Get(name); !ok {
+			t.Fatalf("expected tool %q to be registered", name)
+		}
+	}
+}
+
+type noopFileSystem struct{}
+
+func (noopFileSystem) List(string) ([]fs.Entry, error) {
+	return nil, errors.New("not implemented")
+}
+
+func (noopFileSystem) Read(string, int64) ([]byte, error) {
+	return nil, errors.New("not implemented")
+}
+
+func (noopFileSystem) Stat(string) (fs.Metadata, error) {
+	return fs.Metadata{}, errors.New("not implemented")
+}
+
+func (noopFileSystem) Exists(string) (bool, error) {
+	return false, errors.New("not implemented")
+}
+
+func (noopFileSystem) Write(string, []byte, bool) error {
+	return errors.New("not implemented")
+}
+
+func (noopFileSystem) Mkdir(string) error {
+	return errors.New("not implemented")
+}
+
+func (noopFileSystem) Delete(string, bool) error {
+	return errors.New("not implemented")
+}
+
+func (noopFileSystem) Move(string, string, bool) error {
+	return errors.New("not implemented")
+}
+
+func (noopFileSystem) Copy(string, string, bool) error {
+	return errors.New("not implemented")
+}
+
+func (noopFileSystem) Rename(string, string, bool) error {
+	return errors.New("not implemented")
+}
