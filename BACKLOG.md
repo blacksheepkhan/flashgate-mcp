@@ -161,6 +161,18 @@ Documentation is part of the project deliverable and should be updated continuou
 | BL-047 | Planned | Add non-developer smoke-test documentation | Support users without Go installed | Explain script-based validation |
 | BL-048 | Planned | Expand tool documentation for future process and command tools | Needed before implementation | Document security implications clearly |
 
+## Sprint 021 - Root Security Hardening
+
+| ID | Status | Task | Reason | Notes |
+|---|---|---|---|---|
+| BL-049 | Ready | Enforce `MCP_READ_ONLY` across filesystem tools | Config is parsed, but write-capable operations may still be available | Disable write, mkdir, delete, move, copy, and rename when enabled |
+| BL-050 | Ready | Enforce `MCP_ALLOW_HIDDEN_FILES` in filesystem access | Config is parsed, but hidden-file policy may not be applied | Define portable Windows/Linux hidden-file behavior |
+| BL-051 | Ready | Enforce `MCP_ALLOW_UNC_PATHS` on Windows roots and paths | Config is parsed, but UNC path policy may not be applied | Reject UNC roots and user paths unless explicitly allowed |
+| BL-052 | Ready | Enforce `MCP_FOLLOW_SYMLINKS` consistently | Config is parsed, but filesystem operations may still follow symlinks | Use no-follow checks where needed before file operations |
+| BL-053 | Ready | Close symlink escape risk from configured root | Symlinks inside the root may resolve outside the allowed tree | Validate resolved real paths before read, write, copy, move, rename, delete, and stat |
+| BL-054 | Ready | Replace purely lexical path checks with real-path validation | Lexical root checks alone are insufficient for filesystem security | Keep lexical checks, then verify evaluated paths remain under root |
+| BL-055 | Ready | Harden JSON-RPC request validation | Current validation is minimal | Validate JSON-RPC version, method shape, IDs, notifications, and invalid request handling |
+
 ## Done Summary
 
 This section is intentionally not a full commit history. Detailed chronological changes are tracked in `CHANGELOG.md`.
