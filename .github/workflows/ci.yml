@@ -46,7 +46,20 @@ jobs:
         run: go test ./...
 
       - name: Build
-        run: go build ./cmd/server
+        shell: bash
+        run: |
+          mkdir -p build
+
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            go build -o build/fileserver-mcp.exe ./cmd/server
+          else
+            go build -o build/fileserver-mcp ./cmd/server
+          fi
+
+      - name: JSON-RPC smoke test
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: .\scripts\smoke-jsonrpc.ps1
 
   lint:
     name: Lint
