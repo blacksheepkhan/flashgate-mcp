@@ -1,4 +1,4 @@
-﻿# fileserver-mcp
+# fileserver-mcp
 
 `fileserver-mcp` is a cross-platform Model Context Protocol (MCP) server written in Go.
 
@@ -87,6 +87,24 @@ docs/mcp-tool-catalog.json
 ```
 
 The catalog contains tool names, descriptions, input schemas, result schemas, and common error behavior.
+
+## Project Planning
+
+Planned work is tracked in:
+
+```text
+BACKLOG.md
+```
+
+The backlog is the authoritative planning document for upcoming filesystem, process, command execution, system information, security, CI, release, and documentation work.
+
+Project history is tracked in:
+
+```text
+CHANGELOG.md
+```
+
+`README.md`, `CHANGELOG.md`, and `BACKLOG.md` should be kept current as part of the normal sprint workflow.
 
 ## Project Structure
 
@@ -343,20 +361,12 @@ Each feature should include:
 
 ## Roadmap
 
-Planned hardening and extension areas:
+Planned work is maintained in `BACKLOG.md`.
 
-- additional integration tests
-- benchmark tests
-- optional read-only mode
-- search tools
-- append-file support
-- larger-file streaming strategy
-- structured logging to standard error
-- client configuration examples
+The backlog covers filesystem tools, search tools, process tools, command execution, system information, security and capability controls, client compatibility, CI, release automation, and documentation.
 
 ## License
 
 This project is licensed under the GNU General Public License v3.0.
 
 See `LICENSE` for details.
-
