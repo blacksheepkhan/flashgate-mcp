@@ -104,10 +104,23 @@ On Windows:
 
 ```powershell
 .\scripts\smoke-jsonrpc.ps1
+$env:MCP_READ_ONLY = "true"
+.\scripts\smoke-jsonrpc.ps1
+Remove-Item Env:\MCP_READ_ONLY
 .\scripts\smoke-jsonrpc-negative.ps1
 ```
 
-The default smoke test validates `initialize` and `tools/list`. The negative smoke test validates malformed JSON, unknown methods, invalid `tools/call` params, and notification no-response behavior.
+On Linux:
+
+```bash
+bash scripts/smoke-jsonrpc.sh
+MCP_READ_ONLY=true bash scripts/smoke-jsonrpc.sh
+bash scripts/smoke-jsonrpc-negative.sh
+```
+
+The default smoke test validates `initialize` and `tools/list`. The read-only variant verifies that write-capable tools are not registered when `MCP_READ_ONLY=true`. The negative smoke test validates malformed JSON, unknown methods, invalid `tools/call` params, and notification no-response behavior.
+
+GitHub Actions runs default, read-only, and negative JSON-RPC smoke variants on both `windows-latest` and `ubuntu-latest`. The smoke scripts create per-run JSONL request and response files under `build/` and clean them up before exit. Script output is CI diagnostic output; server stdout remains reserved for redirected JSON-RPC protocol messages.
 
 Limit and redaction behavior is primarily covered by Go unit tests. Additional limit-negative smoke coverage can be added later if it can be done without broad smoke-script refactoring.
 

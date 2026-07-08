@@ -5,8 +5,14 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 
 BINARY_PATH="${REPO_ROOT}/build/fileserver-mcp"
-REQUEST_PATH="${REPO_ROOT}/build/smoke-jsonrpc-request.jsonl"
-RESPONSE_PATH="${REPO_ROOT}/build/smoke-jsonrpc-response.jsonl"
+STAMP="$$-$(date +%s%N)"
+REQUEST_PATH="${REPO_ROOT}/build/smoke-jsonrpc-${STAMP}-request.jsonl"
+RESPONSE_PATH="${REPO_ROOT}/build/smoke-jsonrpc-${STAMP}-response.jsonl"
+
+cleanup() {
+  rm -f "${REQUEST_PATH}" "${RESPONSE_PATH}"
+}
+trap cleanup EXIT
 
 if [[ ! -x "${BINARY_PATH}" ]]; then
   echo "Binary not found or not executable: ${BINARY_PATH}" >&2

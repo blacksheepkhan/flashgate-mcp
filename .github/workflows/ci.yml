@@ -56,10 +56,39 @@ jobs:
             go build -o build/fileserver-mcp ./cmd/server
           fi
 
-      - name: JSON-RPC smoke test
+      - name: JSON-RPC smoke test (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: bash scripts/smoke-jsonrpc.sh
+
+      - name: JSON-RPC smoke test (Ubuntu read-only)
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        env:
+          MCP_READ_ONLY: "true"
+        run: bash scripts/smoke-jsonrpc.sh
+
+      - name: Negative JSON-RPC smoke test (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: bash scripts/smoke-jsonrpc-negative.sh
+
+      - name: JSON-RPC smoke test (Windows)
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: .\scripts\smoke-jsonrpc.ps1
+
+      - name: JSON-RPC smoke test (Windows read-only)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        env:
+          MCP_READ_ONLY: "true"
+        run: .\scripts\smoke-jsonrpc.ps1
+
+      - name: Negative JSON-RPC smoke test (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: .\scripts\smoke-jsonrpc-negative.ps1
 
   lint:
     name: Lint

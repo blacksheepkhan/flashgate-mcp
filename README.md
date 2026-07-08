@@ -244,7 +244,22 @@ Run the JSON-RPC smoke test on Windows:
 .\scripts\smoke-jsonrpc.ps1
 ```
 
-The smoke test starts the built Windows binary and sends JSON-RPC requests through STDIO. It verifies that the server responds to:
+Run the same smoke test in Windows read-only mode:
+
+```powershell
+$env:MCP_READ_ONLY = "true"
+.\scripts\smoke-jsonrpc.ps1
+Remove-Item Env:\MCP_READ_ONLY
+```
+
+On Linux, build the non-`.exe` binary and run:
+
+```bash
+bash scripts/smoke-jsonrpc.sh
+MCP_READ_ONLY=true bash scripts/smoke-jsonrpc.sh
+```
+
+The default smoke test starts the built server binary and sends JSON-RPC requests through STDIO. It verifies that the server responds to:
 
 ```text
 initialize
@@ -259,7 +274,15 @@ Run the negative JSON-RPC smoke test on Windows:
 .\scripts\smoke-jsonrpc-negative.ps1
 ```
 
+On Linux:
+
+```bash
+bash scripts/smoke-jsonrpc-negative.sh
+```
+
 The negative smoke test verifies malformed JSON, unknown methods, invalid `tools/call` params, and notification no-response behavior.
+
+The smoke scripts create per-run JSONL request and response files under `build/` and remove them before exit. Script status output goes to the shell or CI log; the server process still writes only JSON-RPC protocol data to its redirected stdout stream.
 
 ## Release Builds
 
