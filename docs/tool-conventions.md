@@ -31,7 +31,10 @@ The following path forms are invalid or must be rejected by the filesystem layer
 - absolute paths
 - paths escaping the configured root
 - paths using parent traversal to leave the root
+- paths whose effective filesystem location resolves outside the configured root
 - invalid or empty paths where the tool requires a path
+
+The filesystem layer validates paths in two stages. Lexical validation rejects unsafe path forms before filesystem access. Effective validation then evaluates existing paths, or the nearest existing parent for create targets, and confirms the evaluated location remains below the configured root.
 
 Examples:
 

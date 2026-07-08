@@ -64,6 +64,11 @@ MCP_ROOT
 
 Tool arguments use relative paths below this root. Absolute paths, path traversal outside the configured root, and unsafe path forms are rejected by the filesystem and security layers.
 
+Path validation uses two stages:
+
+1. Lexical validation rejects absolute user paths and leading parent traversal such as `..` or `../secret.txt`.
+2. Effective path validation evaluates existing paths, and the nearest existing parent for create targets, to confirm the resulting filesystem location remains inside the configured root.
+
 Individual tools do not bypass the filesystem abstraction and do not call host filesystem APIs directly. This keeps path validation centralized and testable.
 
 ### Read-only mode

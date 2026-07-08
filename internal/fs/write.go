@@ -7,7 +7,7 @@ import (
 
 // Write writes a file. Existing files are only overwritten when overwrite is true.
 func (f *LocalFileSystem) Write(path string, content []byte, overwrite bool) error {
-	safePath, err := f.guard.Resolve(path)
+	safePath, err := f.guard.ResolveForCreate(path)
 	if err != nil {
 		return err
 	}
@@ -48,7 +48,7 @@ func (f *LocalFileSystem) Write(path string, content []byte, overwrite bool) err
 
 // Mkdir creates a directory and any missing parent directories.
 func (f *LocalFileSystem) Mkdir(path string) error {
-	safePath, err := f.guard.Resolve(path)
+	safePath, err := f.guard.ResolveForCreate(path)
 	if err != nil {
 		return err
 	}

@@ -4,7 +4,7 @@ import "os"
 
 // Delete deletes a file or directory.
 func (f *LocalFileSystem) Delete(path string, recursive bool) error {
-	safePath, err := f.guard.Resolve(path)
+	safePath, err := f.guard.ResolveExisting(path)
 	if err != nil {
 		return err
 	}

@@ -4,7 +4,7 @@ import "os"
 
 // Read reads a file up to maxBytes bytes.
 func (f *LocalFileSystem) Read(path string, maxBytes int64) ([]byte, error) {
-	safePath, err := f.guard.Resolve(path)
+	safePath, err := f.guard.ResolveExisting(path)
 	if err != nil {
 		return nil, err
 	}

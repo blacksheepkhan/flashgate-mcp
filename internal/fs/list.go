@@ -4,7 +4,7 @@ import "os"
 
 // List lists directory entries.
 func (f *LocalFileSystem) List(path string) ([]Entry, error) {
-	safePath, err := f.guard.Resolve(path)
+	safePath, err := f.guard.ResolveExisting(path)
 	if err != nil {
 		return nil, err
 	}

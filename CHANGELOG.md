@@ -8,6 +8,7 @@ The format follows the spirit of [Keep a Changelog](https://keepachangelog.com/)
 
 ### Added
 
+- Sprint 3.36 root, realpath, and traversal hardening for filesystem access.
 - Sprint 3.35 read-only tool capability gating for filesystem MCP tools.
 - Initial Go module setup.
 - Project structure for a professional MCP server implementation.
@@ -92,6 +93,9 @@ The format follows the spirit of [Keep a Changelog](https://keepachangelog.com/)
 
 ### Security
 
+- Sprint 3.36 adds effective path validation through `PathGuard` using evaluated existing paths and evaluated nearest existing parents for create targets.
+- Sprint 3.36 rejects symlink-based filesystem escapes that resolve outside the configured root.
+- Sprint 3.36 maps security/path denials to generic invalid-params tool errors without exposing host paths.
 - Sprint 3.35 enforces `MCP_READ_ONLY=true` at tool registration time by exposing only `list_files`, `read_file`, `stat_path`, and `exists_path`.
 - Sprint 3.35 prevents direct `tools/call` execution of write-capable tools in read-only mode because those tools are not registered.
 - Filesystem paths are resolved through a sandbox root.

@@ -7,12 +7,12 @@ import (
 
 // Move moves a file or directory. Existing targets are only overwritten when overwrite is true.
 func (f *LocalFileSystem) Move(source string, target string, overwrite bool) error {
-	sourcePath, err := f.guard.Resolve(source)
+	sourcePath, err := f.guard.ResolveExisting(source)
 	if err != nil {
 		return err
 	}
 
-	targetPath, err := f.guard.Resolve(target)
+	targetPath, err := f.guard.ResolveForCreate(target)
 	if err != nil {
 		return err
 	}
