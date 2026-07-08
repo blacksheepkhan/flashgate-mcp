@@ -67,11 +67,19 @@ Common causes:
 
 Protocol-level JSON-RPC errors are generic. Invalid request envelopes return `invalid request`, unknown JSON-RPC methods return `method not found`, invalid method params return `invalid params`, and unexpected server errors return `internal error`.
 
+Limit violations are also generic. Oversized JSON-RPC messages return Invalid Request with `id:null`. Oversized `tools/call` arguments return Invalid params. Filesystem operation limits return Invalid params with:
+
+```text
+filesystem error: limit exceeded
+```
+
 ---
 
 ## `list_files`
 
 Lists files and directories below the configured filesystem root.
+
+The number of policy-visible entries is capped by `MCP_MAX_LIST_ENTRIES`. If more entries would be returned, the tool fails with a limit error instead of silently truncating the listing.
 
 When hidden files or symlinks/reparse points are denied by policy, matching child entries are filtered from the result instead of failing the whole directory listing. The parent directory itself must still pass all path and policy checks.
 
@@ -119,6 +127,8 @@ When hidden files or symlinks/reparse points are denied by policy, matching chil
 ## `read_file`
 
 Reads a text file below the configured filesystem root.
+
+The maximum returned content is capped by `MCP_MAX_FILE_SIZE`. The optional `maxBytes` argument can lower this cap for a request, but cannot raise it.
 
 ### Input
 
@@ -243,6 +253,8 @@ Checks whether a file or directory exists below the configured filesystem root.
 
 Writes a text file below the configured filesystem root.
 
+Content size is capped by `MCP_MAX_WRITE_BYTES`.
+
 ### Input
 
 ```json
@@ -329,6 +341,8 @@ Creates a directory below the configured filesystem root.
 ## `delete_path`
 
 Deletes a file or directory below the configured filesystem root.
+
+Recursive deletes are capped by `MCP_MAX_DELETE_ENTRIES`. If the target tree exceeds the limit, no delete is performed.
 
 ### Input
 
@@ -419,6 +433,8 @@ Moves a file or directory below the configured filesystem root.
 ## `copy_path`
 
 Copies a file or directory below the configured filesystem root.
+
+Source file size is capped by `MCP_MAX_COPY_BYTES`. Directory copy remains unsupported.
 
 ### Input
 

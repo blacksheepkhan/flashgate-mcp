@@ -72,6 +72,19 @@ func TestReadMessageReturnsEOF(t *testing.T) {
 	}
 }
 
+func TestReadMessageReturnsMessageTooLarge(t *testing.T) {
+	t.Parallel()
+
+	input := strings.NewReader(`{"jsonrpc":"2.0","method":"tools/list"}` + "\n")
+	output := &bytes.Buffer{}
+	transport := NewWithLimits(input, output, 10, 0)
+
+	_, err := transport.ReadMessage()
+	if !errors.Is(err, ErrMessageTooLarge) {
+		t.Fatalf("expected ErrMessageTooLarge, got %v", err)
+	}
+}
+
 func TestWriteMessageWritesJSONLine(t *testing.T) {
 	t.Parallel()
 
@@ -124,5 +137,22 @@ func TestWriteMessageFlushesOutput(t *testing.T) {
 
 	if output.Len() == 0 {
 		t.Fatal("expected output to be flushed")
+	}
+}
+
+func TestWriteMessageReturnsResponseTooLarge(t *testing.T) {
+	t.Parallel()
+
+	input := strings.NewReader("")
+	output := &bytes.Buffer{}
+	transport := NewWithLimits(input, output, 0, 10)
+
+	err := transport.WriteMessage(map[string]any{"content": strings.Repeat("x", 50)})
+	if !errors.Is(err, ErrResponseTooLarge) {
+		t.Fatalf("expected ErrResponseTooLarge, got %v", err)
+	}
+
+	if output.Len() != 0 {
+		t.Fatalf("expected no oversized output, got %q", output.String())
 	}
 }

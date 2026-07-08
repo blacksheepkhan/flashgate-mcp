@@ -191,6 +191,25 @@ Notifications do not receive JSON-RPC responses. `notifications/initialized` is 
 
 Unexpected handler panics are contained at the request boundary and returned as generic Internal error responses when the request requires a response.
 
+## Limits and Redaction
+
+Sprint 3.39 adds configurable hard limits for protocol input, tool arguments, filesystem payloads, and response size.
+
+| Environment variable | Default | Scope |
+|---|---:|---|
+| `MCP_MAX_FILE_SIZE` | `10485760` | Hard cap for `read_file`; client `maxBytes` can only lower it. |
+| `MCP_MAX_JSONRPC_MESSAGE_BYTES` | `16777216` | Maximum single JSON-RPC message read from stdin. |
+| `MCP_MAX_TOOL_ARGUMENT_BYTES` | `12582912` | Maximum `tools/call` params or arguments payload. |
+| `MCP_MAX_WRITE_BYTES` | `10485760` | Maximum `write_file` content size. |
+| `MCP_MAX_LIST_ENTRIES` | `1000` | Maximum policy-visible `list_files` entries. |
+| `MCP_MAX_COPY_BYTES` | `10485760` | Maximum `copy_path` source file size. |
+| `MCP_MAX_DELETE_ENTRIES` | `1000` | Maximum entries for recursive `delete_path`. |
+| `MCP_MAX_RESPONSE_BYTES` | `16777216` | Maximum serialized JSON-RPC response size safety net. |
+
+Limit violations use generic client-visible messages. Filesystem limit denials are mapped to Invalid params with `filesystem error: limit exceeded`. JSON-RPC messages above the configured message cap are rejected as Invalid Request with `id:null`.
+
+`MCP_DEBUG=true` enables minimal stderr diagnostics. Diagnostics are redacted for common authorization headers, token/password/API-key/secret assignments, private-key markers, connection strings with credentials, and absolute host paths. Redaction is a diagnostic safeguard; client-visible security and protocol errors are still built generically instead of exposing raw OS errors.
+
 ## Security Testing
 
 Security tests currently cover:
@@ -212,11 +231,15 @@ Security tests currently cover:
 - explicit `id:null` error responses
 - notification no-response and no tool execution behavior
 - generic protocol error messages
+- JSON-RPC message and tool argument limits
+- filesystem read/write/list/copy/delete limits
+- response-size safety net
+- diagnostics redaction
 
 ## Future Security Work
 
 Planned future work:
 
-- maximum response size
-- maximum directory listing size
-- audit logging
+- larger-file streaming strategy
+- search tool limits and exclude model
+- deeper cross-platform testing

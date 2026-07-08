@@ -1210,6 +1210,98 @@ func TestLocalFileSystemRenameRejectsSymlinkedTargetParentEscape(t *testing.T) {
 	}
 }
 
+func TestLocalFileSystemListRejectsTooManyEntries(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	writeTestFile(t, filepath.Join(root, "a.txt"), "a")
+	writeTestFile(t, filepath.Join(root, "b.txt"), "b")
+
+	filesystem := mustNewLocalFileSystemWithLimits(t, root, Limits{
+		MaxWriteBytes:    1024,
+		MaxListEntries:   1,
+		MaxCopyBytes:     1024,
+		MaxDeleteEntries: 10,
+	})
+
+	_, err := filesystem.List(".")
+
+	if !errors.Is(err, ErrLimitExceeded) {
+		t.Fatalf("expected ErrLimitExceeded, got %v", err)
+	}
+}
+
+func TestLocalFileSystemWriteRejectsContentOverLimit(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	filesystem := mustNewLocalFileSystemWithLimits(t, root, Limits{
+		MaxWriteBytes:    4,
+		MaxListEntries:   10,
+		MaxCopyBytes:     1024,
+		MaxDeleteEntries: 10,
+	})
+
+	err := filesystem.Write("created.txt", []byte("12345"), false)
+
+	if !errors.Is(err, ErrLimitExceeded) {
+		t.Fatalf("expected ErrLimitExceeded, got %v", err)
+	}
+
+	if fileExists(t, filepath.Join(root, "created.txt")) {
+		t.Fatal("expected over-limit write not to create file")
+	}
+}
+
+func TestLocalFileSystemCopyRejectsSourceOverLimit(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	writeTestFile(t, filepath.Join(root, "source.txt"), "12345")
+	filesystem := mustNewLocalFileSystemWithLimits(t, root, Limits{
+		MaxWriteBytes:    1024,
+		MaxListEntries:   10,
+		MaxCopyBytes:     4,
+		MaxDeleteEntries: 10,
+	})
+
+	err := filesystem.Copy("source.txt", "target.txt", false)
+
+	if !errors.Is(err, ErrLimitExceeded) {
+		t.Fatalf("expected ErrLimitExceeded, got %v", err)
+	}
+
+	if fileExists(t, filepath.Join(root, "target.txt")) {
+		t.Fatal("expected over-limit copy not to create target")
+	}
+}
+
+func TestLocalFileSystemDeleteRecursiveRejectsTooManyEntries(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	mkdir(t, filepath.Join(root, "dir"))
+	writeTestFile(t, filepath.Join(root, "dir", "a.txt"), "a")
+	writeTestFile(t, filepath.Join(root, "dir", "b.txt"), "b")
+	filesystem := mustNewLocalFileSystemWithLimits(t, root, Limits{
+		MaxWriteBytes:    1024,
+		MaxListEntries:   10,
+		MaxCopyBytes:     1024,
+		MaxDeleteEntries: 1,
+	})
+
+	err := filesystem.Delete("dir", true)
+
+	if !errors.Is(err, ErrLimitExceeded) {
+		t.Fatalf("expected ErrLimitExceeded, got %v", err)
+	}
+
+	if !fileExists(t, filepath.Join(root, "dir", "a.txt")) ||
+		!fileExists(t, filepath.Join(root, "dir", "b.txt")) {
+		t.Fatal("expected over-limit recursive delete not to remove files")
+	}
+}
+
 func mustNewLocalFileSystem(t *testing.T, root string) *LocalFileSystem {
 	t.Helper()
 
@@ -1225,6 +1317,17 @@ func mustNewLocalFileSystemWithPolicy(t *testing.T, root string, policy security
 	t.Helper()
 
 	filesystem, err := NewLocalFileSystemWithPolicy(root, policy)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	return filesystem
+}
+
+func mustNewLocalFileSystemWithLimits(t *testing.T, root string, limits Limits) *LocalFileSystem {
+	t.Helper()
+
+	filesystem, err := NewLocalFileSystemWithPolicyAndLimits(root, security.DefaultPolicy(), limits)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}

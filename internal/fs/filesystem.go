@@ -24,7 +24,28 @@ var (
 
 	// ErrCopyDirectoryUnsupported is returned when attempting to copy a directory.
 	ErrCopyDirectoryUnsupported = errors.New("copying directories is not supported")
+
+	// ErrLimitExceeded is returned when an operation exceeds a configured limit.
+	ErrLimitExceeded = errors.New("filesystem limit exceeded")
 )
+
+// Limits contains filesystem operation limits.
+type Limits struct {
+	MaxWriteBytes    int64
+	MaxListEntries   int
+	MaxCopyBytes     int64
+	MaxDeleteEntries int
+}
+
+// DefaultLimits returns conservative filesystem limits.
+func DefaultLimits() Limits {
+	return Limits{
+		MaxWriteBytes:    10 * 1024 * 1024,
+		MaxListEntries:   1000,
+		MaxCopyBytes:     10 * 1024 * 1024,
+		MaxDeleteEntries: 1000,
+	}
+}
 
 // Entry represents a filesystem directory entry.
 type Entry struct {
@@ -56,7 +77,8 @@ type FileSystem interface {
 
 // LocalFileSystem implements FileSystem using the local operating system.
 type LocalFileSystem struct {
-	guard *security.PathGuard
+	guard  *security.PathGuard
+	limits Limits
 }
 
 // NewLocalFileSystem creates a new local filesystem.
@@ -66,12 +88,33 @@ func NewLocalFileSystem(root string) (*LocalFileSystem, error) {
 
 // NewLocalFileSystemWithPolicy creates a new local filesystem with an explicit policy.
 func NewLocalFileSystemWithPolicy(root string, policy security.Policy) (*LocalFileSystem, error) {
+	return NewLocalFileSystemWithPolicyAndLimits(root, policy, DefaultLimits())
+}
+
+// NewLocalFileSystemWithPolicyAndLimits creates a new local filesystem with an explicit policy and limits.
+func NewLocalFileSystemWithPolicyAndLimits(root string, policy security.Policy, limits Limits) (*LocalFileSystem, error) {
+	if err := validateLimits(limits); err != nil {
+		return nil, err
+	}
+
 	guard, err := security.NewPathGuardWithPolicy(root, policy)
 	if err != nil {
 		return nil, err
 	}
 
 	return &LocalFileSystem{
-		guard: guard,
+		guard:  guard,
+		limits: limits,
 	}, nil
+}
+
+func validateLimits(limits Limits) error {
+	if limits.MaxWriteBytes <= 0 ||
+		limits.MaxListEntries <= 0 ||
+		limits.MaxCopyBytes <= 0 ||
+		limits.MaxDeleteEntries <= 0 {
+		return ErrLimitExceeded
+	}
+
+	return nil
 }

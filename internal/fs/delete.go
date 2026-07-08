@@ -1,6 +1,9 @@
 package fs
 
-import "os"
+import (
+	"os"
+	"path/filepath"
+)
 
 // Delete deletes a file or directory.
 func (f *LocalFileSystem) Delete(path string, recursive bool) error {
@@ -16,6 +19,10 @@ func (f *LocalFileSystem) Delete(path string, recursive bool) error {
 
 	if info.IsDir() {
 		if recursive {
+			if err := f.ensureRecursiveDeleteWithinLimit(safePath.String()); err != nil {
+				return err
+			}
+
 			return os.RemoveAll(safePath.String())
 		}
 
@@ -30,4 +37,25 @@ func (f *LocalFileSystem) Delete(path string, recursive bool) error {
 	}
 
 	return os.Remove(safePath.String())
+}
+
+func (f *LocalFileSystem) ensureRecursiveDeleteWithinLimit(root string) error {
+	entries := 0
+
+	return filepath.WalkDir(root, func(path string, entry os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if path == root {
+			return nil
+		}
+
+		entries++
+		if entries > f.limits.MaxDeleteEntries {
+			return ErrLimitExceeded
+		}
+
+		return nil
+	})
 }

@@ -66,6 +66,12 @@ Contains immutable application configuration.
 
 Configuration is loaded from defaults and environment variables. Future configuration sources may include configuration files and command-line flags.
 
+### `internal/diagnostics`
+
+Contains redaction and minimal stderr diagnostic helpers.
+
+Diagnostics must never write to stdout and must not log raw request payloads, file contents, secrets, credentials, connection strings, or host paths.
+
 ### `internal/security`
 
 Contains security-sensitive validation logic.
@@ -123,6 +129,7 @@ Allowed examples:
 mcp/tools -> fs
 fs        -> security
 server    -> router, transport, protocol
+server    -> diagnostics
 ```
 
 Disallowed examples:
@@ -189,6 +196,4 @@ copy.go
 
 ## Current Status
 
-The foundation layer is implemented and tested.
-
-The MCP protocol layer is currently a skeleton and will be completed in a later sprint.
+The foundation layer and MCP protocol boundary are implemented and tested. Further work should extend the existing layers without bypassing the configured limits, diagnostics redaction, or filesystem security boundary.

@@ -112,6 +112,54 @@ func TestReadFileToolUsesDefaultMaxBytes(t *testing.T) {
 	}
 }
 
+func TestReadFileToolCapsClientMaxBytesAtServerLimit(t *testing.T) {
+	t.Parallel()
+
+	filesystem := newFakeFileSystem()
+	filesystem.readContent = []byte("abc")
+
+	tool := NewReadFileTool(filesystem, 4096)
+
+	_, rpcErr := tool.Execute(
+		context.Background(),
+		json.RawMessage(`{"path":"README.md","maxBytes":8192}`),
+	)
+
+	if rpcErr != nil {
+		t.Fatalf("expected no error, got %v", rpcErr)
+	}
+
+	if filesystem.readMaxBytes != 4096 {
+		t.Fatalf("expected maxBytes capped at 4096, got %d", filesystem.readMaxBytes)
+	}
+}
+
+func TestReadFileToolMapsLimitExceeded(t *testing.T) {
+	t.Parallel()
+
+	filesystem := newFakeFileSystem()
+	filesystem.readErr = fs.ErrLimitExceeded
+
+	tool := NewReadFileTool(filesystem, 1024)
+
+	_, rpcErr := tool.Execute(
+		context.Background(),
+		json.RawMessage(`{"path":"README.md"}`),
+	)
+
+	if rpcErr == nil {
+		t.Fatal("expected rpc error")
+	}
+
+	if rpcErr.Code != protocol.ErrInvalidParams {
+		t.Fatalf("expected ErrInvalidParams, got %d", rpcErr.Code)
+	}
+
+	if rpcErr.Message != "filesystem error: limit exceeded" {
+		t.Fatalf("expected limit message, got %q", rpcErr.Message)
+	}
+}
+
 func TestReadFileToolReturnsInvalidParamsForMalformedJSON(t *testing.T) {
 	t.Parallel()
 

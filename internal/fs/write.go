@@ -2,6 +2,7 @@ package fs
 
 import (
 	"errors"
+	"io"
 	"os"
 )
 
@@ -10,6 +11,10 @@ func (f *LocalFileSystem) Write(path string, content []byte, overwrite bool) err
 	safePath, err := f.guard.ResolveForCreate(path)
 	if err != nil {
 		return err
+	}
+
+	if int64(len(content)) > f.limits.MaxWriteBytes {
+		return ErrLimitExceeded
 	}
 
 	info, err := os.Stat(safePath.String())
@@ -42,8 +47,16 @@ func (f *LocalFileSystem) Write(path string, content []byte, overwrite bool) err
 	}
 	defer file.Close()
 
-	_, err = file.Write(content)
-	return err
+	written, err := file.Write(content)
+	if err != nil {
+		return err
+	}
+
+	if written != len(content) {
+		return io.ErrShortWrite
+	}
+
+	return nil
 }
 
 // Mkdir creates a directory and any missing parent directories.

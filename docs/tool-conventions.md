@@ -10,6 +10,8 @@ Standard output is reserved for JSON-RPC protocol messages. Diagnostic output, l
 
 JSON-RPC request envelopes are validated before dispatch. Requests must be JSON objects with `jsonrpc` set to `"2.0"`, a non-empty string `method`, and an optional `id` of type string, number, or null. Unsupported batch requests are rejected. Notifications do not receive responses and are not used to execute tools.
 
+Single JSON-RPC messages are bounded by `MCP_MAX_JSONRPC_MESSAGE_BYTES`. Oversized messages are rejected as Invalid Request with `id:null` and are not dispatched.
+
 ## Filesystem Root
 
 All filesystem tools operate below the configured root directory.
@@ -139,10 +141,13 @@ Common cases:
 | unknown tool name | `-32602` |
 | read-only-gated write tool name | `-32602` |
 | invalid filesystem operation | `-32602` |
+| filesystem limit exceeded | `-32602` |
 
 Filesystem errors are mapped centrally before being returned to the client.
 
 Tools should not expose raw operating system errors directly unless they are intentionally wrapped and normalized.
+
+Filesystem limit errors should use the generic client-visible message `filesystem error: limit exceeded`. Tool argument and `tools/call` payload limits should use generic Invalid params errors.
 
 Protocol-level errors use generic JSON-RPC messages:
 
@@ -221,8 +226,11 @@ Filesystem tools must follow these rules:
 - never duplicate path validation in individual tools
 - keep path validation centralized
 - enforce hidden, UNC, symlink, junction, and reparse policy through `internal/security.PathGuard`
+- enforce configured message, argument, filesystem operation, and response limits
 - map path and security policy denials to generic invalid-path tool errors
+- map limit denials to generic limit errors
 - keep protocol output and diagnostic output separated
+- keep diagnostics on stderr and redact common secrets, credentials, connection strings, and host paths
 - prefer explicit destructive flags such as `recursive` and `overwrite`
 
 ## Adding a New Tool
