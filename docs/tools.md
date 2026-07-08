@@ -59,6 +59,7 @@ Common causes:
 - missing required arguments
 - invalid path
 - path outside the configured root
+- hidden, UNC, symlink, junction, or reparse policy denial
 - target already exists and `overwrite` is `false`
 - directory is not empty and `recursive` is `false`
 
@@ -67,6 +68,8 @@ Common causes:
 ## `list_files`
 
 Lists files and directories below the configured filesystem root.
+
+When hidden files or symlinks/reparse points are denied by policy, matching child entries are filtered from the result instead of failing the whole directory listing. The parent directory itself must still pass all path and policy checks.
 
 ### Input
 

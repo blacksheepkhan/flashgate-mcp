@@ -152,8 +152,68 @@ func TestLocalFileSystemListRejectsSymlinkEscape(t *testing.T) {
 
 	_, err := filesystem.List("escape-dir")
 
-	if !errors.Is(err, security.ErrOutsideRoot) {
-		t.Fatalf("expected ErrOutsideRoot, got %v", err)
+	if !errors.Is(err, security.ErrSymlinkDenied) {
+		t.Fatalf("expected ErrSymlinkDenied, got %v", err)
+	}
+}
+
+func TestLocalFileSystemListFiltersHiddenEntriesByDefault(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	writeTestFile(t, filepath.Join(root, "visible.txt"), "visible")
+	writeTestFile(t, filepath.Join(root, ".secret"), "secret")
+
+	filesystem := mustNewLocalFileSystem(t, root)
+
+	entries, err := filesystem.List(".")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if len(entries) != 1 {
+		t.Fatalf("expected 1 visible entry, got %d: %#v", len(entries), entries)
+	}
+
+	if entries[0].Name != "visible.txt" {
+		t.Fatalf("expected visible.txt, got %q", entries[0].Name)
+	}
+}
+
+func TestLocalFileSystemListIncludesHiddenEntriesWhenConfigured(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	writeTestFile(t, filepath.Join(root, ".secret"), "secret")
+
+	filesystem := mustNewLocalFileSystemWithPolicy(t, root, security.Policy{AllowHiddenFiles: true})
+
+	entries, err := filesystem.List(".")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	findEntry(t, entries, ".secret")
+}
+
+func TestLocalFileSystemListFiltersSymlinkEntriesByDefault(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	writeTestFile(t, filepath.Join(root, "target.txt"), "target")
+	createTestSymlinkOrSkip(t, filepath.Join(root, "target.txt"), filepath.Join(root, "link.txt"))
+
+	filesystem := mustNewLocalFileSystem(t, root)
+
+	entries, err := filesystem.List(".")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	for _, entry := range entries {
+		if entry.Name == "link.txt" {
+			t.Fatalf("expected symlink entry to be filtered, got %#v", entries)
+		}
 	}
 }
 
@@ -245,8 +305,41 @@ func TestLocalFileSystemReadRejectsSymlinkEscape(t *testing.T) {
 
 	_, err := filesystem.Read("escape.txt", 1024)
 
-	if !errors.Is(err, security.ErrOutsideRoot) {
-		t.Fatalf("expected ErrOutsideRoot, got %v", err)
+	if !errors.Is(err, security.ErrSymlinkDenied) {
+		t.Fatalf("expected ErrSymlinkDenied, got %v", err)
+	}
+}
+
+func TestLocalFileSystemReadRejectsHiddenPathByDefault(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	writeTestFile(t, filepath.Join(root, ".secret"), "secret")
+
+	filesystem := mustNewLocalFileSystem(t, root)
+
+	_, err := filesystem.Read(".secret", 1024)
+
+	if !errors.Is(err, security.ErrHiddenPathDenied) {
+		t.Fatalf("expected ErrHiddenPathDenied, got %v", err)
+	}
+}
+
+func TestLocalFileSystemReadAllowsHiddenPathWhenConfigured(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	writeTestFile(t, filepath.Join(root, ".secret"), "secret")
+
+	filesystem := mustNewLocalFileSystemWithPolicy(t, root, security.Policy{AllowHiddenFiles: true})
+
+	content, err := filesystem.Read(".secret", 1024)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if string(content) != "secret" {
+		t.Fatalf("expected secret content, got %q", string(content))
 	}
 }
 
@@ -323,8 +416,8 @@ func TestLocalFileSystemStatRejectsSymlinkEscape(t *testing.T) {
 
 	_, err := filesystem.Stat("escape.txt")
 
-	if !errors.Is(err, security.ErrOutsideRoot) {
-		t.Fatalf("expected ErrOutsideRoot, got %v", err)
+	if !errors.Is(err, security.ErrSymlinkDenied) {
+		t.Fatalf("expected ErrSymlinkDenied, got %v", err)
 	}
 }
 
@@ -362,6 +455,23 @@ func TestLocalFileSystemExistsReturnsFalseForMissingFile(t *testing.T) {
 	}
 }
 
+func TestLocalFileSystemExistsRejectsHiddenMissingPathByDefault(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	filesystem := mustNewLocalFileSystem(t, root)
+
+	exists, err := filesystem.Exists(".missing")
+
+	if !errors.Is(err, security.ErrHiddenPathDenied) {
+		t.Fatalf("expected ErrHiddenPathDenied, got %v", err)
+	}
+
+	if exists {
+		t.Fatal("expected hidden missing path to not exist")
+	}
+}
+
 func TestLocalFileSystemExistsRejectsTraversal(t *testing.T) {
 	t.Parallel()
 
@@ -391,8 +501,8 @@ func TestLocalFileSystemExistsRejectsSymlinkEscape(t *testing.T) {
 
 	exists, err := filesystem.Exists("escape.txt")
 
-	if !errors.Is(err, security.ErrOutsideRoot) {
-		t.Fatalf("expected ErrOutsideRoot, got %v", err)
+	if !errors.Is(err, security.ErrSymlinkDenied) {
+		t.Fatalf("expected ErrSymlinkDenied, got %v", err)
 	}
 
 	if exists {
@@ -508,12 +618,29 @@ func TestLocalFileSystemWriteRejectsSymlinkedParentEscape(t *testing.T) {
 
 	err := filesystem.Write(filepath.Join("escape-dir", "created.txt"), []byte("content"), false)
 
-	if !errors.Is(err, security.ErrOutsideRoot) {
-		t.Fatalf("expected ErrOutsideRoot, got %v", err)
+	if !errors.Is(err, security.ErrSymlinkDenied) {
+		t.Fatalf("expected ErrSymlinkDenied, got %v", err)
 	}
 
 	if fileExists(t, filepath.Join(outside, "created.txt")) {
 		t.Fatal("expected outside file to not be created")
+	}
+}
+
+func TestLocalFileSystemWriteRejectsHiddenTargetByDefault(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	filesystem := mustNewLocalFileSystem(t, root)
+
+	err := filesystem.Write(".secret", []byte("secret"), false)
+
+	if !errors.Is(err, security.ErrHiddenPathDenied) {
+		t.Fatalf("expected ErrHiddenPathDenied, got %v", err)
+	}
+
+	if fileExists(t, filepath.Join(root, ".secret")) {
+		t.Fatal("expected hidden file to not be created")
 	}
 }
 
@@ -575,12 +702,29 @@ func TestLocalFileSystemMkdirRejectsSymlinkedParentEscape(t *testing.T) {
 
 	err := filesystem.Mkdir(filepath.Join("escape-dir", "created"))
 
-	if !errors.Is(err, security.ErrOutsideRoot) {
-		t.Fatalf("expected ErrOutsideRoot, got %v", err)
+	if !errors.Is(err, security.ErrSymlinkDenied) {
+		t.Fatalf("expected ErrSymlinkDenied, got %v", err)
 	}
 
 	if fileExists(t, filepath.Join(outside, "created")) {
 		t.Fatal("expected outside directory to not be created")
+	}
+}
+
+func TestLocalFileSystemMkdirRejectsHiddenDirectoryByDefault(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	filesystem := mustNewLocalFileSystem(t, root)
+
+	err := filesystem.Mkdir(".secret-dir")
+
+	if !errors.Is(err, security.ErrHiddenPathDenied) {
+		t.Fatalf("expected ErrHiddenPathDenied, got %v", err)
+	}
+
+	if fileExists(t, filepath.Join(root, ".secret-dir")) {
+		t.Fatal("expected hidden directory to not be created")
 	}
 }
 
@@ -685,12 +829,32 @@ func TestLocalFileSystemDeleteRejectsSymlinkEscape(t *testing.T) {
 
 	err := filesystem.Delete("escape.txt", false)
 
-	if !errors.Is(err, security.ErrOutsideRoot) {
-		t.Fatalf("expected ErrOutsideRoot, got %v", err)
+	if !errors.Is(err, security.ErrSymlinkDenied) {
+		t.Fatalf("expected ErrSymlinkDenied, got %v", err)
 	}
 
 	if !fileExists(t, outsideFile) {
 		t.Fatal("expected outside file to remain")
+	}
+}
+
+func TestLocalFileSystemDeleteRejectsHiddenPathByDefault(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	hiddenPath := filepath.Join(root, ".secret")
+	writeTestFile(t, hiddenPath, "secret")
+
+	filesystem := mustNewLocalFileSystem(t, root)
+
+	err := filesystem.Delete(".secret", false)
+
+	if !errors.Is(err, security.ErrHiddenPathDenied) {
+		t.Fatalf("expected ErrHiddenPathDenied, got %v", err)
+	}
+
+	if !fileExists(t, hiddenPath) {
+		t.Fatal("expected hidden file to remain")
 	}
 }
 
@@ -805,8 +969,8 @@ func TestLocalFileSystemMoveRejectsSymlinkEscapeSource(t *testing.T) {
 
 	err := filesystem.Move("escape.txt", "target.txt", false)
 
-	if !errors.Is(err, security.ErrOutsideRoot) {
-		t.Fatalf("expected ErrOutsideRoot, got %v", err)
+	if !errors.Is(err, security.ErrSymlinkDenied) {
+		t.Fatalf("expected ErrSymlinkDenied, got %v", err)
 	}
 
 	if !fileExists(t, outsideFile) {
@@ -826,8 +990,8 @@ func TestLocalFileSystemMoveRejectsSymlinkedTargetParentEscape(t *testing.T) {
 
 	err := filesystem.Move("source.txt", filepath.Join("escape-dir", "target.txt"), false)
 
-	if !errors.Is(err, security.ErrOutsideRoot) {
-		t.Fatalf("expected ErrOutsideRoot, got %v", err)
+	if !errors.Is(err, security.ErrSymlinkDenied) {
+		t.Fatalf("expected ErrSymlinkDenied, got %v", err)
 	}
 
 	if fileExists(t, filepath.Join(outside, "target.txt")) {
@@ -955,8 +1119,8 @@ func TestLocalFileSystemCopyRejectsSymlinkEscapeSource(t *testing.T) {
 
 	err := filesystem.Copy("escape.txt", "target.txt", false)
 
-	if !errors.Is(err, security.ErrOutsideRoot) {
-		t.Fatalf("expected ErrOutsideRoot, got %v", err)
+	if !errors.Is(err, security.ErrSymlinkDenied) {
+		t.Fatalf("expected ErrSymlinkDenied, got %v", err)
 	}
 }
 
@@ -972,8 +1136,8 @@ func TestLocalFileSystemCopyRejectsSymlinkedTargetParentEscape(t *testing.T) {
 
 	err := filesystem.Copy("source.txt", filepath.Join("escape-dir", "target.txt"), false)
 
-	if !errors.Is(err, security.ErrOutsideRoot) {
-		t.Fatalf("expected ErrOutsideRoot, got %v", err)
+	if !errors.Is(err, security.ErrSymlinkDenied) {
+		t.Fatalf("expected ErrSymlinkDenied, got %v", err)
 	}
 
 	if fileExists(t, filepath.Join(outside, "target.txt")) {
@@ -1016,8 +1180,8 @@ func TestLocalFileSystemRenameRejectsSymlinkEscapeSource(t *testing.T) {
 
 	err := filesystem.Rename("escape.txt", "target.txt", false)
 
-	if !errors.Is(err, security.ErrOutsideRoot) {
-		t.Fatalf("expected ErrOutsideRoot, got %v", err)
+	if !errors.Is(err, security.ErrSymlinkDenied) {
+		t.Fatalf("expected ErrSymlinkDenied, got %v", err)
 	}
 
 	if !fileExists(t, outsideFile) {
@@ -1037,8 +1201,8 @@ func TestLocalFileSystemRenameRejectsSymlinkedTargetParentEscape(t *testing.T) {
 
 	err := filesystem.Rename("source.txt", filepath.Join("escape-dir", "target.txt"), false)
 
-	if !errors.Is(err, security.ErrOutsideRoot) {
-		t.Fatalf("expected ErrOutsideRoot, got %v", err)
+	if !errors.Is(err, security.ErrSymlinkDenied) {
+		t.Fatalf("expected ErrSymlinkDenied, got %v", err)
 	}
 
 	if fileExists(t, filepath.Join(outside, "target.txt")) {
@@ -1050,6 +1214,17 @@ func mustNewLocalFileSystem(t *testing.T, root string) *LocalFileSystem {
 	t.Helper()
 
 	filesystem, err := NewLocalFileSystem(root)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	return filesystem
+}
+
+func mustNewLocalFileSystemWithPolicy(t *testing.T, root string, policy security.Policy) *LocalFileSystem {
+	t.Helper()
+
+	filesystem, err := NewLocalFileSystemWithPolicy(root, policy)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}

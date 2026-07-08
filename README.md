@@ -71,6 +71,20 @@ Path validation uses two stages:
 
 Individual tools do not bypass the filesystem abstraction and do not call host filesystem APIs directly. This keeps path validation centralized and testable.
 
+Sprint 3.37 adds deny-by-default policy enforcement for hidden paths, UNC paths, symlinks, and Windows reparse points:
+
+```text
+MCP_ALLOW_HIDDEN_FILES=false
+MCP_ALLOW_UNC_PATHS=false
+MCP_FOLLOW_SYMLINKS=false
+```
+
+When hidden files are not allowed, dot-prefixed path components such as `.git/config` and Windows hidden-attribute paths are denied. `list_files` filters hidden entries instead of failing the whole parent listing.
+
+When UNC paths are not allowed, UNC roots and UNC-style user paths are rejected. When symlink following is not enabled, existing symlink components are denied and `list_files` filters symlink or reparse entries. When symlink following is enabled, symlink targets are still constrained by effective root containment, and Windows junctions or non-symlink reparse points remain denied.
+
+Security and path denials are mapped to generic invalid-path tool errors without exposing host absolute paths.
+
 ### Read-only mode
 
 Sprint 3.35 adds read-only enforcement for MCP tool discovery and direct tool calls.

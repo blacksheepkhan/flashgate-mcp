@@ -19,7 +19,35 @@ var (
 
 	// ErrOutsideRoot is returned when the resolved path is outside the configured root.
 	ErrOutsideRoot = errors.New("access outside root denied")
+
+	// ErrHiddenPathDenied is returned when hidden path access is disabled.
+	ErrHiddenPathDenied = errors.New("hidden path access denied")
+
+	// ErrUNCPathDenied is returned when UNC path access is disabled.
+	ErrUNCPathDenied = errors.New("UNC path access denied")
+
+	// ErrSymlinkDenied is returned when symlink following is disabled.
+	ErrSymlinkDenied = errors.New("symlink access denied")
+
+	// ErrReparsePointDenied is returned when Windows reparse point access is denied.
+	ErrReparsePointDenied = errors.New("reparse point access denied")
 )
+
+// Policy controls optional filesystem access behavior.
+type Policy struct {
+	AllowHiddenFiles bool
+	AllowUNCPaths    bool
+	FollowSymlinks   bool
+}
+
+// DefaultPolicy returns the secure default filesystem policy.
+func DefaultPolicy() Policy {
+	return Policy{
+		AllowHiddenFiles: false,
+		AllowUNCPaths:    false,
+		FollowSymlinks:   false,
+	}
+}
 
 // SafePath represents a filesystem path that has passed validation.
 type SafePath struct {
@@ -45,12 +73,22 @@ func (p SafePath) Dir() string {
 type PathGuard struct {
 	root          string
 	effectiveRoot string
+	policy        Policy
 }
 
 // NewPathGuard creates a new PathGuard.
 func NewPathGuard(root string) (*PathGuard, error) {
+	return NewPathGuardWithPolicy(root, DefaultPolicy())
+}
+
+// NewPathGuardWithPolicy creates a new PathGuard with an explicit policy.
+func NewPathGuardWithPolicy(root string, policy Policy) (*PathGuard, error) {
 	if strings.TrimSpace(root) == "" {
 		return nil, ErrEmptyRoot
+	}
+
+	if !policy.AllowUNCPaths && isUNCPath(root) {
+		return nil, ErrUNCPathDenied
 	}
 
 	absoluteRoot, err := filepath.Abs(filepath.Clean(root))
@@ -58,7 +96,15 @@ func NewPathGuard(root string) (*PathGuard, error) {
 		return nil, err
 	}
 
-	effectiveRoot, err := filepath.EvalSymlinks(absoluteRoot)
+	if !policy.AllowUNCPaths && isUNCPath(absoluteRoot) {
+		return nil, ErrUNCPathDenied
+	}
+
+	if err := validatePathMetadata(absoluteRoot, policy); err != nil {
+		return nil, err
+	}
+
+	effectiveRoot, err := evalEffectivePath(absoluteRoot)
 	if err != nil {
 		return nil, err
 	}
@@ -66,6 +112,7 @@ func NewPathGuard(root string) (*PathGuard, error) {
 	return &PathGuard{
 		root:          absoluteRoot,
 		effectiveRoot: effectiveRoot,
+		policy:        policy,
 	}, nil
 }
 
@@ -86,7 +133,11 @@ func (g *PathGuard) ResolveExisting(userPath string) (SafePath, error) {
 		return SafePath{}, err
 	}
 
-	effectivePath, err := filepath.EvalSymlinks(resolvedPath)
+	if err := g.validateExistingPathPolicy(resolvedPath); err != nil {
+		return SafePath{}, err
+	}
+
+	effectivePath, err := evalEffectivePath(resolvedPath)
 	if err != nil {
 		return SafePath{}, err
 	}
@@ -107,8 +158,12 @@ func (g *PathGuard) ResolveForCreate(userPath string) (SafePath, error) {
 		return SafePath{}, err
 	}
 
-	effectivePath, err := filepath.EvalSymlinks(resolvedPath)
+	effectivePath, err := evalEffectivePath(resolvedPath)
 	if err == nil {
+		if err := g.validateExistingPathPolicy(resolvedPath); err != nil {
+			return SafePath{}, err
+		}
+
 		if !isInsideRoot(g.effectiveRoot, effectivePath) {
 			return SafePath{}, ErrOutsideRoot
 		}
@@ -139,12 +194,20 @@ func (g *PathGuard) ResolveForCreate(userPath string) (SafePath, error) {
 func (g *PathGuard) resolveLexical(userPath string) (string, error) {
 	normalizedUserPath := normalizeUserPath(userPath)
 
+	if !g.policy.AllowUNCPaths && isUNCPath(normalizedUserPath) {
+		return "", ErrUNCPathDenied
+	}
+
 	if filepath.IsAbs(normalizedUserPath) {
 		return "", ErrAbsolutePath
 	}
 
 	if isTraversalPath(normalizedUserPath) {
 		return "", ErrPathTraversal
+	}
+
+	if !g.policy.AllowHiddenFiles && hasHiddenPathComponent(normalizedUserPath) {
+		return "", ErrHiddenPathDenied
 	}
 
 	resolvedPath, err := filepath.Abs(filepath.Join(g.root, normalizedUserPath))
@@ -172,7 +235,16 @@ func (g *PathGuard) resolveExistingParent(path string) (string, error) {
 			return "", ErrOutsideRoot
 		}
 
-		effectiveParent, err := filepath.EvalSymlinks(parent)
+		if err := g.validateExistingPathPolicy(parent); err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				current = parent
+				continue
+			}
+
+			return "", err
+		}
+
+		effectiveParent, err := evalEffectivePath(parent)
 		if err == nil {
 			return effectiveParent, nil
 		}
@@ -185,6 +257,68 @@ func (g *PathGuard) resolveExistingParent(path string) (string, error) {
 	}
 }
 
+// AllowListEntry reports whether a directory entry may be exposed by list_files.
+func (g *PathGuard) AllowListEntry(parent SafePath, name string) (bool, error) {
+	if !g.policy.AllowHiddenFiles && isHiddenName(name) {
+		return false, nil
+	}
+
+	entryPath := filepath.Join(parent.String(), name)
+	if !isInsideRoot(g.root, entryPath) {
+		return false, ErrOutsideRoot
+	}
+
+	if err := validatePathMetadata(entryPath, g.policy); err != nil {
+		if errors.Is(err, ErrHiddenPathDenied) ||
+			errors.Is(err, ErrSymlinkDenied) ||
+			errors.Is(err, ErrReparsePointDenied) {
+			return false, nil
+		}
+
+		return false, err
+	}
+
+	effectivePath, err := evalEffectivePath(entryPath)
+	if err != nil {
+		return false, err
+	}
+
+	if !isInsideRoot(g.effectiveRoot, effectivePath) {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func (g *PathGuard) validateExistingPathPolicy(path string) error {
+	relative, err := filepath.Rel(g.root, path)
+	if err != nil {
+		return ErrOutsideRoot
+	}
+
+	if relative == "." {
+		return validatePathMetadata(g.root, g.policy)
+	}
+
+	current := g.root
+	for _, component := range strings.Split(relative, string(filepath.Separator)) {
+		if component == "" || component == "." {
+			continue
+		}
+
+		if !g.policy.AllowHiddenFiles && isHiddenName(component) {
+			return ErrHiddenPathDenied
+		}
+
+		current = filepath.Join(current, component)
+		if err := validatePathMetadata(current, g.policy); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func normalizeUserPath(userPath string) string {
 	if strings.TrimSpace(userPath) == "" {
 		return "."
@@ -195,6 +329,24 @@ func normalizeUserPath(userPath string) string {
 
 func isTraversalPath(path string) bool {
 	return path == ".." || strings.HasPrefix(path, ".."+string(filepath.Separator))
+}
+
+func hasHiddenPathComponent(path string) bool {
+	if path == "." {
+		return false
+	}
+
+	for _, component := range strings.Split(path, string(filepath.Separator)) {
+		if isHiddenName(component) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func isHiddenName(name string) bool {
+	return name != "" && name != "." && name != ".." && strings.HasPrefix(name, ".")
 }
 
 func isInsideRoot(root string, resolvedPath string) bool {

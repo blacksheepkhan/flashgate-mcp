@@ -206,6 +206,8 @@ Filesystem tools must follow these rules:
 - never use unchecked absolute paths
 - never duplicate path validation in individual tools
 - keep path validation centralized
+- enforce hidden, UNC, symlink, junction, and reparse policy through `internal/security.PathGuard`
+- map path and security policy denials to generic invalid-path tool errors
 - keep protocol output and diagnostic output separated
 - prefer explicit destructive flags such as `recursive` and `overwrite`
 

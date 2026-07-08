@@ -8,6 +8,7 @@ The format follows the spirit of [Keep a Changelog](https://keepachangelog.com/)
 
 ### Added
 
+- Sprint 3.37 hidden, UNC, symlink, junction, and reparse policy enforcement.
 - Sprint 3.36 root, realpath, and traversal hardening for filesystem access.
 - Sprint 3.35 read-only tool capability gating for filesystem MCP tools.
 - Initial Go module setup.
@@ -70,6 +71,8 @@ The format follows the spirit of [Keep a Changelog](https://keepachangelog.com/)
 
 ### Changed
 
+- `PathGuard` now accepts an explicit filesystem security policy while keeping the default constructor compatible.
+- `list_files` now filters hidden and denied link/reparse entries according to policy.
 - Moved protocol definitions from `pkg/protocol` to `internal/protocol`.
 - Removed the public `pkg` package layout in favor of internal packages.
 - Refactored filesystem operations into focused files.

@@ -205,6 +205,34 @@ func TestMapFilesystemErrorReturnsGenericInvalidParamsForSecurityDenial(t *testi
 	}
 }
 
+func TestMapFilesystemErrorReturnsGenericInvalidParamsForPolicyDenials(t *testing.T) {
+	t.Parallel()
+
+	hostPath := t.TempDir()
+	testCases := []error{
+		security.ErrHiddenPathDenied,
+		security.ErrUNCPathDenied,
+		security.ErrSymlinkDenied,
+		security.ErrReparsePointDenied,
+	}
+
+	for _, testErr := range testCases {
+		rpcErr := mapFilesystemError(fmt.Errorf("%w: %s", testErr, hostPath))
+
+		if rpcErr.Code != protocol.ErrInvalidParams {
+			t.Fatalf("expected ErrInvalidParams for %v, got %d", testErr, rpcErr.Code)
+		}
+
+		if rpcErr.Message != "filesystem error: invalid path" {
+			t.Fatalf("expected generic invalid path message for %v, got %q", testErr, rpcErr.Message)
+		}
+
+		if strings.Contains(rpcErr.Message, hostPath) {
+			t.Fatalf("expected message without host path for %v, got %q", testErr, rpcErr.Message)
+		}
+	}
+}
+
 type fakeFileSystem struct {
 	entries         []fs.Entry
 	err             error

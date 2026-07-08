@@ -87,6 +87,29 @@ func TestLoadFromEnvironment(t *testing.T) {
 	}
 }
 
+func TestLoadFromEnvironmentParsesFalseSecurityFlags(t *testing.T) {
+	t.Setenv(envAllowHiddenFiles, "false")
+	t.Setenv(envAllowUNCPaths, "false")
+	t.Setenv(envFollowSymlinks, "false")
+
+	cfg, err := LoadFromEnvironment()
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if cfg.Security().AllowHiddenFiles() {
+		t.Fatal("expected hidden files to be denied")
+	}
+
+	if cfg.Security().AllowUNCPaths() {
+		t.Fatal("expected UNC paths to be denied")
+	}
+
+	if cfg.Security().FollowSymlinks() {
+		t.Fatal("expected symlink following to be denied")
+	}
+}
+
 func TestLoadFromEnvironmentRejectsInvalidReadOnly(t *testing.T) {
 	t.Setenv(envReadOnly, "not-a-bool")
 

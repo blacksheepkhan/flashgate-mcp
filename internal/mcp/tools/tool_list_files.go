@@ -105,7 +105,11 @@ func mapFilesystemError(err error) *protocol.Error {
 
 	if errors.Is(err, security.ErrAbsolutePath) ||
 		errors.Is(err, security.ErrPathTraversal) ||
-		errors.Is(err, security.ErrOutsideRoot) {
+		errors.Is(err, security.ErrOutsideRoot) ||
+		errors.Is(err, security.ErrHiddenPathDenied) ||
+		errors.Is(err, security.ErrUNCPathDenied) ||
+		errors.Is(err, security.ErrSymlinkDenied) ||
+		errors.Is(err, security.ErrReparsePointDenied) {
 		code = protocol.ErrInvalidParams
 		message = "filesystem error: invalid path"
 	} else if errors.Is(err, fs.ErrPathIsDirectory) ||
