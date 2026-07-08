@@ -5,12 +5,27 @@ import (
 	"github.com/blacksheepkhan/fileserver-mcp/internal/mcp/tools"
 )
 
-func createToolRegistry(filesystem fs.FileSystem, maxFileSize int64) *tools.Registry {
+type toolCapabilities struct {
+	filesystemWrite bool
+}
+
+func capabilitiesFromReadOnly(readOnly bool) toolCapabilities {
+	return toolCapabilities{
+		filesystemWrite: !readOnly,
+	}
+}
+
+func createToolRegistry(filesystem fs.FileSystem, maxFileSize int64, capabilities toolCapabilities) *tools.Registry {
 	toolRegistry := tools.NewRegistry()
 	toolRegistry.Register(tools.NewListFilesTool(filesystem))
 	toolRegistry.Register(tools.NewReadFileTool(filesystem, maxFileSize))
 	toolRegistry.Register(tools.NewStatPathTool(filesystem))
 	toolRegistry.Register(tools.NewExistsPathTool(filesystem))
+
+	if !capabilities.filesystemWrite {
+		return toolRegistry
+	}
+
 	toolRegistry.Register(tools.NewWriteFileTool(filesystem))
 	toolRegistry.Register(tools.NewMkdirTool(filesystem))
 	toolRegistry.Register(tools.NewDeletePathTool(filesystem))

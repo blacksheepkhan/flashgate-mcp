@@ -6,7 +6,7 @@ It exposes secure filesystem operations to MCP-compatible clients through JSON-R
 
 ## Status
 
-The project currently implements the core MCP server loop, JSON-RPC routing, tool discovery, tool execution, filesystem abstraction, root-confined path handling, tests, and documentation.
+The project currently implements the core MCP server loop, JSON-RPC routing, tool discovery, tool execution, filesystem abstraction, root-confined path handling, read-only tool gating, tests, and documentation.
 
 Implemented tools:
 
@@ -65,6 +65,27 @@ MCP_ROOT
 Tool arguments use relative paths below this root. Absolute paths, path traversal outside the configured root, and unsafe path forms are rejected by the filesystem and security layers.
 
 Individual tools do not bypass the filesystem abstraction and do not call host filesystem APIs directly. This keeps path validation centralized and testable.
+
+### Read-only mode
+
+Sprint 3.35 adds read-only enforcement for MCP tool discovery and direct tool calls.
+
+Enable read-only mode with:
+
+```text
+MCP_READ_ONLY=true
+```
+
+When read-only mode is enabled, only these tools are registered and returned by `tools/list`:
+
+```text
+list_files
+read_file
+stat_path
+exists_path
+```
+
+Write-capable tools are not registered in read-only mode, so direct `tools/call` requests for `write_file`, `mkdir`, `delete_path`, `move_path`, `copy_path`, or `rename_path` are rejected as unknown tools.
 
 ## Tool Documentation
 
@@ -237,6 +258,12 @@ Set the filesystem root:
 $env:MCP_ROOT = "C:\Path\To\Allowed\Root"
 ```
 
+For read-only operation:
+
+```powershell
+$env:MCP_READ_ONLY = "true"
+```
+
 Run the server:
 
 ```powershell
@@ -358,6 +385,8 @@ Each feature should include:
 | `move_path` | Moves a file or directory. |
 | `copy_path` | Copies a file or directory. |
 | `rename_path` | Renames a file or directory. |
+
+When `MCP_READ_ONLY=true`, only `list_files`, `read_file`, `stat_path`, and `exists_path` are exposed.
 
 ## Roadmap
 

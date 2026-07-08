@@ -20,7 +20,11 @@ func run(ctx context.Context) error {
 		return err
 	}
 
-	toolRegistry := createToolRegistry(filesystem, cfg.Filesystem().MaxFileSize())
+	toolRegistry := createToolRegistry(
+		filesystem,
+		cfg.Filesystem().MaxFileSize(),
+		capabilitiesFromReadOnly(cfg.Filesystem().ReadOnly()),
+	)
 	mcpRouter := createRouter(cfg.Server().Name(), cfg.Server().Version(), toolRegistry)
 	mcpServer := server.New(os.Stdin, os.Stdout, mcpRouter)
 

@@ -8,6 +8,7 @@ The format follows the spirit of [Keep a Changelog](https://keepachangelog.com/)
 
 ### Added
 
+- Sprint 3.35 read-only tool capability gating for filesystem MCP tools.
 - Initial Go module setup.
 - Project structure for a professional MCP server implementation.
 - Immutable configuration package.
@@ -91,6 +92,8 @@ The format follows the spirit of [Keep a Changelog](https://keepachangelog.com/)
 
 ### Security
 
+- Sprint 3.35 enforces `MCP_READ_ONLY=true` at tool registration time by exposing only `list_files`, `read_file`, `stat_path`, and `exists_path`.
+- Sprint 3.35 prevents direct `tools/call` execution of write-capable tools in read-only mode because those tools are not registered.
 - Filesystem paths are resolved through a sandbox root.
 - Absolute user paths are rejected.
 - Parent directory traversal is rejected.

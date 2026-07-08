@@ -55,18 +55,29 @@ $expectedTools = @(
     "list_files",
     "read_file",
     "stat_path",
-    "exists_path",
-    "write_file",
-    "mkdir",
-    "delete_path",
-    "move_path",
-    "copy_path",
-    "rename_path"
+    "exists_path"
 )
+
+if ($env:MCP_READ_ONLY -ne "true") {
+    $expectedTools += @(
+        "write_file",
+        "mkdir",
+        "delete_path",
+        "move_path",
+        "copy_path",
+        "rename_path"
+    )
+}
 
 foreach ($expectedTool in $expectedTools) {
     if ($toolNames -notcontains $expectedTool) {
         throw "Expected tool '$expectedTool' was not listed. Actual tools: $($toolNames -join ', ')"
+    }
+}
+
+foreach ($toolName in $toolNames) {
+    if ($expectedTools -notcontains $toolName) {
+        throw "Unexpected tool '$toolName' was listed. Expected tools: $($expectedTools -join ', ')"
     }
 }
 

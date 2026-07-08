@@ -14,7 +14,9 @@ MCP_ROOT
 
 ## Tool Order
 
-`tools/list` returns tools in deterministic registration order:
+`tools/list` returns tools in deterministic registration order.
+
+Default mode:
 
 ```text
 list_files
@@ -28,6 +30,17 @@ move_path
 copy_path
 rename_path
 ```
+
+Read-only mode with `MCP_READ_ONLY=true`:
+
+```text
+list_files
+read_file
+stat_path
+exists_path
+```
+
+Sprint 3.35 adds read-only tool capability gating. In read-only mode, write-capable tools are not registered. Direct `tools/call` requests for `write_file`, `mkdir`, `delete_path`, `move_path`, `copy_path`, or `rename_path` return a tool-not-found error.
 
 ## Common Error Behavior
 

@@ -10,7 +10,7 @@ import (
 )
 
 func TestCreateRouterRegistersInitialize(t *testing.T) {
-	registry := createToolRegistry(noopFileSystem{}, 1024)
+	registry := createToolRegistry(noopFileSystem{}, 1024, toolCapabilities{filesystemWrite: true})
 	mcpRouter := createRouter("test-server", "test-version", registry)
 
 	params := json.RawMessage(`{
@@ -38,7 +38,7 @@ func TestCreateRouterRegistersInitialize(t *testing.T) {
 }
 
 func TestCreateRouterRegistersToolsList(t *testing.T) {
-	registry := createToolRegistry(noopFileSystem{}, 1024)
+	registry := createToolRegistry(noopFileSystem{}, 1024, toolCapabilities{filesystemWrite: true})
 	mcpRouter := createRouter("test-server", "test-version", registry)
 
 	result, protocolErr := mcpRouter.Dispatch(
@@ -57,7 +57,7 @@ func TestCreateRouterRegistersToolsList(t *testing.T) {
 }
 
 func TestCreateRouterRegistersToolsCall(t *testing.T) {
-	registry := createToolRegistry(noopFileSystem{}, 1024)
+	registry := createToolRegistry(noopFileSystem{}, 1024, toolCapabilities{filesystemWrite: true})
 	mcpRouter := createRouter("test-server", "test-version", registry)
 
 	_, protocolErr := mcpRouter.Dispatch(
@@ -79,8 +79,27 @@ func TestCreateRouterRegistersToolsCall(t *testing.T) {
 	}
 }
 
+func TestCreateRouterRejectsWriteToolCallWhenReadOnly(t *testing.T) {
+	registry := createToolRegistry(noopFileSystem{}, 1024, capabilitiesFromReadOnly(true))
+	mcpRouter := createRouter("test-server", "test-version", registry)
+
+	_, protocolErr := mcpRouter.Dispatch(
+		"tools/call",
+		handlers.Context{Context: context.Background()},
+		json.RawMessage(`{"name":"write_file","arguments":{"path":"out.txt","content":"blocked"}}`),
+	)
+
+	if protocolErr == nil {
+		t.Fatal("expected protocol error for disabled write tool")
+	}
+
+	if protocolErr.Code != protocol.ErrMethodNotFound {
+		t.Fatalf("expected method not found for disabled write tool, got: %+v", protocolErr)
+	}
+}
+
 func TestCreateRouterRejectsUnknownMethod(t *testing.T) {
-	registry := createToolRegistry(noopFileSystem{}, 1024)
+	registry := createToolRegistry(noopFileSystem{}, 1024, toolCapabilities{filesystemWrite: true})
 	mcpRouter := createRouter("test-server", "test-version", registry)
 
 	_, protocolErr := mcpRouter.Dispatch(

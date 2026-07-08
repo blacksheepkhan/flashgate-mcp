@@ -26,13 +26,24 @@ The backlog is maintained as part of the normal sprint workflow. New tasks disco
 | Blocked | Cannot continue without a decision or dependency |
 | Done | Completed and retained for planning traceability |
 
-## Current Focus
+## Current Sprint
+
+### Sprint 3.35 - Read-only enforcement and tool capability gating
 
 | ID | Status | Task | Reason | Notes |
 |---|---|---|---|---|
-| BL-001 | Ready | Integrate Linux JSON-RPC smoke test into CI | Smoke test currently exists for Linux/macOS but is not yet executed in CI | Run `scripts/smoke-jsonrpc.sh` on `ubuntu-latest` |
-| BL-002 | Ready | Document Linux/macOS smoke test usage | README currently documents Windows smoke test only | Add Bash usage after CI integration |
-| BL-003 | Ready | Update CHANGELOG for ongoing sprint work | Sprint history should remain traceable | Add entries as part of each sprint |
+| BL-049 | Done | Enforce `MCP_READ_ONLY` across filesystem tools | Config is parsed, but write-capable operations must not be available in read-only mode | Sprint 3.35 gates write-capable tools out of `tools/list` and direct `tools/call` by not registering them when `MCP_READ_ONLY=true` |
+
+## Upcoming Sprints
+
+| Sprint | Backlog IDs | Scope | Notes |
+|---|---|---|---|
+| Sprint 3.36 | BL-053, BL-054 | Root, realpath, and traversal hardening | Replace purely lexical checks with effective path validation |
+| Sprint 3.37 | BL-050, BL-051, BL-052 | Hidden files, UNC paths, symlink/junction/reparse policy | Windows and Linux filesystem edge cases |
+| Sprint 3.38 | BL-055 | JSON-RPC validation and error behavior | Validate request shape, IDs, methods, params, notifications, and invalid request handling |
+| Sprint 3.39 | BL-008, BL-011, BL-034, BL-035 | Limits, logging, safe defaults, and secrets-aware behavior | Include read/list response limits and audit-oriented stderr logging |
+| Sprint 3.40 | BL-001, BL-002, BL-040 | Windows/Linux test matrix and smoke tests | The earlier Linux JSON-RPC smoke-test CI item is deferred into Sprint 3.40 |
+| Sprint 3.41 | BL-037, BL-038, BL-039 | Codex read-only activation preparation, without activation | Configuration examples, troubleshooting, and activation checklist |
 
 ## Epics
 
@@ -61,7 +72,6 @@ Open work:
 |---|---|---|---|---|
 | BL-004 | Planned | Add more JSON-RPC integration tests for filesystem tools | Current smoke test covers `initialize` and `tools/list` only | Add `tools/call` checks for read, write, list, stat, exists |
 | BL-005 | Planned | Add benchmark tests | Measure large directory and file operation behavior | Useful before optimizing |
-| BL-006 | Planned | Add optional read-only mode | Security hardening | Should disable write, mkdir, delete, move, copy, rename |
 | BL-007 | Planned | Add append-file support | Common file operation not yet covered | Separate from overwrite-based `write_file` |
 | BL-008 | Planned | Define larger-file streaming strategy | Current `read_file` is max-size limited | Avoid loading large files fully into memory |
 | BL-009 | Planned | Add file metadata details | Improve file inspection usefulness | Include modified time and permissions where portable |
@@ -161,11 +171,11 @@ Documentation is part of the project deliverable and should be updated continuou
 | BL-047 | Planned | Add non-developer smoke-test documentation | Support users without Go installed | Explain script-based validation |
 | BL-048 | Planned | Expand tool documentation for future process and command tools | Needed before implementation | Document security implications clearly |
 
-## Sprint 021 - Root Security Hardening
+## Security Sprint Tracking
 
 | ID | Status | Task | Reason | Notes |
 |---|---|---|---|---|
-| BL-049 | Ready | Enforce `MCP_READ_ONLY` across filesystem tools | Config is parsed, but write-capable operations may still be available | Disable write, mkdir, delete, move, copy, and rename when enabled |
+| BL-049 | Done | Enforce `MCP_READ_ONLY` across filesystem tools | Config is parsed, but write-capable operations must not be available in read-only mode | Completed in Sprint 3.35 |
 | BL-050 | Ready | Enforce `MCP_ALLOW_HIDDEN_FILES` in filesystem access | Config is parsed, but hidden-file policy may not be applied | Define portable Windows/Linux hidden-file behavior |
 | BL-051 | Ready | Enforce `MCP_ALLOW_UNC_PATHS` on Windows roots and paths | Config is parsed, but UNC path policy may not be applied | Reject UNC roots and user paths unless explicitly allowed |
 | BL-052 | Ready | Enforce `MCP_FOLLOW_SYMLINKS` consistently | Config is parsed, but filesystem operations may still follow symlinks | Use no-follow checks where needed before file operations |
@@ -192,3 +202,5 @@ This section is intentionally not a full commit history. Detailed chronological 
 | BL-D011 | Done | Add Linux/macOS JSON-RPC smoke test script | `8da6d0b` | `scripts/smoke-jsonrpc.sh` |
 | BL-D012 | Done | Update GitHub Actions versions | `55418ed` | `checkout@v7`, `setup-go@v6` |
 | BL-D013 | Done | Update upload-artifact action | `7540c67` | `upload-artifact@v6` |
+| BL-D014 | Done | Add optional read-only mode | Sprint 3.35 | `MCP_READ_ONLY=true` disables write-capable filesystem tools at registration time |
+| BL-D015 | Done | Add filesystem write capability gating | Sprint 3.35 | Read-only mode exposes only `list_files`, `read_file`, `stat_path`, and `exists_path` |

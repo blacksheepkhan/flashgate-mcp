@@ -27,6 +27,7 @@ JSONRPC
 
 python3 - "${RESPONSE_PATH}" <<'PY'
 import json
+import os
 import sys
 
 response_path = sys.argv[1]
@@ -61,18 +62,28 @@ expected_tools = [
     "read_file",
     "stat_path",
     "exists_path",
-    "write_file",
-    "mkdir",
-    "delete_path",
-    "move_path",
-    "copy_path",
-    "rename_path",
 ]
+
+if os.environ.get("MCP_READ_ONLY") != "true":
+    expected_tools.extend([
+        "write_file",
+        "mkdir",
+        "delete_path",
+        "move_path",
+        "copy_path",
+        "rename_path",
+    ])
 
 for expected_tool in expected_tools:
     if expected_tool not in tool_names:
         raise SystemExit(
             f"Expected tool {expected_tool!r} was not listed. Actual tools: {', '.join(tool_names)}"
+        )
+
+for tool_name in tool_names:
+    if tool_name not in expected_tools:
+        raise SystemExit(
+            f"Unexpected tool {tool_name!r} was listed. Expected tools: {', '.join(expected_tools)}"
         )
 
 print("JSON-RPC smoke test passed.")

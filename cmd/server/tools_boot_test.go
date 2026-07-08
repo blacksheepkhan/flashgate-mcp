@@ -11,7 +11,7 @@ import (
 func TestCreateToolRegistryRegistersExpectedToolsInOrder(t *testing.T) {
 	filesystem := noopFileSystem{}
 
-	registry := createToolRegistry(filesystem, 1024)
+	registry := createToolRegistry(filesystem, 1024, toolCapabilities{filesystemWrite: true})
 
 	registeredTools := registry.List()
 	gotNames := make([]string, 0, len(registeredTools))
@@ -41,7 +41,7 @@ func TestCreateToolRegistryRegistersExpectedToolsInOrder(t *testing.T) {
 func TestCreateToolRegistryRegistersResolvableTools(t *testing.T) {
 	filesystem := noopFileSystem{}
 
-	registry := createToolRegistry(filesystem, 1024)
+	registry := createToolRegistry(filesystem, 1024, toolCapabilities{filesystemWrite: true})
 
 	expectedNames := []string{
 		"list_files",
@@ -60,6 +60,63 @@ func TestCreateToolRegistryRegistersResolvableTools(t *testing.T) {
 		if _, ok := registry.Get(name); !ok {
 			t.Fatalf("expected tool %q to be registered", name)
 		}
+	}
+}
+
+func TestCreateToolRegistryOmitsWriteToolsWhenReadOnly(t *testing.T) {
+	filesystem := noopFileSystem{}
+
+	registry := createToolRegistry(filesystem, 1024, capabilitiesFromReadOnly(true))
+
+	registeredTools := registry.List()
+	gotNames := make([]string, 0, len(registeredTools))
+
+	for _, tool := range registeredTools {
+		gotNames = append(gotNames, tool.Name())
+	}
+
+	wantNames := []string{
+		"list_files",
+		"read_file",
+		"stat_path",
+		"exists_path",
+	}
+
+	if !reflect.DeepEqual(gotNames, wantNames) {
+		t.Fatalf("unexpected read-only tool registration order\nwant: %v\n got: %v", wantNames, gotNames)
+	}
+}
+
+func TestCreateToolRegistryDoesNotResolveWriteToolsWhenReadOnly(t *testing.T) {
+	filesystem := noopFileSystem{}
+
+	registry := createToolRegistry(filesystem, 1024, capabilitiesFromReadOnly(true))
+
+	writeToolNames := []string{
+		"write_file",
+		"mkdir",
+		"delete_path",
+		"move_path",
+		"copy_path",
+		"rename_path",
+	}
+
+	for _, name := range writeToolNames {
+		if _, ok := registry.Get(name); ok {
+			t.Fatalf("expected write tool %q to be disabled in read-only mode", name)
+		}
+	}
+}
+
+func TestCapabilitiesFromReadOnly(t *testing.T) {
+	t.Parallel()
+
+	if capabilitiesFromReadOnly(true).filesystemWrite {
+		t.Fatal("expected filesystem writes to be disabled in read-only mode")
+	}
+
+	if !capabilitiesFromReadOnly(false).filesystemWrite {
+		t.Fatal("expected filesystem writes to be enabled outside read-only mode")
 	}
 }
 
