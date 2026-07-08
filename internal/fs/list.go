@@ -25,6 +25,10 @@ func (f *LocalFileSystem) List(path string) ([]Entry, error) {
 			continue
 		}
 
+		if len(result) >= f.limits.MaxListEntries {
+			return nil, ErrLimitExceeded
+		}
+
 		info, err := dirEntry.Info()
 		if err != nil {
 			return nil, err

@@ -118,6 +118,111 @@ func TestServerRunReturnsParseErrorForInvalidJSON(t *testing.T) {
 	}
 }
 
+func TestServerRunReturnsInvalidRequestForMessageOverLimit(t *testing.T) {
+	t.Parallel()
+
+	input := strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{"padding":"too-large"}}` + "\n")
+	output := &bytes.Buffer{}
+	server := NewWithOptions(input, output, router.New(), Options{MaxMessageBytes: 20})
+
+	if err := server.Run(context.Background()); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	response := decodeSingleResponse(t, output.String())
+
+	if response.Error == nil {
+		t.Fatal("expected error response")
+	}
+
+	if response.Error.Code != protocol.ErrInvalidRequest {
+		t.Fatalf("expected ErrInvalidRequest, got %d", response.Error.Code)
+	}
+
+	if response.Error.Message != "invalid request" {
+		t.Fatalf("expected invalid request, got %q", response.Error.Message)
+	}
+
+	if string(response.ID) != "null" {
+		t.Fatalf("expected null id, got %s", string(response.ID))
+	}
+}
+
+func TestServerRunReturnsInvalidParamsForToolArgumentsOverLimit(t *testing.T) {
+	t.Parallel()
+
+	input := strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"test_tool","arguments":{"content":"too-large"}}}` + "\n")
+	output := &bytes.Buffer{}
+	handler := &testHandler{
+		method: "tools/call",
+		result: map[string]any{
+			"ok": true,
+		},
+	}
+	testRouter := router.New()
+	testRouter.Register(handler)
+	server := NewWithOptions(input, output, testRouter, Options{MaxArgumentBytes: 10})
+
+	if err := server.Run(context.Background()); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	response := decodeSingleResponse(t, output.String())
+
+	if response.Error == nil {
+		t.Fatal("expected error response")
+	}
+
+	if response.Error.Code != protocol.ErrInvalidParams {
+		t.Fatalf("expected ErrInvalidParams, got %d", response.Error.Code)
+	}
+
+	if response.Error.Message != "invalid params" {
+		t.Fatalf("expected invalid params, got %q", response.Error.Message)
+	}
+
+	if handler.called != 0 {
+		t.Fatalf("expected handler not to be called, got %d", handler.called)
+	}
+}
+
+func TestServerRunReturnsInternalErrorForResponseOverLimit(t *testing.T) {
+	t.Parallel()
+
+	input := strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"test/large"}` + "\n")
+	output := &bytes.Buffer{}
+	testRouter := router.New()
+	testRouter.Register(&testHandler{
+		method: "test/large",
+		result: map[string]any{
+			"content": strings.Repeat("x", 100),
+		},
+	})
+	server := NewWithOptions(input, output, testRouter, Options{MaxResponseBytes: 100})
+
+	if err := server.Run(context.Background()); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	response := decodeSingleResponse(t, output.String())
+
+	if string(response.ID) != "1" {
+		t.Fatalf("expected id 1, got %s", string(response.ID))
+	}
+
+	if response.Error == nil {
+		t.Fatal("expected error response")
+	}
+
+	if response.Error.Code != protocol.ErrInternalError {
+		t.Fatalf("expected ErrInternalError, got %d", response.Error.Code)
+	}
+
+	if response.Error.Message != "internal error" {
+		t.Fatalf("expected internal error, got %q", response.Error.Message)
+	}
+}
+
 func TestServerRunReturnsInvalidRequestForInvalidEnvelope(t *testing.T) {
 	t.Parallel()
 

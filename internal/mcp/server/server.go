@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 
+	"github.com/blacksheepkhan/fileserver-mcp/internal/diagnostics"
 	"github.com/blacksheepkhan/fileserver-mcp/internal/mcp/handlers"
 	"github.com/blacksheepkhan/fileserver-mcp/internal/mcp/router"
 	"github.com/blacksheepkhan/fileserver-mcp/internal/mcp/transport"
@@ -14,15 +15,32 @@ import (
 
 // Server is the MCP server runtime.
 type Server struct {
-	transport *transport.Transport
-	router    *router.Router
+	transport        *transport.Transport
+	router           *router.Router
+	maxArgumentBytes int64
+	diagnostics      *diagnostics.Logger
+}
+
+// Options contains optional server runtime limits and diagnostics.
+type Options struct {
+	MaxMessageBytes  int64
+	MaxArgumentBytes int64
+	MaxResponseBytes int64
+	Diagnostics      *diagnostics.Logger
 }
 
 // New creates a new MCP server.
 func New(in io.Reader, out io.Writer, router *router.Router) *Server {
+	return NewWithOptions(in, out, router, Options{})
+}
+
+// NewWithOptions creates a new MCP server with explicit runtime options.
+func NewWithOptions(in io.Reader, out io.Writer, router *router.Router, options Options) *Server {
 	return &Server{
-		transport: transport.New(in, out),
-		router:    router,
+		transport:        transport.NewWithLimits(in, out, options.MaxMessageBytes, options.MaxResponseBytes),
+		router:           router,
+		maxArgumentBytes: options.MaxArgumentBytes,
+		diagnostics:      options.Diagnostics,
 	}
 }
 
@@ -41,11 +59,20 @@ func (s *Server) Run(ctx context.Context) error {
 				return nil
 			}
 
+			if errors.Is(err, transport.ErrMessageTooLarge) {
+				s.logDebug("jsonrpc message limit exceeded")
+				if writeErr := s.writeError(nullID(), protocol.ErrInvalidRequest, "invalid request"); writeErr != nil {
+					return writeErr
+				}
+				continue
+			}
+
 			return err
 		}
 
-		request, validationErr := validateRequestMessage(message)
+		request, validationErr := validateRequestMessageWithLimits(message, s.maxArgumentBytes)
 		if validationErr != nil {
+			s.logDebug("jsonrpc validation error code=%d", validationErr.code)
 			if writeErr := s.writeError(validationErr.id, validationErr.code, validationErr.message); writeErr != nil {
 				return writeErr
 			}
@@ -53,11 +80,12 @@ func (s *Server) Run(ctx context.Context) error {
 		}
 
 		if request.notification {
+			s.logDebug("jsonrpc notification ignored method=%s", request.method)
 			continue
 		}
 
 		response := s.handleRequest(ctx, request)
-		if err := s.transport.WriteMessage(response); err != nil {
+		if err := s.writeResponse(request.id, response); err != nil {
 			return err
 		}
 	}
@@ -66,6 +94,7 @@ func (s *Server) Run(ctx context.Context) error {
 func (s *Server) handleRequest(ctx context.Context, request validatedRequest) (response protocol.Response) {
 	defer func() {
 		if recovered := recover(); recovered != nil {
+			s.logDebug("handler panic recovered method=%s", request.method)
 			response = protocol.Response{
 				JSONRPC: protocol.JSONRPCVersion,
 				ID:      request.id,
@@ -101,6 +130,19 @@ func (s *Server) handleRequest(ctx context.Context, request validatedRequest) (r
 	}
 }
 
+func (s *Server) writeResponse(id json.RawMessage, response protocol.Response) error {
+	if err := s.transport.WriteMessage(response); err != nil {
+		if errors.Is(err, transport.ErrResponseTooLarge) {
+			s.logDebug("jsonrpc response limit exceeded")
+			return s.writeError(id, protocol.ErrInternalError, "internal error")
+		}
+
+		return err
+	}
+
+	return nil
+}
+
 func (s *Server) writeError(id json.RawMessage, code int, message string) error {
 	if len(id) == 0 {
 		id = nullID()
@@ -115,5 +157,11 @@ func (s *Server) writeError(id json.RawMessage, code int, message string) error 
 		},
 	}
 
-	return s.transport.WriteMessage(response)
+	return s.transport.WriteMessageUnbounded(response)
+}
+
+func (s *Server) logDebug(format string, args ...any) {
+	if s.diagnostics != nil {
+		s.diagnostics.Debugf(format, args...)
+	}
 }

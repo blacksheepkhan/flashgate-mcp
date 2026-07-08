@@ -21,7 +21,7 @@ type requestValidationError struct {
 	message string
 }
 
-func validateRequestMessage(message []byte) (validatedRequest, *requestValidationError) {
+func validateRequestMessageWithLimits(message []byte, maxArgumentBytes int64) (validatedRequest, *requestValidationError) {
 	if !json.Valid(message) {
 		return validatedRequest{}, newRequestValidationError(nullID(), protocol.ErrParseError, "parse error")
 	}
@@ -63,7 +63,7 @@ func validateRequestMessage(message []byte) (validatedRequest, *requestValidatio
 		}, nil
 	}
 
-	params, paramsErr := validateMethodParams(method, fields["params"])
+	params, paramsErr := validateMethodParams(method, fields["params"], maxArgumentBytes)
 	if paramsErr != nil {
 		paramsErr.id = id
 		return validatedRequest{}, paramsErr
@@ -76,7 +76,7 @@ func validateRequestMessage(message []byte) (validatedRequest, *requestValidatio
 	}, nil
 }
 
-func validateMethodParams(method string, params json.RawMessage) (json.RawMessage, *requestValidationError) {
+func validateMethodParams(method string, params json.RawMessage, maxArgumentBytes int64) (json.RawMessage, *requestValidationError) {
 	switch method {
 	case "initialize":
 		if !isJSONObject(params) {
@@ -101,14 +101,18 @@ func validateMethodParams(method string, params json.RawMessage) (json.RawMessag
 
 		return nil, newRequestValidationError(nil, protocol.ErrInvalidParams, "invalid params")
 	case "tools/call":
-		return validateToolsCallParams(params)
+		return validateToolsCallParams(params, maxArgumentBytes)
 	default:
 		return params, nil
 	}
 }
 
-func validateToolsCallParams(params json.RawMessage) (json.RawMessage, *requestValidationError) {
+func validateToolsCallParams(params json.RawMessage, maxArgumentBytes int64) (json.RawMessage, *requestValidationError) {
 	if !isJSONObject(params) {
+		return nil, newRequestValidationError(nil, protocol.ErrInvalidParams, "invalid params")
+	}
+
+	if exceedsLimit(params, maxArgumentBytes) {
 		return nil, newRequestValidationError(nil, protocol.ErrInvalidParams, "invalid params")
 	}
 
@@ -137,7 +141,15 @@ func validateToolsCallParams(params json.RawMessage) (json.RawMessage, *requestV
 		return nil, newRequestValidationError(nil, protocol.ErrInvalidParams, "invalid params")
 	}
 
+	if exceedsLimit(arguments, maxArgumentBytes) {
+		return nil, newRequestValidationError(nil, protocol.ErrInvalidParams, "invalid params")
+	}
+
 	return params, nil
+}
+
+func exceedsLimit(raw json.RawMessage, limit int64) bool {
+	return limit > 0 && int64(len(bytes.TrimSpace(raw))) > limit
 }
 
 func stringField(fields map[string]json.RawMessage, key string) (string, bool) {

@@ -12,15 +12,15 @@ const readFileToolName = "read_file"
 
 // ReadFileTool exposes file reading as an MCP tool.
 type ReadFileTool struct {
-	filesystem      fs.FileSystem
-	defaultMaxBytes int64
+	filesystem     fs.FileSystem
+	serverMaxBytes int64
 }
 
 // NewReadFileTool creates a new read_file tool.
-func NewReadFileTool(filesystem fs.FileSystem, defaultMaxBytes int64) *ReadFileTool {
+func NewReadFileTool(filesystem fs.FileSystem, serverMaxBytes int64) *ReadFileTool {
 	return &ReadFileTool{
-		filesystem:      filesystem,
-		defaultMaxBytes: defaultMaxBytes,
+		filesystem:     filesystem,
+		serverMaxBytes: serverMaxBytes,
 	}
 }
 
@@ -88,7 +88,9 @@ func (t *ReadFileTool) Execute(_ context.Context, rawArguments json.RawMessage) 
 
 	maxBytes := arguments.MaxBytes
 	if maxBytes <= 0 {
-		maxBytes = t.defaultMaxBytes
+		maxBytes = t.serverMaxBytes
+	} else if maxBytes > t.serverMaxBytes {
+		maxBytes = t.serverMaxBytes
 	}
 
 	content, err := t.filesystem.Read(arguments.Path, maxBytes)

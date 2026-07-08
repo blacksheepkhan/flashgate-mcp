@@ -19,6 +19,22 @@ func TestDefaultConfig(t *testing.T) {
 		t.Fatalf("expected max file size %d, got %d", defaultMaxFileSize, cfg.Filesystem().MaxFileSize())
 	}
 
+	if cfg.Filesystem().MaxWriteBytes() != defaultMaxWriteBytes {
+		t.Fatalf("expected max write bytes %d, got %d", defaultMaxWriteBytes, cfg.Filesystem().MaxWriteBytes())
+	}
+
+	if cfg.Filesystem().MaxListEntries() != defaultMaxListEntries {
+		t.Fatalf("expected max list entries %d, got %d", defaultMaxListEntries, cfg.Filesystem().MaxListEntries())
+	}
+
+	if cfg.Filesystem().MaxCopyBytes() != defaultMaxCopyBytes {
+		t.Fatalf("expected max copy bytes %d, got %d", defaultMaxCopyBytes, cfg.Filesystem().MaxCopyBytes())
+	}
+
+	if cfg.Filesystem().MaxDeleteEntries() != defaultMaxDeleteEntries {
+		t.Fatalf("expected max delete entries %d, got %d", defaultMaxDeleteEntries, cfg.Filesystem().MaxDeleteEntries())
+	}
+
 	if cfg.Security().AllowHiddenFiles() {
 		t.Fatal("expected hidden files to be denied by default")
 	}
@@ -42,16 +58,35 @@ func TestDefaultConfig(t *testing.T) {
 	if cfg.Server().Debug() {
 		t.Fatal("expected debug mode to be disabled by default")
 	}
+
+	if cfg.Server().MaxMessageBytes() != defaultMaxMessageBytes {
+		t.Fatalf("expected max message bytes %d, got %d", defaultMaxMessageBytes, cfg.Server().MaxMessageBytes())
+	}
+
+	if cfg.Server().MaxArgumentBytes() != defaultMaxArgumentBytes {
+		t.Fatalf("expected max argument bytes %d, got %d", defaultMaxArgumentBytes, cfg.Server().MaxArgumentBytes())
+	}
+
+	if cfg.Server().MaxResponseBytes() != defaultMaxResponseBytes {
+		t.Fatalf("expected max response bytes %d, got %d", defaultMaxResponseBytes, cfg.Server().MaxResponseBytes())
+	}
 }
 
 func TestLoadFromEnvironment(t *testing.T) {
 	t.Setenv(envRootPath, `C:\temp\fileserver-mcp`)
 	t.Setenv(envReadOnly, "true")
 	t.Setenv(envMaxFileSize, "1048576")
+	t.Setenv(envMaxWriteBytes, "2048")
+	t.Setenv(envMaxListEntries, "25")
+	t.Setenv(envMaxCopyBytes, "4096")
+	t.Setenv(envMaxDeleteEntries, "30")
 	t.Setenv(envAllowHiddenFiles, "true")
 	t.Setenv(envAllowUNCPaths, "true")
 	t.Setenv(envFollowSymlinks, "true")
 	t.Setenv(envServerDebug, "true")
+	t.Setenv(envMaxMessageBytes, "8192")
+	t.Setenv(envMaxArgumentBytes, "4096")
+	t.Setenv(envMaxResponseBytes, "16384")
 
 	cfg, err := LoadFromEnvironment()
 	if err != nil {
@@ -70,6 +105,22 @@ func TestLoadFromEnvironment(t *testing.T) {
 		t.Fatalf("expected max file size 1048576, got %d", cfg.Filesystem().MaxFileSize())
 	}
 
+	if cfg.Filesystem().MaxWriteBytes() != 2048 {
+		t.Fatalf("expected max write bytes 2048, got %d", cfg.Filesystem().MaxWriteBytes())
+	}
+
+	if cfg.Filesystem().MaxListEntries() != 25 {
+		t.Fatalf("expected max list entries 25, got %d", cfg.Filesystem().MaxListEntries())
+	}
+
+	if cfg.Filesystem().MaxCopyBytes() != 4096 {
+		t.Fatalf("expected max copy bytes 4096, got %d", cfg.Filesystem().MaxCopyBytes())
+	}
+
+	if cfg.Filesystem().MaxDeleteEntries() != 30 {
+		t.Fatalf("expected max delete entries 30, got %d", cfg.Filesystem().MaxDeleteEntries())
+	}
+
 	if !cfg.Security().AllowHiddenFiles() {
 		t.Fatal("expected hidden files to be allowed")
 	}
@@ -84,6 +135,18 @@ func TestLoadFromEnvironment(t *testing.T) {
 
 	if !cfg.Server().Debug() {
 		t.Fatal("expected debug mode to be enabled")
+	}
+
+	if cfg.Server().MaxMessageBytes() != 8192 {
+		t.Fatalf("expected max message bytes 8192, got %d", cfg.Server().MaxMessageBytes())
+	}
+
+	if cfg.Server().MaxArgumentBytes() != 4096 {
+		t.Fatalf("expected max argument bytes 4096, got %d", cfg.Server().MaxArgumentBytes())
+	}
+
+	if cfg.Server().MaxResponseBytes() != 16384 {
+		t.Fatalf("expected max response bytes 16384, got %d", cfg.Server().MaxResponseBytes())
 	}
 }
 
@@ -125,6 +188,33 @@ func TestLoadFromEnvironmentRejectsInvalidMaxFileSize(t *testing.T) {
 	_, err := LoadFromEnvironment()
 	if err == nil {
 		t.Fatal("expected error for invalid max file size value")
+	}
+}
+
+func TestLoadFromEnvironmentRejectsInvalidLimits(t *testing.T) {
+	testCases := map[string]string{
+		envMaxFileSize:      "0",
+		envMaxWriteBytes:    "-1",
+		envMaxListEntries:   "not-a-number",
+		envMaxCopyBytes:     "0",
+		envMaxDeleteEntries: "-1",
+		envMaxMessageBytes:  "9223372036854775808",
+		envMaxArgumentBytes: "0",
+		envMaxResponseBytes: "-1",
+	}
+
+	for name, value := range testCases {
+		name := name
+		value := value
+
+		t.Run(name, func(t *testing.T) {
+			t.Setenv(name, value)
+
+			_, err := LoadFromEnvironment()
+			if err == nil {
+				t.Fatalf("expected error for invalid %s value", name)
+			}
+		})
 	}
 }
 

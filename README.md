@@ -54,6 +54,8 @@ Filesystem operations are exposed as MCP tools and invoked through `tools/call`.
 
 JSON-RPC request envelopes are validated before dispatch. Unsupported batch requests, invalid protocol versions, missing or invalid methods, invalid IDs, and malformed method params are rejected with generic JSON-RPC errors. Parse errors and invalid requests without a valid request ID serialize `id:null`. Notifications do not receive responses; `notifications/initialized` is accepted as a no-op, and other notifications are not executed.
 
+JSON-RPC messages, tool arguments, filesystem payloads, and response sizes are bounded by configurable hard limits. A message that exceeds `MCP_MAX_JSONRPC_MESSAGE_BYTES` is rejected as an invalid request with `id:null` before tool dispatch. Oversized `tools/call` arguments return generic Invalid params errors, and filesystem limit violations return generic limit errors without host paths.
+
 ## Security Model
 
 All filesystem operations are constrained to a configured root directory.
@@ -86,6 +88,25 @@ When hidden files are not allowed, dot-prefixed path components such as `.git/co
 When UNC paths are not allowed, UNC roots and UNC-style user paths are rejected. When symlink following is not enabled, existing symlink components are denied and `list_files` filters symlink or reparse entries. When symlink following is enabled, symlink targets are still constrained by effective root containment, and Windows junctions or non-symlink reparse points remain denied.
 
 Security and path denials are mapped to generic invalid-path tool errors without exposing host absolute paths.
+
+### Limits and diagnostics
+
+Sprint 3.39 adds conservative hard limits:
+
+| Environment variable | Default | Purpose |
+|---|---:|---|
+| `MCP_MAX_FILE_SIZE` | `10485760` | Maximum `read_file` bytes. Client `maxBytes` can only lower this cap. |
+| `MCP_MAX_JSONRPC_MESSAGE_BYTES` | `16777216` | Maximum single JSON-RPC stdin message. |
+| `MCP_MAX_TOOL_ARGUMENT_BYTES` | `12582912` | Maximum `tools/call` params or arguments payload. |
+| `MCP_MAX_WRITE_BYTES` | `10485760` | Maximum `write_file` content bytes. |
+| `MCP_MAX_LIST_ENTRIES` | `1000` | Maximum policy-visible entries returned by `list_files`. |
+| `MCP_MAX_COPY_BYTES` | `10485760` | Maximum `copy_path` source file size. |
+| `MCP_MAX_DELETE_ENTRIES` | `1000` | Maximum entries allowed for recursive `delete_path`. |
+| `MCP_MAX_RESPONSE_BYTES` | `16777216` | Safety net for serialized JSON-RPC responses. |
+
+All limit values must be positive integers.
+
+`MCP_DEBUG=true` enables minimal diagnostics on stderr. Diagnostics are redacted for common credentials, tokens, private-key markers, connection strings, and host paths. Normal MCP operation still writes only JSON-RPC protocol messages to stdout. No persistent logfiles are created.
 
 ### Read-only mode
 
@@ -156,6 +177,7 @@ cmd/
 
 internal/
   config/               Runtime configuration
+  diagnostics/          Redacted stderr diagnostics helpers
   fs/                   Filesystem abstraction and implementation
   mcp/                  MCP server, router, handlers, transport, and tools
   protocol/             JSON-RPC and MCP protocol types

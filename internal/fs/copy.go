@@ -27,6 +27,10 @@ func (f *LocalFileSystem) Copy(source string, target string, overwrite bool) err
 		return ErrCopyDirectoryUnsupported
 	}
 
+	if sourceInfo.Size() > f.limits.MaxCopyBytes {
+		return ErrLimitExceeded
+	}
+
 	if err := ensureTargetPolicy(targetPath.String(), overwrite); err != nil {
 		return err
 	}

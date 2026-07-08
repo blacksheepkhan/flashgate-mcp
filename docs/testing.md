@@ -92,6 +92,9 @@ Security tests must cover:
 - destructive operation defaults
 - overwrite behavior
 - recursive delete behavior
+- JSON-RPC message and tool argument limits
+- filesystem read, write, list, copy, and recursive delete limits
+- diagnostics redaction
 
 ### Integration Tests
 
@@ -105,6 +108,8 @@ On Windows:
 ```
 
 The default smoke test validates `initialize` and `tools/list`. The negative smoke test validates malformed JSON, unknown methods, invalid `tools/call` params, and notification no-response behavior.
+
+Limit and redaction behavior is primarily covered by Go unit tests. Additional limit-negative smoke coverage can be added later if it can be done without broad smoke-script refactoring.
 
 ### Benchmarks
 
@@ -126,6 +131,7 @@ go test -bench=. ./...
 Currently tested:
 
 - `internal/config`
+- `internal/diagnostics`
 - `internal/security`
 - `internal/fs`
 - `internal/protocol`

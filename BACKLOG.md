@@ -28,17 +28,19 @@ The backlog is maintained as part of the normal sprint workflow. New tasks disco
 
 ## Current Sprint
 
-### Sprint 3.38 - JSON-RPC validation and error behavior
+### Sprint 3.39 - Limits, logging, secrets redaction
 
 | ID | Status | Task | Reason | Notes |
 |---|---|---|---|---|
-| BL-055 | Done | Harden JSON-RPC request validation | Current validation is minimal | Sprint 3.38 validates JSON-RPC envelopes, IDs, notifications, batch rejection, method params, generic protocol errors, and panic handling |
+| BL-056 | Done | Enforce JSON-RPC message and tool argument limits | Unbounded input can cause excessive memory use before dispatch | Sprint 3.39 adds JSON-RPC message, tools/call params, and argument size limits |
+| BL-057 | Done | Enforce filesystem operation and response limits | Filesystem tools need bounded payloads and operation cost | Sprint 3.39 adds read caps, write caps, list entry caps, copy source caps, recursive delete guards, and response-size safety net |
+| BL-058 | Done | Add centralized redaction for secrets, credentials, and host paths | Diagnostics must not leak sensitive values | Sprint 3.39 adds central redaction for stderr diagnostics |
+| BL-059 | Done | Add safe stderr diagnostics and debug gating | Diagnostics must not corrupt JSON-RPC stdout | Sprint 3.39 wires minimal redacted diagnostics through `MCP_DEBUG` |
 
 ## Upcoming Sprints
 
 | Sprint | Backlog IDs | Scope | Notes |
 |---|---|---|---|
-| Sprint 3.39 | BL-008, BL-011, BL-034, BL-035 | Limits, logging, safe defaults, and secrets-aware behavior | Include read/list response limits and audit-oriented stderr logging |
 | Sprint 3.40 | BL-001, BL-002, BL-040 | Windows/Linux test matrix and smoke tests | The earlier Linux JSON-RPC smoke-test CI item is deferred into Sprint 3.40 |
 | Sprint 3.41 | BL-037, BL-038, BL-039 | Codex read-only activation preparation, without activation | Configuration examples, troubleshooting, and activation checklist |
 
@@ -131,8 +133,8 @@ The project must remain secure-by-default as functionality expands beyond file o
 |---|---|---|---|---|
 | BL-032 | Planned | Define capability model for dangerous tools | Needed before process and command tools | Example capabilities: filesystem.write, process.control, command.execute |
 | BL-033 | Planned | Add configuration flags for tool groups | Allow operators to disable risky features | Filesystem write, process tools, command tools |
-| BL-034 | Planned | Add audit-oriented stderr logging | Improve traceability without corrupting STDIO | Must never write logs to stdout |
-| BL-035 | Planned | Add safe defaults for non-developer users | Improve usability and safety | Dangerous tools disabled unless explicitly enabled |
+| BL-034 | Done | Add audit-oriented stderr logging | Improve traceability without corrupting STDIO | Sprint 3.39 adds minimal redacted stderr diagnostics gated by `MCP_DEBUG`; no persistent logfiles |
+| BL-035 | Done | Add safe defaults for non-developer users | Improve usability and safety | Sprint 3.39 adds deny-by-default hard limits for JSON-RPC messages, tool arguments, filesystem operations, and responses |
 | BL-036 | Later | Review workflow pinning strategy | Supply-chain hardening | Major tags are currently used; SHA pinning could be considered later |
 
 ### Client Compatibility
@@ -179,6 +181,10 @@ Documentation is part of the project deliverable and should be updated continuou
 | BL-053 | Done | Close symlink escape risk from configured root | Symlinks inside the root may resolve outside the allowed tree | Completed in Sprint 3.36 for effective existing paths and effective create-parent validation |
 | BL-054 | Done | Replace purely lexical path checks with real-path validation | Lexical root checks alone are insufficient for filesystem security | Completed in Sprint 3.36 with lexical checks followed by evaluated root containment checks |
 | BL-055 | Done | Harden JSON-RPC request validation | Current validation is minimal | Completed in Sprint 3.38 with envelope validation, explicit `id:null`, notification no-response behavior, batch rejection, method-specific params validation, and generic protocol errors |
+| BL-056 | Done | Enforce JSON-RPC message and tool argument limits | Unbounded protocol input can consume memory before dispatch | Completed in Sprint 3.39 with configurable message and tools/call argument caps |
+| BL-057 | Done | Enforce filesystem operation and response limits | Filesystem tools need bounded payloads and operation cost | Completed in Sprint 3.39 with read/write/list/copy/delete limits and response-size safety net |
+| BL-058 | Done | Add centralized redaction for secrets, credentials, and host paths | Diagnostic output must not leak sensitive values | Completed in Sprint 3.39 with `internal/diagnostics.Redact` |
+| BL-059 | Done | Add safe stderr diagnostics and debug gating | Diagnostics must stay off stdout and avoid sensitive payloads | Completed in Sprint 3.39 with `MCP_DEBUG`-gated redacted diagnostics |
 
 ## Done Summary
 
@@ -204,3 +210,4 @@ This section is intentionally not a full commit history. Detailed chronological 
 | BL-D016 | Done | Add root, realpath, and traversal hardening | Sprint 3.36 | Existing paths and create-target parents are evaluated and confined to the effective root |
 | BL-D017 | Done | Add hidden, UNC, symlink, junction, and reparse policy | Sprint 3.37 | Deny-by-default policy is wired through config, `PathGuard`, filesystem operations, and MCP error mapping |
 | BL-D018 | Done | Harden JSON-RPC validation and error behavior | Sprint 3.38 | Request envelopes, IDs, notifications, unsupported batches, method params, unknown tools, and panic boundaries are validated with generic JSON-RPC errors |
+| BL-D019 | Done | Add limits, diagnostics, and redaction | Sprint 3.39 | Configurable hard limits, generic limit errors, redacted stderr diagnostics, and central redaction helpers |

@@ -114,10 +114,14 @@ func mapFilesystemError(err error) *protocol.Error {
 	} else if errors.Is(err, fs.ErrPathIsDirectory) ||
 		errors.Is(err, fs.ErrPathIsNotDirectory) ||
 		errors.Is(err, fs.ErrFileTooLarge) ||
+		errors.Is(err, fs.ErrLimitExceeded) ||
 		errors.Is(err, fs.ErrFileExists) ||
 		errors.Is(err, fs.ErrDirectoryNotEmpty) ||
 		errors.Is(err, fs.ErrCopyDirectoryUnsupported) {
 		code = protocol.ErrInvalidParams
+		if errors.Is(err, fs.ErrLimitExceeded) {
+			message = "filesystem error: limit exceeded"
+		}
 	}
 
 	return &protocol.Error{
