@@ -131,35 +131,49 @@ Directory copy is currently unsupported by design.
 
 Sprint 3.36 rejects symlink-based escapes where an existing path, or the nearest existing parent for a create target, resolves outside the configured root.
 
-A later security sprint will define the full symlink, junction, and reparse policy based on configuration.
+Sprint 3.37 adds explicit symlink policy enforcement.
 
-Planned configuration:
+Configuration:
 
 ```text
 MCP_FOLLOW_SYMLINKS
 ```
 
+Default: `false`.
+
+When `MCP_FOLLOW_SYMLINKS=false`, existing symlink path components are denied before filesystem operations. Create targets are denied when the nearest existing parent contains a symlink. `list_files` filters symlink entries instead of exposing them.
+
+When `MCP_FOLLOW_SYMLINKS=true`, classic symlinks may be followed only if the effective target remains inside the effective root. Symlink escapes are still denied. Windows junctions and non-symlink reparse points remain denied by default.
+
 ## UNC Paths
 
-UNC path handling is not yet fully implemented.
+UNC path policy is enforced for configured roots and user paths.
 
-Planned configuration:
+Configuration:
 
 ```text
 MCP_ALLOW_UNC_PATHS
 ```
 
-The default will remain secure: UNC paths are not allowed unless explicitly enabled.
+Default: `false`.
+
+When `MCP_ALLOW_UNC_PATHS=false`, UNC roots and UNC-style user paths are rejected. When `MCP_ALLOW_UNC_PATHS=true`, UNC roots do not fail solely because they are UNC paths, but the root must still exist and all root containment, hidden-file, symlink, and reparse policies still apply.
 
 ## Hidden Files
 
-Hidden file handling is not yet fully implemented.
+Hidden file policy is enforced for lexical dot-paths and Windows hidden attributes where available through the standard library.
 
-Planned configuration:
+Configuration:
 
 ```text
 MCP_ALLOW_HIDDEN_FILES
 ```
+
+Default: `false`.
+
+When `MCP_ALLOW_HIDDEN_FILES=false`, path components whose names start with `.` are denied, except for `.` itself. Examples include `.git/config`, `.codex/settings`, and `dir/.secret`. Create targets with hidden names are denied. `list_files` filters hidden entries instead of failing the parent directory.
+
+When `MCP_ALLOW_HIDDEN_FILES=true`, hidden and dotfile paths are allowed if all other policies pass.
 
 ## Security Testing
 
@@ -171,6 +185,10 @@ Security tests currently cover:
 - root normalization
 - effective root validation
 - symlink escape rejection
+- symlink deny/follow policy
+- Windows reparse point deny behavior where safely detectable
+- UNC root and user path denial
+- hidden dot-path and Windows hidden-attribute denial
 - create-target parent validation
 - safe path metadata
 - filesystem traversal rejection across list/read/stat/exists/write/mkdir/delete/move/copy
@@ -179,9 +197,6 @@ Security tests currently cover:
 
 Planned future work:
 
-- full symlink, junction, and reparse policy
-- Windows UNC path validation
-- hidden file policy
 - maximum response size
 - maximum directory listing size
 - audit logging

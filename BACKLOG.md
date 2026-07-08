@@ -28,18 +28,18 @@ The backlog is maintained as part of the normal sprint workflow. New tasks disco
 
 ## Current Sprint
 
-### Sprint 3.36 - Root, realpath, and traversal hardening
+### Sprint 3.37 - Hidden, UNC, symlink, junction, and reparse policy
 
 | ID | Status | Task | Reason | Notes |
 |---|---|---|---|---|
-| BL-053 | Done | Close symlink escape risk from configured root | Symlinks inside the root may resolve outside the allowed tree | Sprint 3.36 validates effective existing paths and effective create parents before filesystem operations |
-| BL-054 | Done | Replace purely lexical path checks with real-path validation | Lexical root checks alone are insufficient for filesystem security | Sprint 3.36 keeps lexical checks first, then verifies evaluated paths or nearest existing parents remain under the evaluated root |
+| BL-050 | Done | Enforce `MCP_ALLOW_HIDDEN_FILES` in filesystem access | Config is parsed, but hidden-file policy may not be applied | Sprint 3.37 denies dot-paths and Windows hidden attributes by default; `list_files` filters hidden entries |
+| BL-051 | Done | Enforce `MCP_ALLOW_UNC_PATHS` on Windows roots and paths | Config is parsed, but UNC path policy may not be applied | Sprint 3.37 rejects UNC roots and UNC-style user paths unless explicitly allowed |
+| BL-052 | Done | Enforce `MCP_FOLLOW_SYMLINKS` consistently | Config is parsed, but filesystem operations may still follow symlinks | Sprint 3.37 denies symlink components by default, optionally follows classic symlinks with effective root containment, and keeps junction/reparse points denied |
 
 ## Upcoming Sprints
 
 | Sprint | Backlog IDs | Scope | Notes |
 |---|---|---|---|
-| Sprint 3.37 | BL-050, BL-051, BL-052 | Hidden files, UNC paths, symlink/junction/reparse policy | Windows and Linux filesystem edge cases |
 | Sprint 3.38 | BL-055 | JSON-RPC validation and error behavior | Validate request shape, IDs, methods, params, notifications, and invalid request handling |
 | Sprint 3.39 | BL-008, BL-011, BL-034, BL-035 | Limits, logging, safe defaults, and secrets-aware behavior | Include read/list response limits and audit-oriented stderr logging |
 | Sprint 3.40 | BL-001, BL-002, BL-040 | Windows/Linux test matrix and smoke tests | The earlier Linux JSON-RPC smoke-test CI item is deferred into Sprint 3.40 |
@@ -176,9 +176,9 @@ Documentation is part of the project deliverable and should be updated continuou
 | ID | Status | Task | Reason | Notes |
 |---|---|---|---|---|
 | BL-049 | Done | Enforce `MCP_READ_ONLY` across filesystem tools | Config is parsed, but write-capable operations must not be available in read-only mode | Completed in Sprint 3.35 |
-| BL-050 | Ready | Enforce `MCP_ALLOW_HIDDEN_FILES` in filesystem access | Config is parsed, but hidden-file policy may not be applied | Define portable Windows/Linux hidden-file behavior |
-| BL-051 | Ready | Enforce `MCP_ALLOW_UNC_PATHS` on Windows roots and paths | Config is parsed, but UNC path policy may not be applied | Reject UNC roots and user paths unless explicitly allowed |
-| BL-052 | Ready | Enforce `MCP_FOLLOW_SYMLINKS` consistently | Config is parsed, but filesystem operations may still follow symlinks | Use no-follow checks where needed before file operations |
+| BL-050 | Done | Enforce `MCP_ALLOW_HIDDEN_FILES` in filesystem access | Config is parsed, but hidden-file policy may not be applied | Completed in Sprint 3.37 with deny-by-default dot-path and Windows hidden-attribute checks |
+| BL-051 | Done | Enforce `MCP_ALLOW_UNC_PATHS` on Windows roots and paths | Config is parsed, but UNC path policy may not be applied | Completed in Sprint 3.37 with UNC root and user-path denial unless explicitly allowed |
+| BL-052 | Done | Enforce `MCP_FOLLOW_SYMLINKS` consistently | Config is parsed, but filesystem operations may still follow symlinks | Completed in Sprint 3.37 with symlink deny/follow policy and junction/reparse default denial |
 | BL-053 | Done | Close symlink escape risk from configured root | Symlinks inside the root may resolve outside the allowed tree | Completed in Sprint 3.36 for effective existing paths and effective create-parent validation |
 | BL-054 | Done | Replace purely lexical path checks with real-path validation | Lexical root checks alone are insufficient for filesystem security | Completed in Sprint 3.36 with lexical checks followed by evaluated root containment checks |
 | BL-055 | Ready | Harden JSON-RPC request validation | Current validation is minimal | Validate JSON-RPC version, method shape, IDs, notifications, and invalid request handling |
@@ -205,3 +205,4 @@ This section is intentionally not a full commit history. Detailed chronological 
 | BL-D014 | Done | Add optional read-only mode | Sprint 3.35 | `MCP_READ_ONLY=true` disables write-capable filesystem tools at registration time |
 | BL-D015 | Done | Add filesystem write capability gating | Sprint 3.35 | Read-only mode exposes only `list_files`, `read_file`, `stat_path`, and `exists_path` |
 | BL-D016 | Done | Add root, realpath, and traversal hardening | Sprint 3.36 | Existing paths and create-target parents are evaluated and confined to the effective root |
+| BL-D017 | Done | Add hidden, UNC, symlink, junction, and reparse policy | Sprint 3.37 | Deny-by-default policy is wired through config, `PathGuard`, filesystem operations, and MCP error mapping |

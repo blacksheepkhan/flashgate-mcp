@@ -16,6 +16,15 @@ func (f *LocalFileSystem) List(path string) ([]Entry, error) {
 
 	result := make([]Entry, 0, len(dirEntries))
 	for _, dirEntry := range dirEntries {
+		allowed, err := f.guard.AllowListEntry(safePath, dirEntry.Name())
+		if err != nil {
+			return nil, err
+		}
+
+		if !allowed {
+			continue
+		}
+
 		info, err := dirEntry.Info()
 		if err != nil {
 			return nil, err

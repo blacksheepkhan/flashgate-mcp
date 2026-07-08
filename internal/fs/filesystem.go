@@ -61,7 +61,12 @@ type LocalFileSystem struct {
 
 // NewLocalFileSystem creates a new local filesystem.
 func NewLocalFileSystem(root string) (*LocalFileSystem, error) {
-	guard, err := security.NewPathGuard(root)
+	return NewLocalFileSystemWithPolicy(root, security.DefaultPolicy())
+}
+
+// NewLocalFileSystemWithPolicy creates a new local filesystem with an explicit policy.
+func NewLocalFileSystemWithPolicy(root string, policy security.Policy) (*LocalFileSystem, error) {
+	guard, err := security.NewPathGuardWithPolicy(root, policy)
 	if err != nil {
 		return nil, err
 	}
