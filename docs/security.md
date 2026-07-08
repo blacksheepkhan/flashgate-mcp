@@ -59,6 +59,13 @@ It protects against:
 - parent directory traversal
 - resolved paths outside the sandbox root
 
+Path validation is intentionally layered:
+
+1. Lexical validation normalizes the user path and rejects absolute paths and leading parent traversal.
+2. Effective path validation uses evaluated filesystem paths to confirm the final existing path, or the nearest existing parent for create targets, remains inside the evaluated sandbox root.
+
+The configured root must exist and be evaluable when the server starts. This keeps root comparisons based on the effective filesystem location rather than only string-cleaned paths.
+
 ## SafePath
 
 `SafePath` represents a path that has passed validation.
@@ -94,7 +101,9 @@ Examples:
 
 ### Outside Root Resolution
 
-Even after cleaning and resolving a path, the final path must remain inside the configured sandbox root.
+Even after cleaning and resolving a path, the final effective path must remain inside the configured sandbox root.
+
+Existing paths are evaluated directly. Create targets that do not exist yet are checked by evaluating the nearest existing parent directory before the operation is allowed.
 
 ## Destructive Operations
 
@@ -120,9 +129,9 @@ Directory copy is currently unsupported by design.
 
 ## Symlinks
 
-Symlink handling is not yet fully implemented.
+Sprint 3.36 rejects symlink-based escapes where an existing path, or the nearest existing parent for a create target, resolves outside the configured root.
 
-Current behavior uses standard filesystem calls. A later security sprint will define explicit symlink policy based on configuration.
+A later security sprint will define the full symlink, junction, and reparse policy based on configuration.
 
 Planned configuration:
 
@@ -160,6 +169,9 @@ Security tests currently cover:
 - absolute path rejection
 - path traversal rejection
 - root normalization
+- effective root validation
+- symlink escape rejection
+- create-target parent validation
 - safe path metadata
 - filesystem traversal rejection across list/read/stat/exists/write/mkdir/delete/move/copy
 
@@ -167,10 +179,9 @@ Security tests currently cover:
 
 Planned future work:
 
-- explicit symlink validation
+- full symlink, junction, and reparse policy
 - Windows UNC path validation
 - hidden file policy
-- read-only mode enforcement
 - maximum response size
 - maximum directory listing size
 - audit logging

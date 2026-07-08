@@ -2,8 +2,10 @@ package security
 
 import (
 	"errors"
+	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 )
 
@@ -41,6 +43,18 @@ func TestNewPathGuardNormalizesRootToAbsolutePath(t *testing.T) {
 	}
 }
 
+func TestNewPathGuardRejectsNonExistentRoot(t *testing.T) {
+	t.Parallel()
+
+	root := filepath.Join(t.TempDir(), "missing")
+
+	_, err := NewPathGuard(root)
+
+	if !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("expected os.ErrNotExist, got %v", err)
+	}
+}
+
 func TestResolveAcceptsEmptyUserPathAsRoot(t *testing.T) {
 	t.Parallel()
 
@@ -59,6 +73,75 @@ func TestResolveAcceptsEmptyUserPathAsRoot(t *testing.T) {
 
 	if safePath.String() != expected {
 		t.Fatalf("expected %q, got %q", expected, safePath.String())
+	}
+}
+
+func TestResolveExistingAcceptsExistingRelativePath(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	writeSecurityTestFile(t, filepath.Join(root, "alpha.txt"), "alpha")
+	guard := mustNewPathGuard(t, root)
+
+	safePath, err := guard.ResolveExisting("alpha.txt")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	expected := filepath.Join(guard.Root(), "alpha.txt")
+	if safePath.String() != expected {
+		t.Fatalf("expected %q, got %q", expected, safePath.String())
+	}
+}
+
+func TestResolveForCreateAllowsNormalExistingParent(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	mkdirSecurityTestDir(t, filepath.Join(root, "alpha"))
+	guard := mustNewPathGuard(t, root)
+
+	safePath, err := guard.ResolveForCreate(filepath.Join("alpha", "created.txt"))
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	expected := filepath.Join(guard.Root(), "alpha", "created.txt")
+	if safePath.String() != expected {
+		t.Fatalf("expected %q, got %q", expected, safePath.String())
+	}
+}
+
+func TestResolveExistingRejectsSymlinkEscape(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	outside := t.TempDir()
+	writeSecurityTestFile(t, filepath.Join(outside, "secret.txt"), "secret")
+	createSecurityTestSymlinkOrSkip(t, filepath.Join(outside, "secret.txt"), filepath.Join(root, "escape.txt"))
+
+	guard := mustNewPathGuard(t, root)
+
+	_, err := guard.ResolveExisting("escape.txt")
+
+	if !errors.Is(err, ErrOutsideRoot) {
+		t.Fatalf("expected ErrOutsideRoot, got %v", err)
+	}
+}
+
+func TestResolveForCreateRejectsSymlinkedParentEscape(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	outside := t.TempDir()
+	createSecurityTestSymlinkOrSkip(t, outside, filepath.Join(root, "escape-dir"))
+
+	guard := mustNewPathGuard(t, root)
+
+	_, err := guard.ResolveForCreate(filepath.Join("escape-dir", "created.txt"))
+
+	if !errors.Is(err, ErrOutsideRoot) {
+		t.Fatalf("expected ErrOutsideRoot, got %v", err)
 	}
 }
 
@@ -167,4 +250,32 @@ func mustNewPathGuard(t *testing.T, root string) *PathGuard {
 	}
 
 	return guard
+}
+
+func writeSecurityTestFile(t *testing.T, path string, content string) {
+	t.Helper()
+
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		t.Fatalf("failed to write test file: %v", err)
+	}
+}
+
+func mkdirSecurityTestDir(t *testing.T, path string) {
+	t.Helper()
+
+	if err := os.MkdirAll(path, 0o700); err != nil {
+		t.Fatalf("failed to create test directory: %v", err)
+	}
+}
+
+func createSecurityTestSymlinkOrSkip(t *testing.T, target string, link string) {
+	t.Helper()
+
+	if err := os.Symlink(target, link); err != nil {
+		if runtime.GOOS == "windows" && (errors.Is(err, os.ErrPermission) || strings.Contains(err.Error(), "required privilege")) {
+			t.Skipf("symlink creation is not available in this Windows environment: %v", err)
+		}
+
+		t.Fatalf("failed to create symlink: %v", err)
+	}
 }

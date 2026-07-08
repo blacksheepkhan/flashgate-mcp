@@ -2,6 +2,7 @@ package security
 
 import (
 	"errors"
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -42,7 +43,8 @@ func (p SafePath) Dir() string {
 
 // PathGuard validates and resolves user-provided paths against a sandbox root.
 type PathGuard struct {
-	root string
+	root          string
+	effectiveRoot string
 }
 
 // NewPathGuard creates a new PathGuard.
@@ -56,8 +58,14 @@ func NewPathGuard(root string) (*PathGuard, error) {
 		return nil, err
 	}
 
+	effectiveRoot, err := filepath.EvalSymlinks(absoluteRoot)
+	if err != nil {
+		return nil, err
+	}
+
 	return &PathGuard{
-		root: absoluteRoot,
+		root:          absoluteRoot,
+		effectiveRoot: effectiveRoot,
 	}, nil
 }
 
@@ -68,28 +76,113 @@ func (g *PathGuard) Root() string {
 
 // Resolve validates and resolves a user path against the sandbox root.
 func (g *PathGuard) Resolve(userPath string) (SafePath, error) {
-	normalizedUserPath := normalizeUserPath(userPath)
+	return g.ResolveForCreate(userPath)
+}
 
-	if filepath.IsAbs(normalizedUserPath) {
-		return SafePath{}, ErrAbsolutePath
-	}
-
-	if isTraversalPath(normalizedUserPath) {
-		return SafePath{}, ErrPathTraversal
-	}
-
-	resolvedPath, err := filepath.Abs(filepath.Join(g.root, normalizedUserPath))
+// ResolveExisting validates and resolves an existing user path against the sandbox root.
+func (g *PathGuard) ResolveExisting(userPath string) (SafePath, error) {
+	resolvedPath, err := g.resolveLexical(userPath)
 	if err != nil {
 		return SafePath{}, err
 	}
 
-	if !isInsideRoot(g.root, resolvedPath) {
+	effectivePath, err := filepath.EvalSymlinks(resolvedPath)
+	if err != nil {
+		return SafePath{}, err
+	}
+
+	if !isInsideRoot(g.effectiveRoot, effectivePath) {
 		return SafePath{}, ErrOutsideRoot
 	}
 
 	return SafePath{
 		path: resolvedPath,
 	}, nil
+}
+
+// ResolveForCreate validates a user path for creation or replacement.
+func (g *PathGuard) ResolveForCreate(userPath string) (SafePath, error) {
+	resolvedPath, err := g.resolveLexical(userPath)
+	if err != nil {
+		return SafePath{}, err
+	}
+
+	effectivePath, err := filepath.EvalSymlinks(resolvedPath)
+	if err == nil {
+		if !isInsideRoot(g.effectiveRoot, effectivePath) {
+			return SafePath{}, ErrOutsideRoot
+		}
+
+		return SafePath{
+			path: resolvedPath,
+		}, nil
+	}
+
+	if !errors.Is(err, os.ErrNotExist) {
+		return SafePath{}, err
+	}
+
+	effectiveParent, err := g.resolveExistingParent(resolvedPath)
+	if err != nil {
+		return SafePath{}, err
+	}
+
+	if !isInsideRoot(g.effectiveRoot, effectiveParent) {
+		return SafePath{}, ErrOutsideRoot
+	}
+
+	return SafePath{
+		path: resolvedPath,
+	}, nil
+}
+
+func (g *PathGuard) resolveLexical(userPath string) (string, error) {
+	normalizedUserPath := normalizeUserPath(userPath)
+
+	if filepath.IsAbs(normalizedUserPath) {
+		return "", ErrAbsolutePath
+	}
+
+	if isTraversalPath(normalizedUserPath) {
+		return "", ErrPathTraversal
+	}
+
+	resolvedPath, err := filepath.Abs(filepath.Join(g.root, normalizedUserPath))
+	if err != nil {
+		return "", err
+	}
+
+	if !isInsideRoot(g.root, resolvedPath) {
+		return "", ErrOutsideRoot
+	}
+
+	return resolvedPath, nil
+}
+
+func (g *PathGuard) resolveExistingParent(path string) (string, error) {
+	current := filepath.Clean(path)
+
+	for {
+		parent := filepath.Dir(current)
+		if parent == current {
+			return "", ErrOutsideRoot
+		}
+
+		if !isInsideRoot(g.root, parent) {
+			return "", ErrOutsideRoot
+		}
+
+		effectiveParent, err := filepath.EvalSymlinks(parent)
+		if err == nil {
+			return effectiveParent, nil
+		}
+
+		if !errors.Is(err, os.ErrNotExist) {
+			return "", err
+		}
+
+		current = parent
+	}
 }
 
 func normalizeUserPath(userPath string) string {

@@ -8,6 +8,7 @@ import (
 
 	"github.com/blacksheepkhan/fileserver-mcp/internal/fs"
 	"github.com/blacksheepkhan/fileserver-mcp/internal/protocol"
+	"github.com/blacksheepkhan/fileserver-mcp/internal/security"
 )
 
 const listFilesToolName = "list_files"
@@ -100,8 +101,14 @@ type listFilesResult struct {
 
 func mapFilesystemError(err error) *protocol.Error {
 	code := protocol.ErrInternalError
+	message := fmt.Sprintf("filesystem error: %v", err)
 
-	if errors.Is(err, fs.ErrPathIsDirectory) ||
+	if errors.Is(err, security.ErrAbsolutePath) ||
+		errors.Is(err, security.ErrPathTraversal) ||
+		errors.Is(err, security.ErrOutsideRoot) {
+		code = protocol.ErrInvalidParams
+		message = "filesystem error: invalid path"
+	} else if errors.Is(err, fs.ErrPathIsDirectory) ||
 		errors.Is(err, fs.ErrPathIsNotDirectory) ||
 		errors.Is(err, fs.ErrFileTooLarge) ||
 		errors.Is(err, fs.ErrFileExists) ||
@@ -112,6 +119,6 @@ func mapFilesystemError(err error) *protocol.Error {
 
 	return &protocol.Error{
 		Code:    code,
-		Message: fmt.Sprintf("filesystem error: %v", err),
+		Message: message,
 	}
 }

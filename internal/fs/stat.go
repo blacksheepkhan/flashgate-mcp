@@ -7,7 +7,7 @@ import (
 
 // Stat returns filesystem metadata.
 func (f *LocalFileSystem) Stat(path string) (Metadata, error) {
-	safePath, err := f.guard.Resolve(path)
+	safePath, err := f.guard.ResolveExisting(path)
 	if err != nil {
 		return Metadata{}, err
 	}
@@ -26,7 +26,7 @@ func (f *LocalFileSystem) Stat(path string) (Metadata, error) {
 
 // Exists checks whether a path exists.
 func (f *LocalFileSystem) Exists(path string) (bool, error) {
-	safePath, err := f.guard.Resolve(path)
+	safePath, err := f.guard.ResolveForCreate(path)
 	if err != nil {
 		return false, err
 	}

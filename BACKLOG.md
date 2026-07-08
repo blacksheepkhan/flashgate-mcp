@@ -28,17 +28,17 @@ The backlog is maintained as part of the normal sprint workflow. New tasks disco
 
 ## Current Sprint
 
-### Sprint 3.35 - Read-only enforcement and tool capability gating
+### Sprint 3.36 - Root, realpath, and traversal hardening
 
 | ID | Status | Task | Reason | Notes |
 |---|---|---|---|---|
-| BL-049 | Done | Enforce `MCP_READ_ONLY` across filesystem tools | Config is parsed, but write-capable operations must not be available in read-only mode | Sprint 3.35 gates write-capable tools out of `tools/list` and direct `tools/call` by not registering them when `MCP_READ_ONLY=true` |
+| BL-053 | Done | Close symlink escape risk from configured root | Symlinks inside the root may resolve outside the allowed tree | Sprint 3.36 validates effective existing paths and effective create parents before filesystem operations |
+| BL-054 | Done | Replace purely lexical path checks with real-path validation | Lexical root checks alone are insufficient for filesystem security | Sprint 3.36 keeps lexical checks first, then verifies evaluated paths or nearest existing parents remain under the evaluated root |
 
 ## Upcoming Sprints
 
 | Sprint | Backlog IDs | Scope | Notes |
 |---|---|---|---|
-| Sprint 3.36 | BL-053, BL-054 | Root, realpath, and traversal hardening | Replace purely lexical checks with effective path validation |
 | Sprint 3.37 | BL-050, BL-051, BL-052 | Hidden files, UNC paths, symlink/junction/reparse policy | Windows and Linux filesystem edge cases |
 | Sprint 3.38 | BL-055 | JSON-RPC validation and error behavior | Validate request shape, IDs, methods, params, notifications, and invalid request handling |
 | Sprint 3.39 | BL-008, BL-011, BL-034, BL-035 | Limits, logging, safe defaults, and secrets-aware behavior | Include read/list response limits and audit-oriented stderr logging |
@@ -179,8 +179,8 @@ Documentation is part of the project deliverable and should be updated continuou
 | BL-050 | Ready | Enforce `MCP_ALLOW_HIDDEN_FILES` in filesystem access | Config is parsed, but hidden-file policy may not be applied | Define portable Windows/Linux hidden-file behavior |
 | BL-051 | Ready | Enforce `MCP_ALLOW_UNC_PATHS` on Windows roots and paths | Config is parsed, but UNC path policy may not be applied | Reject UNC roots and user paths unless explicitly allowed |
 | BL-052 | Ready | Enforce `MCP_FOLLOW_SYMLINKS` consistently | Config is parsed, but filesystem operations may still follow symlinks | Use no-follow checks where needed before file operations |
-| BL-053 | Ready | Close symlink escape risk from configured root | Symlinks inside the root may resolve outside the allowed tree | Validate resolved real paths before read, write, copy, move, rename, delete, and stat |
-| BL-054 | Ready | Replace purely lexical path checks with real-path validation | Lexical root checks alone are insufficient for filesystem security | Keep lexical checks, then verify evaluated paths remain under root |
+| BL-053 | Done | Close symlink escape risk from configured root | Symlinks inside the root may resolve outside the allowed tree | Completed in Sprint 3.36 for effective existing paths and effective create-parent validation |
+| BL-054 | Done | Replace purely lexical path checks with real-path validation | Lexical root checks alone are insufficient for filesystem security | Completed in Sprint 3.36 with lexical checks followed by evaluated root containment checks |
 | BL-055 | Ready | Harden JSON-RPC request validation | Current validation is minimal | Validate JSON-RPC version, method shape, IDs, notifications, and invalid request handling |
 
 ## Done Summary
@@ -204,3 +204,4 @@ This section is intentionally not a full commit history. Detailed chronological 
 | BL-D013 | Done | Update upload-artifact action | `7540c67` | `upload-artifact@v6` |
 | BL-D014 | Done | Add optional read-only mode | Sprint 3.35 | `MCP_READ_ONLY=true` disables write-capable filesystem tools at registration time |
 | BL-D015 | Done | Add filesystem write capability gating | Sprint 3.35 | Read-only mode exposes only `list_files`, `read_file`, `stat_path`, and `exists_path` |
+| BL-D016 | Done | Add root, realpath, and traversal hardening | Sprint 3.36 | Existing paths and create-target parents are evaluated and confined to the effective root |

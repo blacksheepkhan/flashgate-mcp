@@ -3,10 +3,13 @@ package tools
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/blacksheepkhan/fileserver-mcp/internal/fs"
 	"github.com/blacksheepkhan/fileserver-mcp/internal/protocol"
+	"github.com/blacksheepkhan/fileserver-mcp/internal/security"
 )
 
 func TestListFilesToolDefinition(t *testing.T) {
@@ -180,6 +183,25 @@ func TestListFilesToolReturnsInvalidParamsForFilesystemError(t *testing.T) {
 
 	if rpcErr.Code != protocol.ErrInvalidParams {
 		t.Fatalf("expected ErrInvalidParams, got %d", rpcErr.Code)
+	}
+}
+
+func TestMapFilesystemErrorReturnsGenericInvalidParamsForSecurityDenial(t *testing.T) {
+	t.Parallel()
+
+	hostPath := t.TempDir()
+	rpcErr := mapFilesystemError(fmt.Errorf("%w: %s", security.ErrOutsideRoot, hostPath))
+
+	if rpcErr.Code != protocol.ErrInvalidParams {
+		t.Fatalf("expected ErrInvalidParams, got %d", rpcErr.Code)
+	}
+
+	if strings.Contains(rpcErr.Message, hostPath) {
+		t.Fatalf("expected generic error message without host path, got %q", rpcErr.Message)
+	}
+
+	if rpcErr.Message != "filesystem error: invalid path" {
+		t.Fatalf("expected generic invalid path message, got %q", rpcErr.Message)
 	}
 }
 
