@@ -10,6 +10,7 @@ The format follows the spirit of [Keep a Changelog](https://keepachangelog.com/)
 
 - Sprint 3.38 JSON-RPC request validation and error behavior hardening.
 - Sprint 3.39 configurable hard limits, redacted diagnostics, and secrets-aware behavior.
+- Sprint 3.40 Windows/Linux JSON-RPC smoke-test matrix coverage.
 - Sprint 3.37 hidden, UNC, symlink, junction, and reparse policy enforcement.
 - Sprint 3.36 root, realpath, and traversal hardening for filesystem access.
 - Sprint 3.35 read-only tool capability gating for filesystem MCP tools.
@@ -42,6 +43,7 @@ The format follows the spirit of [Keep a Changelog](https://keepachangelog.com/)
 - Configurable limits for JSON-RPC messages, tool arguments, write payloads, list entries, copy source size, recursive delete entries, and response size.
 - Central diagnostics redaction for common tokens, credentials, private-key markers, connection strings, and host paths.
 - Negative JSON-RPC smoke test coverage for malformed JSON, unknown methods, invalid `tools/call` params, and notification no-response behavior.
+- Bash negative JSON-RPC smoke test script for Linux CI.
 - Deterministic MCP tool discovery order.
 - Filesystem MCP tools:
   - `list_files`
@@ -63,7 +65,7 @@ The format follows the spirit of [Keep a Changelog](https://keepachangelog.com/)
 - Windows JSON-RPC smoke test script in `scripts/smoke-jsonrpc.ps1`.
 - Linux/macOS JSON-RPC smoke test script in `scripts/smoke-jsonrpc.sh`.
 - GitHub Actions CI workflow for formatting, vetting, tests, linting, and build validation.
-- Windows CI JSON-RPC smoke test execution.
+- Windows and Ubuntu CI JSON-RPC smoke test execution for default, read-only, and negative smoke variants.
 - Manual GitHub Actions release build workflow.
 - Release build artifacts for Windows and Linux.
 - Release artifact summary and retention configuration.
@@ -80,6 +82,7 @@ The format follows the spirit of [Keep a Changelog](https://keepachangelog.com/)
 - Unknown tool names in `tools/call`, including read-only-gated write tools, now return generic JSON-RPC Invalid params errors instead of Method not found.
 - `MCP_MAX_FILE_SIZE` is now a hard server cap for `read_file`; client `maxBytes` can reduce but not increase it.
 - Minimal debug diagnostics are now gated by `MCP_DEBUG` and written only to stderr after redaction.
+- Smoke scripts now use per-run JSONL request/response files under `build/` and clean them up before exit.
 - JSON-RPC protocol errors now use generic messages such as `parse error`, `invalid request`, `invalid params`, `method not found`, and `internal error`.
 - `PathGuard` now accepts an explicit filesystem security policy while keeping the default constructor compatible.
 - `list_files` now filters hidden and denied link/reparse entries according to policy.

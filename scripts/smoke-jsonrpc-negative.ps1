@@ -2,8 +2,10 @@ $ErrorActionPreference = "Stop"
 
 $repoRoot = Resolve-Path "$PSScriptRoot\.."
 $binaryPath = Join-Path $repoRoot "build\fileserver-mcp.exe"
-$requestPath = Join-Path $repoRoot "build\smoke-jsonrpc-negative-request.jsonl"
-$responsePath = Join-Path $repoRoot "build\smoke-jsonrpc-negative-response.jsonl"
+$buildDir = Join-Path $repoRoot "build"
+$stamp = "{0}-{1}" -f ([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()), $PID
+$requestPath = Join-Path $buildDir "smoke-jsonrpc-negative-$stamp-request.jsonl"
+$responsePath = Join-Path $buildDir "smoke-jsonrpc-negative-$stamp-response.jsonl"
 
 if (-not (Test-Path $binaryPath)) {
     throw "Binary not found: $binaryPath. Run: go build -o build/fileserver-mcp.exe ./cmd/server"
@@ -11,66 +13,71 @@ if (-not (Test-Path $binaryPath)) {
 
 $env:MCP_ROOT = $repoRoot
 
-$requests = @(
-    '{"jsonrpc":"2.0","id":1,"method":'
-    '{"jsonrpc":"2.0","id":2,"method":"unknown/method","params":{}}'
-    '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":123,"arguments":{}}}'
-    '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"list_files","arguments":{"path":"."}}}'
-)
+New-Item -ItemType Directory -Path $buildDir -Force | Out-Null
 
-[System.IO.File]::WriteAllText($requestPath, (($requests -join "`n") + "`n"), [System.Text.UTF8Encoding]::new($false))
+try {
+    $requests = @(
+        '{"jsonrpc":"2.0","id":1,"method":'
+        '{"jsonrpc":"2.0","id":2,"method":"unknown/method","params":{}}'
+        '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":123,"arguments":{}}}'
+        '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"list_files","arguments":{"path":"."}}}'
+    )
 
-cmd /c "`"$binaryPath`" < `"$requestPath`" > `"$responsePath`""
+    [System.IO.File]::WriteAllText($requestPath, (($requests -join "`n") + "`n"), [System.Text.UTF8Encoding]::new($false))
 
-if ($LASTEXITCODE -ne 0) {
-    throw "Negative smoke test process failed with exit code $LASTEXITCODE"
+    cmd /c "`"$binaryPath`" < `"$requestPath`" > `"$responsePath`""
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "Negative smoke test process failed with exit code $LASTEXITCODE"
+    }
+
+    $responses = Get-Content $responsePath | Where-Object { $_.Trim().Length -gt 0 }
+
+    if ($responses.Count -ne 3) {
+        throw "Expected 3 JSON-RPC responses, got $($responses.Count). Response file: $responsePath"
+    }
+
+    $parseError = $responses[0] | ConvertFrom-Json
+    $methodNotFound = $responses[1] | ConvertFrom-Json
+    $invalidParams = $responses[2] | ConvertFrom-Json
+
+    if ($null -ne $parseError.id) {
+        throw "Expected parse error id null, got $($parseError.id)"
+    }
+
+    if ($parseError.error.code -ne -32700) {
+        throw "Expected parse error code -32700, got $($parseError.error.code)"
+    }
+
+    if ($parseError.error.message -ne "parse error") {
+        throw "Expected parse error message, got $($parseError.error.message)"
+    }
+
+    if ($methodNotFound.id -ne 2) {
+        throw "Expected unknown method response id 2, got $($methodNotFound.id)"
+    }
+
+    if ($methodNotFound.error.code -ne -32601) {
+        throw "Expected method-not-found code -32601, got $($methodNotFound.error.code)"
+    }
+
+    if ($methodNotFound.error.message -ne "method not found") {
+        throw "Expected generic method-not-found message, got $($methodNotFound.error.message)"
+    }
+
+    if ($invalidParams.id -ne 3) {
+        throw "Expected invalid params response id 3, got $($invalidParams.id)"
+    }
+
+    if ($invalidParams.error.code -ne -32602) {
+        throw "Expected invalid params code -32602, got $($invalidParams.error.code)"
+    }
+
+    if ($invalidParams.error.message -ne "invalid params") {
+        throw "Expected invalid params message, got $($invalidParams.error.message)"
+    }
+
+    Write-Host "Negative JSON-RPC smoke test passed."
+} finally {
+    Remove-Item -LiteralPath $requestPath, $responsePath -Force -ErrorAction SilentlyContinue
 }
-
-$responses = Get-Content $responsePath | Where-Object { $_.Trim().Length -gt 0 }
-
-if ($responses.Count -ne 3) {
-    throw "Expected 3 JSON-RPC responses, got $($responses.Count). Response file: $responsePath"
-}
-
-$parseError = $responses[0] | ConvertFrom-Json
-$methodNotFound = $responses[1] | ConvertFrom-Json
-$invalidParams = $responses[2] | ConvertFrom-Json
-
-if ($null -ne $parseError.id) {
-    throw "Expected parse error id null, got $($parseError.id)"
-}
-
-if ($parseError.error.code -ne -32700) {
-    throw "Expected parse error code -32700, got $($parseError.error.code)"
-}
-
-if ($parseError.error.message -ne "parse error") {
-    throw "Expected parse error message, got $($parseError.error.message)"
-}
-
-if ($methodNotFound.id -ne 2) {
-    throw "Expected unknown method response id 2, got $($methodNotFound.id)"
-}
-
-if ($methodNotFound.error.code -ne -32601) {
-    throw "Expected method-not-found code -32601, got $($methodNotFound.error.code)"
-}
-
-if ($methodNotFound.error.message -ne "method not found") {
-    throw "Expected generic method-not-found message, got $($methodNotFound.error.message)"
-}
-
-if ($invalidParams.id -ne 3) {
-    throw "Expected invalid params response id 3, got $($invalidParams.id)"
-}
-
-if ($invalidParams.error.code -ne -32602) {
-    throw "Expected invalid params code -32602, got $($invalidParams.error.code)"
-}
-
-if ($invalidParams.error.message -ne "invalid params") {
-    throw "Expected invalid params message, got $($invalidParams.error.message)"
-}
-
-Write-Host "Negative JSON-RPC smoke test passed."
-

@@ -28,21 +28,21 @@ The backlog is maintained as part of the normal sprint workflow. New tasks disco
 
 ## Current Sprint
 
-### Sprint 3.39 - Limits, logging, secrets redaction
+### Sprint 3.40 - Windows/Linux test matrix and smoke tests
 
 | ID | Status | Task | Reason | Notes |
 |---|---|---|---|---|
-| BL-056 | Done | Enforce JSON-RPC message and tool argument limits | Unbounded input can cause excessive memory use before dispatch | Sprint 3.39 adds JSON-RPC message, tools/call params, and argument size limits |
-| BL-057 | Done | Enforce filesystem operation and response limits | Filesystem tools need bounded payloads and operation cost | Sprint 3.39 adds read caps, write caps, list entry caps, copy source caps, recursive delete guards, and response-size safety net |
-| BL-058 | Done | Add centralized redaction for secrets, credentials, and host paths | Diagnostics must not leak sensitive values | Sprint 3.39 adds central redaction for stderr diagnostics |
-| BL-059 | Done | Add safe stderr diagnostics and debug gating | Diagnostics must not corrupt JSON-RPC stdout | Sprint 3.39 wires minimal redacted diagnostics through `MCP_DEBUG` |
+| BL-040 | Done | Run Linux smoke test in Ubuntu CI | Validate real STDIO/JSON-RPC path on Linux | Sprint 3.40 runs `scripts/smoke-jsonrpc.sh` in Ubuntu CI |
+| BL-060 | Done | Run JSON-RPC smoke variants in Windows/Linux CI | CI should validate default, read-only, and negative protocol behavior on both supported OS families | Sprint 3.40 runs default, read-only, and negative smoke variants on Windows and Ubuntu |
+| BL-061 | Done | Isolate smoke JSONL artifacts per run | Fixed smoke filenames can collide and leave stale artifacts | Sprint 3.40 uses per-run JSONL request/response filenames and cleanup in PowerShell and Bash smoke scripts |
 
 ## Upcoming Sprints
 
 | Sprint | Backlog IDs | Scope | Notes |
 |---|---|---|---|
-| Sprint 3.40 | BL-001, BL-002, BL-040 | Windows/Linux test matrix and smoke tests | The earlier Linux JSON-RPC smoke-test CI item is deferred into Sprint 3.40 |
 | Sprint 3.41 | BL-037, BL-038, BL-039 | Codex read-only activation preparation, without activation | Configuration examples, troubleshooting, and activation checklist |
+
+`BL-001` and `BL-002` were historical Sprint 3.40 summary references without detail rows in this backlog. Sprint 3.40 tracks concrete completed work under `BL-040`, `BL-060`, and `BL-061`.
 
 ## Epics
 
@@ -153,10 +153,12 @@ CI and release automation should keep validating real behavior, not only compila
 
 | ID | Status | Task | Reason | Notes |
 |---|---|---|---|---|
-| BL-040 | Ready | Run Linux smoke test in Ubuntu CI | Validate real STDIO/JSON-RPC path on Linux | Use `scripts/smoke-jsonrpc.sh` |
+| BL-040 | Done | Run Linux smoke test in Ubuntu CI | Validate real STDIO/JSON-RPC path on Linux | Completed in Sprint 3.40 with `scripts/smoke-jsonrpc.sh` in Ubuntu CI |
 | BL-041 | Planned | Add release notes or tag-based release workflow | Release maturity | Could produce GitHub Releases later |
 | BL-042 | Planned | Add artifact verification step | Release quality | Verify `--version` on built artifacts |
 | BL-043 | Later | Add cross-platform script validation | Prevent script regressions | PowerShell and Bash linting if useful |
+| BL-060 | Done | Run JSON-RPC smoke variants in Windows/Linux CI | Validate default, read-only, and negative smoke behavior across supported CI operating systems | Completed in Sprint 3.40 for Windows and Ubuntu |
+| BL-061 | Done | Isolate smoke JSONL artifacts per run | Prevent stale or colliding smoke request/response files | Completed in Sprint 3.40 with unique JSONL filenames and cleanup |
 
 ### Documentation
 
@@ -211,3 +213,4 @@ This section is intentionally not a full commit history. Detailed chronological 
 | BL-D017 | Done | Add hidden, UNC, symlink, junction, and reparse policy | Sprint 3.37 | Deny-by-default policy is wired through config, `PathGuard`, filesystem operations, and MCP error mapping |
 | BL-D018 | Done | Harden JSON-RPC validation and error behavior | Sprint 3.38 | Request envelopes, IDs, notifications, unsupported batches, method params, unknown tools, and panic boundaries are validated with generic JSON-RPC errors |
 | BL-D019 | Done | Add limits, diagnostics, and redaction | Sprint 3.39 | Configurable hard limits, generic limit errors, redacted stderr diagnostics, and central redaction helpers |
+| BL-D020 | Done | Add Windows/Linux JSON-RPC smoke matrix | Sprint 3.40 | CI runs default, read-only, and negative smoke variants on Windows and Ubuntu; smoke JSONL artifacts are isolated and cleaned up |
