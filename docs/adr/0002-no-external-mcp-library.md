@@ -80,3 +80,7 @@ internal/protocol
 ```
 
 The MCP implementation will be tested against MCP-compatible clients such as Claude Desktop and Codex-compatible tooling once the server core is complete.
+
+## Amendment - 2026-07-10
+
+The public project name is FlashGate MCP; the technical rename remains planned for Sprint 3.42. The MCP core is now covered by unit tests and Windows/Linux STDIO smoke tests, while client-specific activation preparation remains planned. Direct protocol implementation remains the decision, but protocol-version and extension compatibility is now governed by ADR-0013. See ADR-0006 through ADR-0013 for the current architecture.

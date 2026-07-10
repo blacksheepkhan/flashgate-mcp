@@ -1,6 +1,6 @@
-# Security Model
+# FlashGate MCP Security Model
 
-`fileserver-mcp` is designed as a secure-by-default filesystem MCP server.
+FlashGate MCP is designed as a secure-by-default local host-operations MCP server. The current technical implementation is still named `fileserver-mcp` until Sprint 3.42 and currently exposes only the filesystem functionality described below.
 
 Filesystem access is security-sensitive because MCP clients may request operations on local files. For this reason, all filesystem operations are restricted to a configured sandbox root.
 
@@ -23,6 +23,12 @@ If no root is provided, the default root is:
 ```
 
 Production deployments should explicitly set `MCP_ROOT`.
+
+### Accepted fail-closed startup target
+
+The current implementation still defaults a missing `MCP_ROOT` to the process working directory (`.`). Sprint 3.41 does not change that runtime behavior.
+
+Before real client activation, a missing root must not unintentionally expose the process working directory. The preferred target is fail-closed startup without explicit root configuration. A current-directory root may be allowed only through an explicit development opt-in. This is planned work and must be validated before Codex read-only activation preparation.
 
 ### No Direct Filesystem Access Outside `internal/fs`
 
@@ -243,3 +249,103 @@ Planned future work:
 - larger-file streaming strategy
 - search tool limits and exclude model
 - deeper cross-platform testing
+
+## Accepted Target Security Architecture
+
+This section records accepted target controls. Except where the current-state sections above say otherwise, these controls are planned and are not implemented in Sprint 3.41.
+
+### Gate as a server-enforced boundary
+
+The “Gate” in FlashGate means a server-enforced control boundary. Tool visibility, client claims, and MCP annotations are not authorization. Every operation must pass the applicable server-side capabilities, profile, root policy, path or process policy, limits, redaction, audit, and platform checks.
+
+FlashGate modules/providers cannot bypass this boundary. Public, community, vendor, organization-internal, and Voxtronic-specific providers use the same central controls as the core. MCP protocol-extension negotiation is separate and does not grant authorization.
+
+### Capability enforcement and tool profiles
+
+Planned capabilities include:
+
+```text
+filesystem.read
+filesystem.write
+search.execute
+process.observe
+process.manage
+process.control.external
+command.execute
+system.read
+```
+
+Profiles combine functional capabilities and policy and determine tool registration. Example profile names include `safe-read`, `filesystem-write`, and `admin`. `high-risk`, `destructive`, and `interactive` are risk classifications or additional policy conditions, not universal capabilities. The current `MCP_READ_ONLY` registration behavior is the first restricted-profile case, not the final profile model. Final names remain open for Sprint 3.50. Authorization is checked again during execution so direct calls cannot bypass registration rules.
+
+### Per-root policies
+
+The accepted named-root target is based on authoritative FlashGate server configuration and explicit root IDs plus relative paths. Each root may define read/write permission, file and result size, allowed file types, capability mapping, symlink/reparse rules, and process working-directory permission. Deprecated MCP Roots is not an architectural dependency; optional legacy compatibility may be evaluated only for a supported client and never overrides server policy.
+
+### Operations and Job Manager controls
+
+The planned Operations/Job Manager is an optional runtime service for long-running or managed work. Short synchronous work may run directly in domain services. The generic manager does not own domain logic or MCP tool types. Managed operations use opaque handles, bounded queues, global and per-domain concurrency, maximum runtime, bounded results and temporary data, TTL cleanup, controlled shutdown, and job-leak protection.
+
+The server owns deadlines. Workers receive cancellable contexts and check cancellation regularly; a watchdog enforces expiry. External workers are terminated if required. Temporary resources are removed or marked incomplete, status becomes `timed_out`, and errors/results remain bounded. A worker is never trusted as the only deadline enforcer.
+
+### Managed process identity and control
+
+Server-started processes receive opaque process handles. Handles, not PIDs alone, identify managed instances for status, output, wait, and stop operations. PID reuse must not cause a request to control the wrong process.
+
+Stopping defaults to server-managed processes. Controlling an external PID requires a distinct functional capability such as `process.control.external` plus a high-risk policy classification and is outside standard profiles. Process listings, details, command lines, and environment information must be filtered and redacted.
+
+### Command execution boundary
+
+Planned command execution uses configured executable IDs resolved to server-approved absolute program paths. Arguments are separate arrays; the standard interface has no free shell string. Working directories must be inside permitted roots. Environment variables use an allowlist or explicit propagation rules. stdout and stderr remain separate and bounded. Runtime, output, and process concurrency are limited.
+
+A future synchronous `run_command` will wrap the same Managed Process Engine. A second execution engine is prohibited. Interactive shells remain disabled and require distinct interactive/high-risk policy decisions. Platform-specific Windows and Linux isolation must preserve the same policy outcome and least-privilege intent.
+
+### Secret redaction and audit events
+
+Secret redaction applies to client-visible results, diagnostics, process command lines, environment data, audit fields, and module/provider output where applicable. Redaction complements data minimization; it does not make unrestricted collection acceptable.
+
+A planned audit event model will record bounded, structured security-relevant facts such as effective capability, root ID, operation type, policy decision, handle, duration, outcome, and redacted failure classification. Audit data must not include raw secrets, unrestricted file content, full environments, or unnecessary absolute host paths.
+
+### FlashGate module/provider and MCP extension boundaries
+
+All FlashGate modules/providers must use shared:
+
+- capabilities
+- root policies
+- limits
+- path validation
+- process policies
+- secret redaction
+- audit events
+- platform adapters
+
+A provider's vendor, deployment location, or official/community label grants no implicit trust. The later provider-runtime decision must include isolation, update, dependency, and supply-chain analysis. MCP protocol extensions use their own negotiated wire contract, but negotiation remains distinct from capability authorization.
+
+### MCP version and Tasks compatibility
+
+The implemented protocol remains MCP `2025-11-25`. No later MCP feature is supported in Sprint 3.41. The MCP adapter owns protocol and extension negotiation. If eligible internal jobs are later exposed through `io.modelcontextprotocol/tasks`, each Task request must be bound to the authorized caller and internal handle, and internal states/results must be mapped and redacted deliberately. Custom operation tools are not the accepted primary contract while this compatibility decision remains open.
+
+## Threat Model Workstreams
+
+Separate threat models are required before the corresponding target domains become generally available:
+
+| Workstream | Minimum concerns |
+|---|---|
+| Filesystem | traversal, symlink/reparse escapes, races, overwrite/delete semantics, resource exhaustion, data disclosure |
+| Search | unbounded recursion, scanned-byte cost, binary/encoding behavior, ignored sensitive paths, result leakage |
+| Processes | PID reuse, lifecycle races, command-line/environment disclosure, external PID control, orphan cleanup |
+| Command execution | executable substitution, argument and environment injection, working-directory escape, output/resource exhaustion, platform isolation |
+| FlashGate modules/providers | policy bypass, capability inflation, dependency/supply-chain risk, metadata trust, in-process versus IPC isolation |
+| MCP protocol extensions | negotiation downgrade/mismatch, capability confusion, version compatibility, authorization separation |
+
+Stateful components additionally require race-detector coverage, restart/shutdown analysis, handle lifecycle tests, negative capability tests, and cleanup verification.
+
+## Deferred Security Decisions
+
+- final profile and capability configuration schema
+- exact audit event schema and retention
+- CPU/RAM isolation mechanism per platform
+- FlashGate module/provider runtime and isolation model
+- MCP protocol-extension compatibility beyond `2025-11-25`
+- external PID control design
+- interactive input and shell design
+- privacy-sensitive network-information scope

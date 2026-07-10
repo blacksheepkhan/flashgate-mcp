@@ -8,6 +8,12 @@ The format follows the spirit of [Keep a Changelog](https://keepachangelog.com/)
 
 ### Added
 
+- FlashGate MCP project identity and transition documentation.
+- Sprint 3.41 architecture baseline.
+- Vendor-neutral open-source and FlashGate module/provider direction, separated from MCP protocol extensions.
+- Accepted Operations and Job Manager target architecture.
+- ADRs for project identity, domain-separated core, deployment/modules/providers, capability profiles, operations/jobs, managed processes/commands, resource/token efficiency, and MCP version/extension compatibility.
+- Backlog ID migration documentation for the continuous `BL-001` sequence.
 - Sprint 3.38 JSON-RPC request validation and error behavior hardening.
 - Sprint 3.39 configurable hard limits, redacted diagnostics, and secrets-aware behavior.
 - Sprint 3.40 Windows/Linux JSON-RPC smoke-test matrix coverage.
@@ -79,6 +85,15 @@ The format follows the spirit of [Keep a Changelog](https://keepachangelog.com/)
 
 ### Changed
 
+- Public project name changed from Fileserver MCP to FlashGate MCP; the technical repository, module, binary, MCP server implementation name (`serverInfo.name`), scripts, workflows, and catalog remain unchanged until Sprint 3.42.
+- Backlog consolidated into one canonical continuously numbered task catalog without a separate `BL-D` series.
+- Former Sprint 3.41 Codex read-only preparation shifted to Sprint 3.44.
+- Architecture expanded toward a domain-separated local system core while clearly distinguishing current and planned components.
+- Long-running work is modeled through a shared planned Operations/Job layer without changing domain ownership.
+- Pre-1.0 tool contracts are explicitly allowed to change before a stable external contract exists.
+- Vendor-neutral open-source core and optional FlashGate module/provider direction documented without selecting a runtime model; MCP protocol extensions are treated separately.
+- Sprint 3.41 review corrections align planning with SEP-1613, SEP-2133, SEP-2577, SEP-2663, and MCP `2025-11-25` implementation-name semantics.
+- Roadmap clarified as a high-level pointer to authoritative `BACKLOG.md` planning.
 - Unknown tool names in `tools/call`, including read-only-gated write tools, now return generic JSON-RPC Invalid params errors instead of Method not found.
 - `MCP_MAX_FILE_SIZE` is now a hard server cap for `read_file`; client `maxBytes` can reduce but not increase it.
 - Minimal debug diagnostics are now gated by `MCP_DEBUG` and written only to stderr after redaction.

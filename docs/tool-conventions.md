@@ -1,6 +1,6 @@
 ﻿# MCP Tool Conventions
 
-This document defines the conventions used by `fileserver-mcp` for exposing filesystem operations as MCP tools.
+This document defines the conventions used by FlashGate MCP. The current technical implementation remains `fileserver-mcp` until Sprint 3.42.
 
 ## Transport
 
@@ -69,7 +69,7 @@ copy_path
 rename_path
 ```
 
-Tool names should be stable once published because clients may depend on them.
+Tool names use understandable, fully written verbs. Platform-specific or Unix jargon is avoided when a clear general term exists. Tool names become stability-sensitive after 1.0; justified breaking changes are allowed before 1.0 because no external compatibility contract exists yet.
 
 ## Input Schemas
 
@@ -82,6 +82,7 @@ Schemas should:
 - declare required fields explicitly
 - include descriptions for all properties
 - use relative path wording consistently
+- validate future input and output contracts against JSON Schema 2020-12
 
 Example:
 
@@ -243,3 +244,48 @@ When adding a new tool:
 4. Confirm `tools/list` order.
 5. Add the tool to `docs/tools.md`.
 6. Add the tool to `docs/mcp-tool-catalog.json`.
+
+## Accepted Pre-1.0 Contract Conventions
+
+The following conventions are accepted target rules. They do not change current tool schemas or registration in Sprint 3.41.
+
+- One tool has one clear domain responsibility.
+- Redundant tools are removed before 1.0 instead of receiving artificial compatibility aliases.
+- Batch tools are added only when they measurably reduce calls or response size.
+- Results are structured, compact, and bounded.
+- Potentially large result sets provide cursor pagination.
+- Long-running work uses opaque operation handles.
+- MCP annotations describe behavior but never replace server-side authorization.
+- Destructive operations use explicit semantics and, where useful, dry-run support or preconditions.
+- Command execution has no free shell string as its standard parameter.
+- A free-form workflow or shell language must not replace clearly defined tools.
+
+Accepted planned filesystem cleanup:
+
+| Current | Planned pre-1.0 decision |
+|---|---|
+| `list_files` | Rename to `list_directory` |
+| `read_file` | Retain and later add bounded ranges |
+| `stat_path` | Rename to `get_path_info` |
+| `exists_path` | Remove; cover with `get_path_info` |
+| `write_file` | Retain and add safe write modes |
+| `mkdir` | Rename to `create_directory` |
+| `delete_path` | Retain |
+| `copy_path` | Retain |
+| `move_path` | Retain and cover rename semantics |
+| `rename_path` | Remove; cover with `move_path` |
+
+The planned baseline is:
+
+```text
+list_directory
+read_file
+get_path_info
+write_file
+create_directory
+delete_path
+copy_path
+move_path
+```
+
+These changes require coordinated schema snapshots, tests, smoke tests, tool documentation, client examples, and changelog entries in Sprint 3.43. Before the first stable release, the project will define versioning, deprecation, and migration policy.

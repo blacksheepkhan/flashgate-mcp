@@ -1,12 +1,20 @@
-# fileserver-mcp
+# FlashGate MCP
 
-`fileserver-mcp` is a cross-platform Model Context Protocol (MCP) server written in Go.
+**Fast, secure and local-first host operations for MCP.**
+
+FlashGate MCP is a resource-efficient cross-platform Model Context Protocol server for controlled filesystem, process, and operating-system operations. Deterministic work runs locally to minimize CPU, memory, latency, response size, model round trips, and token use.
+
+> The project is now named FlashGate MCP. The repository, Go module and
+> binary still use the legacy `fileserver-mcp` identifier until the dedicated
+> technical rename sprint.
 
 It exposes secure filesystem operations to MCP-compatible clients through JSON-RPC over STDIO. The server is designed for predictable behavior, low operational overhead, clear security boundaries, and maintainable enterprise-style code.
 
 ## Status
 
 The project currently implements the core MCP server loop, JSON-RPC routing and request validation, tool discovery, tool execution, filesystem abstraction, root-confined path handling, read-only tool gating, tests, and documentation.
+
+The current implemented scope is filesystem operations. Search, process observation and management, allowlisted command execution, controlled system information, named roots, general capability profiles, and the Operations/Job Manager are accepted target architecture and remain planned work.
 
 Implemented tools:
 
@@ -35,6 +43,28 @@ rename_path
 - Comprehensive unit tests
 - Professional documentation for users and developers
 - No external MCP framework dependency
+- Measurable CPU, RAM, startup, latency, response-size, and token efficiency
+- Local deterministic operations instead of transferring file content through the model
+
+## FlashGate Security Gate
+
+“Gate” means a server-enforced boundary: policies, capabilities, roots, limits, path and process validation, redaction, and audit events control access below the MCP adapter. Tool annotations and tool visibility are not authorization.
+
+The current implementation enforces one configured root, read-only registration, path policies, hard limits, and redacted diagnostics. The target architecture plans multiple named roots and capability-based profiles while retaining server-side checks as authoritative. Dangerous capabilities remain disabled by default.
+
+## Target Domains and Runtime
+
+Accepted future domains are filesystem, search, process, execution, and system information. An optional shared Operations/Job Manager is planned for bounded long-running or managed work, cancellation, deadlines, progress, TTL, cleanup, and leak protection. Short synchronous work may remain directly in domain services; the manager is not currently implemented and does not own domain logic.
+
+FlashGate MCP remains one repository and one primary binary unless benchmarks and threat models demonstrate a concrete isolation, deployment, performance, maintenance, platform, or release benefit from splitting it.
+
+## Open-Source, Modules, and Protocol Extensions
+
+FlashGate MCP is developed as a general, vendor-neutral open-source project. The core must not require Voxtronic paths, internal systems, proprietary dependencies, organization secrets, or company-specific permissions.
+
+Public, community, vendor, organization-internal, and Voxtronic-specific FlashGate modules/providers may be considered later. No module/provider contract or runtime model is selected or implemented in Sprint 3.41, and future providers may not bypass central security controls.
+
+MCP protocol extensions are separate negotiated wire-protocol features. The implemented protocol remains MCP `2025-11-25`; later features such as `io.modelcontextprotocol/tasks` inform compatibility planning but are not implemented. Deprecated MCP Roots is not the basis of FlashGate named roots.
 
 ## Protocol and Transport
 
@@ -65,6 +95,8 @@ The root directory is configured through the `MCP_ROOT` environment variable:
 ```text
 MCP_ROOT
 ```
+
+Current state: when `MCP_ROOT` is absent, the implementation defaults to the process working directory (`.`). Accepted security target before real client activation: fail closed unless a root is explicitly configured; current-directory exposure may be permitted only through an explicit development opt-in. Sprint 3.41 documents but does not implement this change.
 
 Tool arguments use relative paths below this root. Absolute paths, path traversal outside the configured root, and unsafe path forms are rejected by the filesystem and security layers.
 
@@ -168,6 +200,15 @@ CHANGELOG.md
 ```
 
 `README.md`, `CHANGELOG.md`, and `BACKLOG.md` should be kept current as part of the normal sprint workflow.
+
+Architecture and security references:
+
+- [Architecture](docs/architecture.md)
+- [Security model](docs/security.md)
+- [Architecture decisions](docs/adr/)
+- [Authoritative backlog](BACKLOG.md)
+- [High-level roadmap](docs/roadmap.md)
+- [Project identity](docs/project-identity.md)
 
 ## Project Structure
 
@@ -457,14 +498,14 @@ Each feature should include:
 | `mkdir` | Creates a directory. |
 | `delete_path` | Deletes a file or directory. |
 | `move_path` | Moves a file or directory. |
-| `copy_path` | Copies a file or directory. |
+| `copy_path` | Copies a file. Directory copy is currently unsupported. |
 | `rename_path` | Renames a file or directory. |
 
 When `MCP_READ_ONLY=true`, only `list_files`, `read_file`, `stat_path`, and `exists_path` are exposed.
 
 ## Roadmap
 
-Planned work is maintained in `BACKLOG.md`.
+Planned work is maintained authoritatively in [BACKLOG.md](BACKLOG.md). [docs/roadmap.md](docs/roadmap.md) contains only the high-level sequence.
 
 The backlog covers filesystem tools, search tools, process tools, command execution, system information, security and capability controls, client compatibility, CI, release automation, and documentation.
 

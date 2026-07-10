@@ -1,5 +1,7 @@
 # Testing
 
+FlashGate MCP is the public project name from Sprint 3.41. Commands and artifact paths in this document still use the technical `fileserver-mcp` identifier until Sprint 3.42.
+
 `fileserver-mcp` uses Go's standard testing framework.
 
 The project aims for high test coverage in security-sensitive and filesystem-related code.
@@ -123,6 +125,10 @@ The default smoke test validates `initialize` and `tools/list`. The read-only va
 GitHub Actions runs default, read-only, and negative JSON-RPC smoke variants on both `windows-latest` and `ubuntu-latest`. The smoke scripts create per-run JSONL request and response files under `build/` and clean them up before exit. Script output is CI diagnostic output; server stdout remains reserved for redirected JSON-RPC protocol messages.
 
 Limit and redaction behavior is primarily covered by Go unit tests. Additional limit-negative smoke coverage can be added later if it can be done without broad smoke-script refactoring.
+
+### Planned MCP Compatibility Testing
+
+The implemented protocol remains MCP `2025-11-25`. Future protocol or extension support requires version-negotiation, extension-negotiation, client fallback, and compatibility tests before it is advertised. Future input and output schemas will be validated against JSON Schema 2020-12, and official MCP conformance tooling will be evaluated. These checks are planned in Sprint 3.45 and are not current implementation claims.
 
 ### Benchmarks
 

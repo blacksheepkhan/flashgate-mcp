@@ -1,6 +1,59 @@
 ﻿# MCP Tool Reference
 
-This document describes the MCP tools exposed by `fileserver-mcp`.
+This document describes the tools currently exposed by the technical `fileserver-mcp` implementation of FlashGate MCP.
+
+> The current tool names remain active until the dedicated pre-1.0
+> tool contract cleanup sprint. This document distinguishes implemented
+> tools from accepted planned changes.
+
+## Contract Status
+
+FlashGate MCP is pre-1.0, is not yet used in production, and has no external user compatibility contract. Tool names, parameters, and result schemas may therefore be changed or removed before the first stable release. Changes still require changelog, tests, tool documentation, client examples, and smoke-test updates.
+
+Sprint 3.41 changes no actual tool schema. The authoritative machine-readable current catalog remains unchanged in `mcp-tool-catalog.json`. The implemented protocol remains MCP `2025-11-25`; future schemas will be validated as JSON Schema 2020-12.
+
+### Accepted planned cleanup
+
+| Current implemented tool | Accepted planned decision |
+|---|---|
+| `list_files` | Rename to `list_directory` |
+| `read_file` | Keep; later add line/byte/head/tail ranges |
+| `stat_path` | Rename to `get_path_info` |
+| `exists_path` | Remove; replace with `get_path_info` |
+| `write_file` | Keep; later add safe write modes |
+| `mkdir` | Rename to `create_directory` |
+| `delete_path` | Keep |
+| `copy_path` | Keep |
+| `move_path` | Keep and define both move and rename semantics |
+| `rename_path` | Remove; replace with `move_path` |
+
+Planned cleaned baseline:
+
+```text
+list_directory
+read_file
+get_path_info
+write_file
+create_directory
+delete_path
+copy_path
+move_path
+```
+
+A future `get_path_info` is planned to represent a missing path structurally:
+
+```json
+{
+  "exists": false,
+  "path": "missing.txt"
+}
+```
+
+Other failures remain distinguishable, with candidate categories `not_found`, `access_denied`, `outside_allowed_root`, `invalid_path`, `unsupported_path_type`, and `io_error`. Final error codes are deferred to the tool-contract sprint.
+
+### Planned new operation types
+
+Future, not implemented operation types include paginated listing, ranged and batch reads, batch path inspection and hashing, bounded trees and search, targeted/conditional writes, internal Operations/Job handles, managed process operations, allowlisted command execution, and controlled system information. Custom status/result/cancel tools are not the accepted primary MCP job contract. The MCP adapter will first evaluate mapping eligible internal jobs to the negotiated Tasks Extension `io.modelcontextprotocol/tasks` and decide bounded behavior for clients without Tasks support.
 
 `fileserver-mcp` uses MCP over JSON-RPC via STDIO. Tools are invoked through the MCP `tools/call` method.
 
@@ -432,7 +485,7 @@ Moves a file or directory below the configured filesystem root.
 
 ## `copy_path`
 
-Copies a file or directory below the configured filesystem root.
+Copies a file below the configured filesystem root.
 
 Source file size is capped by `MCP_MAX_COPY_BYTES`. Directory copy remains unsupported.
 

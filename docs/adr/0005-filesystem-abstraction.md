@@ -94,3 +94,9 @@ It supports:
 - rename
 
 Directory copy is intentionally unsupported in the initial implementation.
+
+The current `copy_path` tool copies files only. Directory copy remains unsupported.
+
+## Amendment - 2026-07-10
+
+The public project name is FlashGate MCP; the technical rename remains planned for Sprint 3.42. Read-only tool registration, centralized limits, and redacted stderr diagnostics are now implemented. Directory copy remains planned work and is not implied by the current `copy_path` tool. See ADR-0006 through ADR-0013 for the current architecture, security, and MCP compatibility direction.
