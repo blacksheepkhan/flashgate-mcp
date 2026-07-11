@@ -98,3 +98,9 @@ Directory copy is intentionally unsupported in the initial implementation.
 ## Amendment - 2026-07-10
 
 The public project name is FlashGate MCP; the technical rename remains planned for Sprint 3.42. Read-only tool registration, centralized limits, and redacted stderr diagnostics are now implemented. The current `copy_path` tool copies files only; directory copy remains planned work. See ADR-0006 through ADR-0013 for the current architecture, security, and MCP compatibility direction.
+
+## Amendment - 2026-07-11
+
+Sprint 3.43 removes the redundant `FileSystem.Exists` method and the `FileSystem.Rename` alias. A single `Stat` path normalizes genuine absence for `get_path_info`, avoiding an Exists-then-Stat race, while `Move` is the domain operation for both move and rename.
+
+Directory creation now reports whether the leaf was actually created while preserving parent creation. Move validates same path, effective path, `os.SameFile`, Windows case aliases, overwrite type combinations, directory self-subtrees, changed path identities, and same-volume support before replacement. Existing files are replaced by rename without a separate target deletion. Cross-volume moves are rejected without copy/delete fallback. These changes retain centralized PathGuard enforcement and do not add directory copy.

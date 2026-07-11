@@ -9,7 +9,7 @@ func TestToolMarshal(t *testing.T) {
 	t.Parallel()
 
 	tool := Tool{
-		Name:        "list_files",
+		Name:        "list_directory",
 		Title:       "List Files",
 		Description: "Lists files and directories.",
 		InputSchema: map[string]any{
@@ -33,8 +33,8 @@ func TestToolMarshal(t *testing.T) {
 		t.Fatalf("expected valid json, got %v", err)
 	}
 
-	if decoded["name"] != "list_files" {
-		t.Fatalf("expected name %q, got %v", "list_files", decoded["name"])
+	if decoded["name"] != "list_directory" {
+		t.Fatalf("expected name %q, got %v", "list_directory", decoded["name"])
 	}
 
 	if decoded["title"] != "List Files" {
@@ -54,7 +54,7 @@ func TestToolMarshalOmitsEmptyTitle(t *testing.T) {
 	t.Parallel()
 
 	tool := Tool{
-		Name:        "list_files",
+		Name:        "list_directory",
 		Description: "Lists files and directories.",
 		InputSchema: map[string]any{
 			"type": "object",

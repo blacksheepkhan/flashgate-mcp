@@ -3,10 +3,44 @@ package tools
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"strings"
 
 	"github.com/blacksheepkhan/flashgate-mcp/internal/protocol"
 )
+
+func decodeStrictArguments(raw json.RawMessage, target any) *protocol.Error {
+	if !isJSONObject(raw) {
+		return invalidParamsError()
+	}
+
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &fields); err != nil {
+		return invalidParamsError()
+	}
+	for _, value := range fields {
+		if isJSONNull(value) {
+			return invalidParamsError()
+		}
+	}
+
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(target); err != nil {
+		return invalidParamsError()
+	}
+
+	var trailing any
+	if err := decoder.Decode(&trailing); err != io.EOF {
+		return invalidParamsError()
+	}
+
+	return nil
+}
+
+func isNonBlank(value string) bool {
+	return strings.TrimSpace(value) != ""
+}
 
 func invalidParamsError() *protocol.Error {
 	return &protocol.Error{

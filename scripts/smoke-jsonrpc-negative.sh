@@ -28,7 +28,9 @@ cat > "${REQUEST_PATH}" <<'JSONRPC'
 {"jsonrpc":"2.0","id":1,"method":
 {"jsonrpc":"2.0","id":2,"method":"unknown/method","params":{}}
 {"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":123,"arguments":{}}}
-{"jsonrpc":"2.0","method":"tools/call","params":{"name":"list_files","arguments":{"path":"."}}}
+{"jsonrpc":"2.0","method":"tools/call","params":{"name":"list_directory","arguments":{"path":"."}}}
+{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"list_files","arguments":{}}}
+{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"rename_path","arguments":{}}}
 JSONRPC
 
 "${BINARY_PATH}" < "${REQUEST_PATH}" > "${RESPONSE_PATH}"
@@ -42,12 +44,13 @@ response_path = sys.argv[1]
 with open(response_path, "r", encoding="utf-8") as handle:
     responses = [json.loads(line) for line in handle if line.strip()]
 
-if len(responses) != 3:
-    raise SystemExit(f"Expected 3 JSON-RPC responses, got {len(responses)}. Response file: {response_path}")
+if len(responses) != 5:
+    raise SystemExit(f"Expected 5 JSON-RPC responses, got {len(responses)}. Response file: {response_path}")
 
 parse_error = responses[0]
 method_not_found = responses[1]
 invalid_params = responses[2]
+removed_tools = responses[3:]
 
 if parse_error.get("id") is not None:
     raise SystemExit(f"Expected parse error id null, got {parse_error.get('id')}")
@@ -79,6 +82,12 @@ if invalid_params.get("error", {}).get("code") != -32602:
 
 if invalid_params.get("error", {}).get("message") != "invalid params":
     raise SystemExit(f"Expected invalid params message, got {invalid_params.get('error', {}).get('message')}")
+
+for removed_tool in removed_tools:
+    if removed_tool.get("error", {}).get("code") != -32602:
+        raise SystemExit("Expected removed tool name to return Invalid params")
+    if removed_tool.get("error", {}).get("message") != "invalid params":
+        raise SystemExit("Expected generic Invalid params message for removed tool")
 
 print("Negative JSON-RPC smoke test passed.")
 PY

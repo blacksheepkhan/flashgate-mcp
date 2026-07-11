@@ -34,7 +34,7 @@ func (t *CopyPathTool) Title() string {
 
 // Description returns the tool description.
 func (t *CopyPathTool) Description() string {
-	return "Copies a file or directory below the configured filesystem root."
+	return "Copies a file below the configured filesystem root. Directory copy is not supported."
 }
 
 // InputSchema returns the JSON schema for this tool.
@@ -44,11 +44,13 @@ func (t *CopyPathTool) InputSchema() any {
 		"properties": map[string]any{
 			"source": map[string]any{
 				"type":        "string",
-				"description": "Relative source file or directory path below the configured filesystem root.",
+				"minLength":   1,
+				"description": "Relative source file path below the configured filesystem root.",
 			},
 			"target": map[string]any{
 				"type":        "string",
-				"description": "Relative target file or directory path below the configured filesystem root.",
+				"minLength":   1,
+				"description": "Relative target file path below the configured filesystem root.",
 			},
 			"overwrite": map[string]any{
 				"type":        "boolean",
@@ -73,25 +75,12 @@ func (t *CopyPathTool) Definition() protocol.Tool {
 // Execute copies the requested source path to the target path.
 func (t *CopyPathTool) Execute(_ context.Context, rawArguments json.RawMessage) (any, *protocol.Error) {
 	var arguments copyPathArguments
-	if err := json.Unmarshal(rawArguments, &arguments); err != nil {
-		return nil, &protocol.Error{
-			Code:    protocol.ErrInvalidParams,
-			Message: "invalid copy_path arguments",
-		}
+	if rpcErr := decodeStrictArguments(rawArguments, &arguments); rpcErr != nil {
+		return nil, rpcErr
 	}
 
-	if arguments.Source == "" {
-		return nil, &protocol.Error{
-			Code:    protocol.ErrInvalidParams,
-			Message: "missing source",
-		}
-	}
-
-	if arguments.Target == "" {
-		return nil, &protocol.Error{
-			Code:    protocol.ErrInvalidParams,
-			Message: "missing target",
-		}
+	if !isNonBlank(arguments.Source) || !isNonBlank(arguments.Target) {
+		return nil, invalidParamsError()
 	}
 
 	if err := t.filesystem.Copy(arguments.Source, arguments.Target, arguments.Overwrite); err != nil {

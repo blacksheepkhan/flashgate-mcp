@@ -257,7 +257,7 @@ func (g *PathGuard) resolveExistingParent(path string) (string, error) {
 	}
 }
 
-// AllowListEntry reports whether a directory entry may be exposed by list_files.
+// AllowListEntry reports whether a directory entry may be exposed by list_directory.
 func (g *PathGuard) AllowListEntry(parent SafePath, name string) (bool, error) {
 	if !g.policy.AllowHiddenFiles && isHiddenName(name) {
 		return false, nil

@@ -43,3 +43,9 @@ Perform the tool cleanup in its dedicated sprint. Record baselines before optimi
 - exact range, batch, cursor, and plan schemas
 - post-1.0 compatibility and deprecation policy
 - model-specific token estimation method
+
+## Implementation Amendment - 2026-07-11
+
+Sprint 3.43 implements the decided pre-1.0 baseline as exactly eight default tools in this order: `list_directory`, `read_file`, `get_path_info`, `write_file`, `create_directory`, `delete_path`, `copy_path`, and `move_path`. The read-only profile exposes the first three read tools. The five replaced or redundant names have no aliases.
+
+Inputs are closed objects and are strictly decoded at runtime. `get_path_info` uses one metadata operation and represents genuine absence structurally; policy denials remain errors. `create_directory` reports actual creation state. `copy_path` remains file-only. `move_path` is the single same-volume Move/Rename contract with pre-replacement SameFile, effective-subtree, identity-revalidation, and overwrite safeguards. Stable machine-readable MCP error payloads, runtime output schemas, structured content, directory copy, and general compatibility infrastructure remain deferred.

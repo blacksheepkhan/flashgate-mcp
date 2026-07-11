@@ -3,12 +3,17 @@ package fs
 import (
 	"errors"
 	"os"
+	"path/filepath"
+	"strings"
 )
 
-// Move moves a file or directory. Existing targets are only overwritten when overwrite is true.
+// Move moves or renames a file or directory on the same filesystem volume.
 func (f *LocalFileSystem) Move(source string, target string, overwrite bool) error {
 	sourcePath, err := f.guard.ResolveExisting(source)
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return ErrNotFound
+		}
 		return err
 	}
 
@@ -17,58 +22,148 @@ func (f *LocalFileSystem) Move(source string, target string, overwrite bool) err
 		return err
 	}
 
-	if err := ensureTargetPolicy(targetPath.String(), overwrite); err != nil {
+	if pathsEquivalent(sourcePath.String(), targetPath.String()) {
+		return ErrSamePath
+	}
+
+	sourceInfo, err := os.Stat(sourcePath.String())
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return ErrNotFound
+		}
 		return err
 	}
 
-	if overwrite {
-		if err := removeExistingTarget(targetPath.String()); err != nil {
-			return err
-		}
+	targetInfo, err := os.Stat(targetPath.String())
+	targetExists := err == nil
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	if targetExists && os.SameFile(sourceInfo, targetInfo) {
+		return ErrSamePath
 	}
 
-	return os.Rename(sourcePath.String(), targetPath.String())
-}
+	effectiveSource, err := filepath.EvalSymlinks(sourcePath.String())
+	if err != nil {
+		return err
+	}
+	effectiveTarget, err := effectivePathForComparison(targetPath.String())
+	if err != nil {
+		return err
+	}
+	if pathsEquivalent(effectiveSource, effectiveTarget) {
+		return ErrSamePath
+	}
 
-// Rename renames a file or directory. It is a semantic alias for Move.
-func (f *LocalFileSystem) Rename(source string, target string, overwrite bool) error {
-	return f.Move(source, target, overwrite)
-}
+	if sourceInfo.IsDir() && isStrictDescendant(effectiveSource, effectiveTarget) {
+		return ErrMoveIntoSelf
+	}
 
-func ensureTargetPolicy(targetPath string, overwrite bool) error {
-	info, err := os.Stat(targetPath)
-	if err == nil {
+	sameVolume, err := pathsOnSameVolume(sourcePath.String(), targetPath.String())
+	if err != nil {
+		return err
+	}
+	if !sameVolume {
+		return renameOnSameVolume(sourcePath.String(), targetPath.String(), false, os.Rename)
+	}
+
+	if targetExists {
 		if !overwrite {
 			return ErrFileExists
 		}
-
-		if info.IsDir() {
-			return ErrPathIsDirectory
+		if sourceInfo.IsDir() || targetInfo.IsDir() {
+			return ErrMoveTypeMismatch
 		}
-
-		return nil
 	}
 
-	if errors.Is(err, os.ErrNotExist) {
-		return nil
-	}
-
-	return err
-}
-
-func removeExistingTarget(targetPath string) error {
-	info, err := os.Stat(targetPath)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return nil
-		}
-
+	if err := revalidateMoveState(sourcePath.String(), targetPath.String(), sourceInfo, targetInfo, targetExists); err != nil {
 		return err
 	}
 
-	if info.IsDir() {
-		return ErrPathIsDirectory
+	return renameOnSameVolume(sourcePath.String(), targetPath.String(), sameVolume, os.Rename)
+}
+
+func effectivePathForComparison(path string) (string, error) {
+	current := filepath.Clean(path)
+	missingSuffix := make([]string, 0)
+
+	for {
+		effective, err := filepath.EvalSymlinks(current)
+		if err == nil {
+			for index := len(missingSuffix) - 1; index >= 0; index-- {
+				effective = filepath.Join(effective, missingSuffix[index])
+			}
+			return filepath.Clean(effective), nil
+		}
+		if !errors.Is(err, os.ErrNotExist) {
+			return "", err
+		}
+
+		parent := filepath.Dir(current)
+		if parent == current {
+			return "", err
+		}
+		missingSuffix = append(missingSuffix, filepath.Base(current))
+		current = parent
+	}
+}
+
+func revalidateMoveState(source string, target string, expectedSource os.FileInfo, expectedTarget os.FileInfo, targetExists bool) error {
+	currentSource, err := os.Stat(source)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return ErrNotFound
+		}
+		return err
+	}
+	if expectedSource.IsDir() != currentSource.IsDir() || !os.SameFile(expectedSource, currentSource) {
+		return ErrMovePathChanged
 	}
 
-	return os.Remove(targetPath)
+	currentTarget, err := os.Stat(target)
+	if targetExists {
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				return ErrMovePathChanged
+			}
+			return err
+		}
+		if expectedTarget.IsDir() != currentTarget.IsDir() || !os.SameFile(expectedTarget, currentTarget) {
+			return ErrMovePathChanged
+		}
+		if os.SameFile(currentSource, currentTarget) {
+			return ErrSamePath
+		}
+		return nil
+	}
+
+	if err == nil {
+		return ErrMovePathChanged
+	}
+	if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	return nil
+}
+
+func renameOnSameVolume(source string, target string, sameVolume bool, rename func(string, string) error) error {
+	if !sameVolume {
+		return ErrCrossVolumeMoveUnsupported
+	}
+	if err := rename(source, target); err != nil {
+		if isCrossVolumeError(err) {
+			return ErrCrossVolumeMoveUnsupported
+		}
+		return err
+	}
+	return nil
+}
+
+func isStrictDescendant(parent string, candidate string) bool {
+	relative, err := filepath.Rel(parent, candidate)
+	if err != nil || relative == "." {
+		return false
+	}
+
+	return relative != ".." && !strings.HasPrefix(relative, ".."+string(filepath.Separator))
 }

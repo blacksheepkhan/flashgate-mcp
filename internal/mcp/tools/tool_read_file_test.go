@@ -134,6 +134,25 @@ func TestReadFileToolCapsClientMaxBytesAtServerLimit(t *testing.T) {
 	}
 }
 
+func TestReadFileToolAcceptsOneByteLimit(t *testing.T) {
+	filesystem := newFakeFileSystem()
+	_, rpcErr := NewReadFileTool(filesystem, 4096).Execute(context.Background(), json.RawMessage(`{"path":"README.md","maxBytes":1}`))
+	if rpcErr != nil || filesystem.readMaxBytes != 1 {
+		t.Fatalf("expected maxBytes=1, got %d error=%v", filesystem.readMaxBytes, rpcErr)
+	}
+}
+
+func TestReadFileToolRejectsNonPositiveMaxBytes(t *testing.T) {
+	for _, maxBytes := range []string{"0", "-1"} {
+		_, rpcErr := NewReadFileTool(newFakeFileSystem(), 4096).Execute(
+			context.Background(), json.RawMessage(`{"path":"README.md","maxBytes":`+maxBytes+`}`),
+		)
+		if rpcErr == nil || rpcErr.Code != protocol.ErrInvalidParams {
+			t.Fatalf("expected invalid params for maxBytes=%s, got %#v", maxBytes, rpcErr)
+		}
+	}
+}
+
 func TestReadFileToolMapsLimitExceeded(t *testing.T) {
 	t.Parallel()
 

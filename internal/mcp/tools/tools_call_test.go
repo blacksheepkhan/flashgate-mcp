@@ -73,6 +73,17 @@ func TestCallHandlerReturnsInvalidParamsForUnknownTool(t *testing.T) {
 	}
 }
 
+func TestCallHandlerRejectsRemovedToolNames(t *testing.T) {
+	for _, name := range []string{"list_files", "stat_path", "exists_path", "mkdir", "rename_path"} {
+		result, rpcErr := NewCallHandler(NewRegistry()).Handle(
+			handlers.Context{}, json.RawMessage(`{"name":"`+name+`","arguments":{}}`),
+		)
+		if result != nil || rpcErr == nil || rpcErr.Code != protocol.ErrInvalidParams {
+			t.Fatalf("expected removed tool %q to be rejected generically, result=%#v error=%#v", name, result, rpcErr)
+		}
+	}
+}
+
 func TestCallHandlerReturnsInvalidParamsForMalformedParams(t *testing.T) {
 	t.Parallel()
 

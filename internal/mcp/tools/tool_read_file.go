@@ -46,6 +46,7 @@ func (t *ReadFileTool) InputSchema() any {
 		"properties": map[string]any{
 			"path": map[string]any{
 				"type":        "string",
+				"minLength":   1,
 				"description": "Relative file path below the configured filesystem root.",
 			},
 			"maxBytes": map[string]any{
@@ -72,24 +73,22 @@ func (t *ReadFileTool) Definition() protocol.Tool {
 // Execute reads the requested file.
 func (t *ReadFileTool) Execute(_ context.Context, rawArguments json.RawMessage) (any, *protocol.Error) {
 	var arguments readFileArguments
-	if err := json.Unmarshal(rawArguments, &arguments); err != nil {
-		return nil, &protocol.Error{
-			Code:    protocol.ErrInvalidParams,
-			Message: "invalid read_file arguments",
-		}
+	if rpcErr := decodeStrictArguments(rawArguments, &arguments); rpcErr != nil {
+		return nil, rpcErr
 	}
 
-	if arguments.Path == "" {
-		return nil, &protocol.Error{
-			Code:    protocol.ErrInvalidParams,
-			Message: "missing path",
-		}
+	if !isNonBlank(arguments.Path) {
+		return nil, invalidParamsError()
 	}
 
-	maxBytes := arguments.MaxBytes
-	if maxBytes <= 0 {
-		maxBytes = t.serverMaxBytes
-	} else if maxBytes > t.serverMaxBytes {
+	maxBytes := t.serverMaxBytes
+	if arguments.MaxBytes != nil {
+		if *arguments.MaxBytes < 1 {
+			return nil, invalidParamsError()
+		}
+		maxBytes = *arguments.MaxBytes
+	}
+	if maxBytes > t.serverMaxBytes {
 		maxBytes = t.serverMaxBytes
 	}
 
@@ -106,7 +105,7 @@ func (t *ReadFileTool) Execute(_ context.Context, rawArguments json.RawMessage) 
 
 type readFileArguments struct {
 	Path     string `json:"path"`
-	MaxBytes int64  `json:"maxBytes,omitempty"`
+	MaxBytes *int64 `json:"maxBytes,omitempty"`
 }
 
 type readFileResult struct {

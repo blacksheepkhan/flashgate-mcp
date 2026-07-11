@@ -1,33 +1,6 @@
-# MCP Tool Reference
+# Filesystem MCP tools
 
-This document describes the tools currently exposed by FlashGate MCP. The binary is `flashgate-mcp`; the MCP server implementation name (`serverInfo.name`) is `flashgate`.
-
-> The current tool names remain active until the dedicated pre-1.0
-> tool contract cleanup sprint. This document distinguishes implemented
-> tools from accepted planned changes.
-
-## Contract Status
-
-FlashGate MCP is pre-1.0, is not yet used in production, and has no external user compatibility contract. Tool names, parameters, and result schemas may therefore be changed or removed before the first stable release. Changes still require changelog, tests, tool documentation, client examples, and smoke-test updates.
-
-Sprint 3.41 changes no actual tool schema. The authoritative machine-readable current catalog remains unchanged in `mcp-tool-catalog.json`. The implemented protocol remains MCP `2025-11-25`; future schemas will be validated as JSON Schema 2020-12.
-
-### Accepted planned cleanup
-
-| Current implemented tool | Accepted planned decision |
-|---|---|
-| `list_files` | Rename to `list_directory` |
-| `read_file` | Keep; later add line/byte/head/tail ranges |
-| `stat_path` | Rename to `get_path_info` |
-| `exists_path` | Remove; replace with `get_path_info` |
-| `write_file` | Keep; later add safe write modes |
-| `mkdir` | Rename to `create_directory` |
-| `delete_path` | Keep |
-| `copy_path` | Keep |
-| `move_path` | Keep and define both move and rename semantics |
-| `rename_path` | Remove; replace with `move_path` |
-
-Planned cleaned baseline:
+FlashGate MCP exposes eight filesystem tools in the default profile, in this exact order:
 
 ```text
 list_directory
@@ -40,539 +13,165 @@ copy_path
 move_path
 ```
 
-A future `get_path_info` is planned to represent a missing path structurally:
+The read-only profile exposes only `list_directory`, `read_file`, and `get_path_info`. Write-capable tools are not registered in read-only mode, and calls to unavailable or unknown names return generic JSON-RPC Invalid params.
+
+All paths are relative to the configured root. Absolute paths, traversal, denied hidden/UNC paths, and denied symlink, junction, or reparse access remain server-side errors. Inputs are strict JSON objects: unknown properties, malformed JSON, trailing JSON values, wrong field types, explicit `null` field values, missing required fields, and blank required paths are rejected.
+
+## `list_directory`
+
+Lists one directory. `path` is optional; omission means `.`, while an explicitly empty or whitespace-only value is invalid.
 
 ```json
 {
-  "exists": false,
-  "path": "missing.txt"
+  "path": "docs"
 }
 ```
-
-Other failures remain distinguishable, with candidate categories `not_found`, `access_denied`, `outside_allowed_root`, `invalid_path`, `unsupported_path_type`, and `io_error`. Final error codes are deferred to the tool-contract sprint.
-
-### Planned new operation types
-
-Future, not implemented operation types include paginated listing, ranged and batch reads, batch path inspection and hashing, bounded trees and search, targeted/conditional writes, internal Operations/Job handles, managed process operations, allowlisted command execution, and controlled system information. Custom status/result/cancel tools are not the accepted primary MCP job contract. The MCP adapter will first evaluate mapping eligible internal jobs to the negotiated Tasks Extension `io.modelcontextprotocol/tasks` and decide bounded behavior for clients without Tasks support.
-
-`flashgate-mcp` uses MCP over JSON-RPC via STDIO. Tools are invoked through the MCP `tools/call` method.
-
-All paths are relative to the configured filesystem root.
-
-The filesystem root is configured through:
-
-```text
-MCP_ROOT
-```
-
-## Tool Order
-
-`tools/list` returns tools in deterministic registration order.
-
-Default mode:
-
-```text
-list_files
-read_file
-stat_path
-exists_path
-write_file
-mkdir
-delete_path
-move_path
-copy_path
-rename_path
-```
-
-Read-only mode with `MCP_READ_ONLY=true`:
-
-```text
-list_files
-read_file
-stat_path
-exists_path
-```
-
-Sprint 3.35 adds read-only tool capability gating. In read-only mode, write-capable tools are not registered. Direct `tools/call` requests for `write_file`, `mkdir`, `delete_path`, `move_path`, `copy_path`, or `rename_path` return a generic Invalid params error, matching unknown tool names without revealing whether the tool exists in another mode.
-
-## Common Error Behavior
-
-Most invalid tool requests return JSON-RPC `Invalid params`:
-
-```json
-{
-  "code": -32602,
-  "message": "..."
-}
-```
-
-Common causes:
-
-- malformed JSON arguments
-- missing required arguments
-- unknown tool name
-- direct call for a write-capable tool while `MCP_READ_ONLY=true`
-- invalid path
-- path outside the configured root
-- hidden, UNC, symlink, junction, or reparse policy denial
-- target already exists and `overwrite` is `false`
-- directory is not empty and `recursive` is `false`
-
-Protocol-level JSON-RPC errors are generic. Invalid request envelopes return `invalid request`, unknown JSON-RPC methods return `method not found`, invalid method params return `invalid params`, and unexpected server errors return `internal error`.
-
-Limit violations are also generic. Oversized JSON-RPC messages return Invalid Request with `id:null`. Oversized `tools/call` arguments return Invalid params. Filesystem operation limits return Invalid params with:
-
-```text
-filesystem error: limit exceeded
-```
-
----
-
-## `list_files`
-
-Lists files and directories below the configured filesystem root.
-
-The number of policy-visible entries is capped by `MCP_MAX_LIST_ENTRIES`. If more entries would be returned, the tool fails with a limit error instead of silently truncating the listing.
-
-When hidden files or symlinks/reparse points are denied by policy, matching child entries are filtered from the result instead of failing the whole directory listing. The parent directory itself must still pass all path and policy checks.
-
-### Input
-
-```json
-{
-  "path": "relative/directory"
-}
-```
-
-### Fields
-
-| Field | Type | Required | Description |
-|---|---|---:|---|
-| `path` | string | no | Relative directory path below the configured filesystem root. Defaults to `"."`. |
-
-### Result
 
 ```json
 {
   "entries": [
-    {
-      "name": "README.md",
-      "isDir": false,
-      "size": 1234
-    }
+    { "name": "tools.md", "isDir": false, "size": 123 }
   ]
 }
 ```
 
-### Example
-
-```json
-{
-  "name": "list_files",
-  "arguments": {
-    "path": "flashgate-mcp"
-  }
-}
-```
-
----
+No pagination, filtering, recursion, or batch behavior is provided.
 
 ## `read_file`
 
-Reads a text file below the configured filesystem root.
-
-The maximum returned content is capped by `MCP_MAX_FILE_SIZE`. The optional `maxBytes` argument can lower this cap for a request, but cannot raise it.
-
-### Input
+Required: `path`. Optional: `maxBytes` with a minimum of 1. When omitted, the configured server limit is used; a larger client value is capped at that limit.
 
 ```json
 {
-  "path": "relative/file.txt",
-  "maxBytes": 8192
+  "path": "README.md",
+  "maxBytes": 4096
 }
 ```
 
-### Fields
-
-| Field | Type | Required | Description |
-|---|---|---:|---|
-| `path` | string | yes | Relative file path below the configured filesystem root. |
-| `maxBytes` | integer | no | Maximum number of bytes to read. Defaults to the configured maximum file size. |
-
-### Result
-
 ```json
 {
-  "content": "file content",
-  "size": 12
+  "content": "...",
+  "size": 123
 }
 ```
 
-### Example
+Range reads are not implemented.
+
+## `get_path_info`
+
+Required: `path`. A single metadata lookup provides both existence and metadata without an existence pre-check.
+
+Existing path:
 
 ```json
 {
-  "name": "read_file",
-  "arguments": {
-    "path": "flashgate-mcp/README.md",
-    "maxBytes": 8192
-  }
-}
-```
-
----
-
-## `stat_path`
-
-Returns metadata for a file or directory below the configured filesystem root.
-
-### Input
-
-```json
-{
-  "path": "relative/path"
-}
-```
-
-### Fields
-
-| Field | Type | Required | Description |
-|---|---|---:|---|
-| `path` | string | yes | Relative file or directory path below the configured filesystem root. |
-
-### Result
-
-```json
-{
+  "path": "README.md",
+  "exists": true,
   "name": "README.md",
   "isDir": false,
-  "size": 1234
+  "size": 123
 }
 ```
 
-### Example
+Missing path:
 
 ```json
 {
-  "name": "stat_path",
-  "arguments": {
-    "path": "flashgate-mcp/README.md"
-  }
+  "path": "missing.txt",
+  "exists": false
 }
 ```
 
----
-
-## `exists_path`
-
-Checks whether a file or directory exists below the configured filesystem root.
-
-### Input
-
-```json
-{
-  "path": "relative/path"
-}
-```
-
-### Fields
-
-| Field | Type | Required | Description |
-|---|---|---:|---|
-| `path` | string | yes | Relative file or directory path below the configured filesystem root. |
-
-### Result
-
-```json
-{
-  "exists": true
-}
-```
-
-### Example
-
-```json
-{
-  "name": "exists_path",
-  "arguments": {
-    "path": "flashgate-mcp/README.md"
-  }
-}
-```
-
----
+Only genuine missing-path errors become `exists:false`. Security and policy denials remain errors, and no absolute host path is returned.
 
 ## `write_file`
 
-Writes a text file below the configured filesystem root.
-
-Content size is capped by `MCP_MAX_WRITE_BYTES`.
-
-### Input
+Required: `path`. Optional: `content` (empty is allowed) and `overwrite` (default `false`). Existing limits and root/security enforcement apply.
 
 ```json
 {
-  "path": "relative/file.txt",
-  "content": "file content",
+  "path": "output.txt",
+  "content": "text",
   "overwrite": false
 }
 ```
 
-### Fields
-
-| Field | Type | Required | Description |
-|---|---|---:|---|
-| `path` | string | yes | Relative file path below the configured filesystem root. |
-| `content` | string | no | Text content to write. An empty string is allowed. |
-| `overwrite` | boolean | no | Whether an existing file may be overwritten. Defaults to `false`. |
-
-### Result
-
 ```json
 {
-  "path": "relative/file.txt",
-  "size": 12,
+  "path": "output.txt",
+  "size": 4,
   "written": true
 }
 ```
 
-### Example
+## `create_directory`
+
+Required: `path`. Missing parents are created. `created` describes the actual leaf state.
 
 ```json
-{
-  "name": "write_file",
-  "arguments": {
-    "path": "flashgate-mcp/tmp.txt",
-    "content": "hello",
-    "overwrite": false
-  }
-}
+{ "path": "output/archive" }
 ```
 
----
-
-## `mkdir`
-
-Creates a directory below the configured filesystem root.
-
-### Input
+New leaf:
 
 ```json
-{
-  "path": "relative/new-directory"
-}
+{ "path": "output/archive", "created": true }
 ```
 
-### Fields
-
-| Field | Type | Required | Description |
-|---|---|---:|---|
-| `path` | string | yes | Relative directory path below the configured filesystem root. |
-
-### Result
+Existing directory:
 
 ```json
-{
-  "path": "relative/new-directory",
-  "created": true
-}
+{ "path": "output/archive", "created": false }
 ```
 
-### Example
-
-```json
-{
-  "name": "mkdir",
-  "arguments": {
-    "path": "flashgate-mcp/tmp-dir"
-  }
-}
-```
-
----
+An existing file at the target is a path-type error.
 
 ## `delete_path`
 
-Deletes a file or directory below the configured filesystem root.
-
-Recursive deletes are capped by `MCP_MAX_DELETE_ENTRIES`. If the target tree exceeds the limit, no delete is performed.
-
-### Input
+Required: `path`. Optional: `recursive`, default `false`. Non-empty directories require explicit recursive deletion and remain bounded by the configured deletion limit.
 
 ```json
-{
-  "path": "relative/path",
-  "recursive": false
-}
+{ "path": "output/archive", "recursive": true }
 ```
-
-### Fields
-
-| Field | Type | Required | Description |
-|---|---|---:|---|
-| `path` | string | yes | Relative file or directory path below the configured filesystem root. |
-| `recursive` | boolean | no | Whether a non-empty directory may be deleted recursively. Defaults to `false`. |
-
-### Result
 
 ```json
-{
-  "path": "relative/path",
-  "deleted": true
-}
+{ "path": "output/archive", "deleted": true }
 ```
-
-### Example
-
-```json
-{
-  "name": "delete_path",
-  "arguments": {
-    "path": "flashgate-mcp/tmp.txt",
-    "recursive": false
-  }
-}
-```
-
----
-
-## `move_path`
-
-Moves a file or directory below the configured filesystem root.
-
-### Input
-
-```json
-{
-  "source": "relative/source.txt",
-  "target": "relative/target.txt",
-  "overwrite": false
-}
-```
-
-### Fields
-
-| Field | Type | Required | Description |
-|---|---|---:|---|
-| `source` | string | yes | Relative source file or directory path below the configured filesystem root. |
-| `target` | string | yes | Relative target file or directory path below the configured filesystem root. |
-| `overwrite` | boolean | no | Whether an existing target may be overwritten. Defaults to `false`. |
-
-### Result
-
-```json
-{
-  "source": "relative/source.txt",
-  "target": "relative/target.txt",
-  "moved": true
-}
-```
-
-### Example
-
-```json
-{
-  "name": "move_path",
-  "arguments": {
-    "source": "flashgate-mcp/source.txt",
-    "target": "flashgate-mcp/target.txt",
-    "overwrite": false
-  }
-}
-```
-
----
 
 ## `copy_path`
 
-Copies a file below the configured filesystem root.
-
-Source file size is capped by `MCP_MAX_COPY_BYTES`. Directory copy remains unsupported.
-
-### Input
+Required: `source` and `target`. Optional: `overwrite`, default `false`.
 
 ```json
-{
-  "source": "relative/source.txt",
-  "target": "relative/target.txt",
-  "overwrite": false
-}
+{ "source": "a.txt", "target": "b.txt", "overwrite": false }
 ```
-
-### Fields
-
-| Field | Type | Required | Description |
-|---|---|---:|---|
-| `source` | string | yes | Relative source file or directory path below the configured filesystem root. |
-| `target` | string | yes | Relative target file or directory path below the configured filesystem root. |
-| `overwrite` | boolean | no | Whether an existing target may be overwritten. Defaults to `false`. |
-
-### Result
 
 ```json
-{
-  "source": "relative/source.txt",
-  "target": "relative/target.txt",
-  "copied": true
-}
+{ "source": "a.txt", "target": "b.txt", "copied": true }
 ```
 
-### Example
+This contract copies files only. Directory copy and recursive copy are not supported.
+
+## `move_path`
+
+Required: `source` and `target`. Optional: `overwrite`, default `false`. This is the single contract for both move and rename.
 
 ```json
-{
-  "name": "copy_path",
-  "arguments": {
-    "source": "flashgate-mcp/source.txt",
-    "target": "flashgate-mcp/copy.txt",
-    "overwrite": false
-  }
-}
+{ "source": "old.txt", "target": "new.txt", "overwrite": false }
 ```
-
----
-
-## `rename_path`
-
-Renames a file or directory below the configured filesystem root.
-
-### Input
 
 ```json
-{
-  "source": "relative/old-name.txt",
-  "target": "relative/new-name.txt",
-  "overwrite": false
-}
+{ "source": "old.txt", "target": "new.txt", "moved": true }
 ```
 
-### Fields
+Files and directories may be renamed or moved on the same volume. Cross-volume moves are rejected without copy/delete fallback. With `overwrite:true`, only file-to-existing-file replacement is allowed. Existing directory targets and all directory replacement combinations are rejected. Same-path, same-file (including detectable hardlinks and Windows case aliases), and lexical or symlink-resolved directory-into-own-subtree operations are rejected before replacement.
 
-| Field | Type | Required | Description |
-|---|---|---:|---|
-| `source` | string | yes | Relative source file or directory path below the configured filesystem root. |
-| `target` | string | yes | Relative target file or directory path below the configured filesystem root. |
-| `overwrite` | boolean | no | Whether an existing target may be overwritten. Defaults to `false`. |
+The source and target identities are revalidated immediately before the operating-system rename, and existing files are replaced through `os.Rename` without a separate target deletion. The remaining race is limited to a concurrent change at the already authorized target path after final revalidation; the path-based cross-platform API cannot condition replacement on the previously observed file identity. Such a race cannot trigger a directory-removal fallback, and this behavior is narrower than the previous explicit remove-then-rename sequence.
 
-### Result
+## Errors
 
-```json
-{
-  "source": "relative/old-name.txt",
-  "target": "relative/new-name.txt",
-  "renamed": true
-}
-```
+Parse, invalid-request, and method errors use the standard JSON-RPC codes. Expected argument, path, policy, not-found, already-exists, path-type, unsupported-operation, and limit failures use `-32602`. Unexpected I/O failures use `-32603`. Error messages are normalized and do not expose absolute host paths or raw operating-system details.
 
-### Example
+Stable machine-readable MCP tool-error payloads, `structuredContent`, and runtime `outputSchema` are not part of Sprint 3.43.
 
-```json
-{
-  "name": "rename_path",
-  "arguments": {
-    "source": "flashgate-mcp/old.txt",
-    "target": "flashgate-mcp/new.txt",
-    "overwrite": false
-  }
-}
-```
+The previous pre-1.0 contract and required client changes are documented in [filesystem tool contract cleanup](filesystem-tool-contract-cleanup-2026-07-11.md).
