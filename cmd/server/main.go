@@ -10,7 +10,7 @@ import (
 func main() {
 	exitCode, err := runCLI(context.Background(), os.Args[1:], os.Stdout, run)
 	if err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "fileserver-mcp: %v\n", err)
+		_, _ = fmt.Fprintf(os.Stderr, "flashgate-mcp: %v\n", err)
 
 		if errors.Is(err, errInvalidCLIArguments) {
 			os.Exit(2)

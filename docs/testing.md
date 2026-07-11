@@ -1,8 +1,6 @@
 # Testing
 
-FlashGate MCP is the public project name from Sprint 3.41. Commands and artifact paths in this document still use the technical `fileserver-mcp` identifier until Sprint 3.42.
-
-`fileserver-mcp` uses Go's standard testing framework.
+FlashGate MCP uses Go's standard testing framework. Sprint 3.42 updated commands and artifact paths to the `flashgate-mcp` binary.
 
 The project aims for high test coverage in security-sensitive and filesystem-related code.
 
@@ -47,13 +45,13 @@ go fmt ./...
 go vet ./...
 go test ./...
 golangci-lint run
-go build -o build/fileserver-mcp ./cmd/server
+go build -o build/flashgate-mcp ./cmd/server
 ```
 
 On Windows, the build command is usually:
 
 ```powershell
-go build -o build/fileserver-mcp.exe ./cmd/server
+go build -o build/flashgate-mcp.exe ./cmd/server
 ```
 
 ## Test Strategy

@@ -73,7 +73,7 @@ func TestDefaultConfig(t *testing.T) {
 }
 
 func TestLoadFromEnvironment(t *testing.T) {
-	t.Setenv(envRootPath, `C:\temp\fileserver-mcp`)
+	t.Setenv(envRootPath, `C:\temp\flashgate-mcp`)
 	t.Setenv(envReadOnly, "true")
 	t.Setenv(envMaxFileSize, "1048576")
 	t.Setenv(envMaxWriteBytes, "2048")
@@ -93,7 +93,7 @@ func TestLoadFromEnvironment(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if cfg.Filesystem().RootPath() != `C:\temp\fileserver-mcp` {
+	if cfg.Filesystem().RootPath() != `C:\temp\flashgate-mcp` {
 		t.Fatalf("unexpected root path: %q", cfg.Filesystem().RootPath())
 	}
 

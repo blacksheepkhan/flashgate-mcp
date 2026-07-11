@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/blacksheepkhan/fileserver-mcp/internal/protocol"
+	"github.com/blacksheepkhan/flashgate-mcp/internal/protocol"
 )
 
 func invalidParamsError() *protocol.Error {

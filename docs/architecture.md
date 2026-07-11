@@ -2,15 +2,13 @@
 
 FlashGate MCP is a fast, secure, resource-efficient, local-first MCP server for controlled filesystem, process, and operating-system operations.
 
-## Project identity and transition
+## Project identity
 
-The public project name is **FlashGate MCP** as of Sprint 3.41. Flash describes low latency, efficient local processing, and compact responses. Gate describes the server-enforced boundary formed by policies, capabilities, roots, limits, redaction, and audit events.
+FlashGate MCP is the public project name. Flash describes low latency, efficient local processing, and compact responses. Gate describes the server-enforced boundary formed by policies, capabilities, roots, limits, redaction, and audit events.
 
-The current repository, Go module, binary, MCP server implementation name (`serverInfo.name`), package paths, scripts, workflows, and machine-readable tool catalog still use the legacy technical identifier `fileserver-mcp`. Sprint 3.42 is the dedicated technical rename. Until then, both names appear only where this transition or the current implementation must be described.
+Sprint 3.42 completed the technical rename. Current identifiers are:
 
-Planned technical identifiers, not implemented in Sprint 3.41:
-
-| Item | Target |
+| Item | Current value |
 |---|---|
 | Repository | `flashgate-mcp` |
 | Binary | `flashgate-mcp` |

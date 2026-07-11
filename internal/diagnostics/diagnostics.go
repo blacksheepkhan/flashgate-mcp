@@ -39,7 +39,7 @@ func (l *Logger) Debugf(format string, args ...any) {
 	}
 
 	message := fmt.Sprintf(format, args...)
-	fmt.Fprintf(l.out, "fileserver-mcp: %s\n", Redact(message))
+	fmt.Fprintf(l.out, "flashgate-mcp: %s\n", Redact(message))
 }
 
 // Redact removes common secret and host-path patterns from diagnostic text.

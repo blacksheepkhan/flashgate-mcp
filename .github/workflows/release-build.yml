@@ -21,11 +21,11 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            artifact_name: fileserver-mcp-linux-amd64
-            output_path: build/fileserver-mcp-linux-amd64
+            artifact_name: flashgate-mcp-linux-amd64
+            output_path: build/flashgate-mcp-linux-amd64
           - os: windows-latest
-            artifact_name: fileserver-mcp-windows-amd64
-            output_path: build/fileserver-mcp-windows-amd64.exe
+            artifact_name: flashgate-mcp-windows-amd64
+            output_path: build/flashgate-mcp-windows-amd64.exe
 
     steps:
       - name: Checkout
@@ -50,7 +50,7 @@ jobs:
         run: |
           go build \
             -trimpath \
-            -ldflags="-s -w -X github.com/blacksheepkhan/fileserver-mcp/internal/version.version=${{ inputs.version }} -X github.com/blacksheepkhan/fileserver-mcp/internal/version.commit=${{ github.sha }} -X github.com/blacksheepkhan/fileserver-mcp/internal/version.date=${{ steps.build_date.outputs.date }}" \
+            -ldflags="-s -w -X github.com/blacksheepkhan/flashgate-mcp/internal/version.version=${{ inputs.version }} -X github.com/blacksheepkhan/flashgate-mcp/internal/version.commit=${{ github.sha }} -X github.com/blacksheepkhan/flashgate-mcp/internal/version.date=${{ steps.build_date.outputs.date }}" \
             -o "${{ matrix.output_path }}" \
             ./cmd/server
 

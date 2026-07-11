@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/blacksheepkhan/fileserver-mcp/internal/mcp/handlers"
-	"github.com/blacksheepkhan/fileserver-mcp/internal/protocol"
+	"github.com/blacksheepkhan/flashgate-mcp/internal/mcp/handlers"
+	"github.com/blacksheepkhan/flashgate-mcp/internal/protocol"
 )
 
 func TestListHandlerReturnsRegisteredTools(t *testing.T) {

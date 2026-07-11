@@ -4,9 +4,10 @@
 
 FlashGate MCP is a resource-efficient cross-platform Model Context Protocol server for controlled filesystem, process, and operating-system operations. Deterministic work runs locally to minimize CPU, memory, latency, response size, model round trips, and token use.
 
-> The project is now named FlashGate MCP. The repository, Go module and
-> binary still use the legacy `fileserver-mcp` identifier until the dedicated
-> technical rename sprint.
+> Sprint 3.42 completed the technical rename. FlashGate MCP uses repository
+> `blacksheepkhan/flashgate-mcp`, module
+> `github.com/blacksheepkhan/flashgate-mcp`, binary `flashgate-mcp`, and MCP
+> server implementation name (`serverInfo.name`) `flashgate`.
 
 It exposes secure filesystem operations to MCP-compatible clients through JSON-RPC over STDIO. The server is designed for predictable behavior, low operational overhead, clear security boundaries, and maintainable enterprise-style code.
 
@@ -68,7 +69,7 @@ MCP protocol extensions are separate negotiated wire-protocol features. The impl
 
 ## Protocol and Transport
 
-`fileserver-mcp` communicates through MCP using JSON-RPC over STDIO.
+`flashgate-mcp` communicates through MCP using JSON-RPC over STDIO.
 
 Standard output is reserved for protocol messages. Diagnostic output must not be written to standard output because it would corrupt the JSON-RPC stream.
 
@@ -240,20 +241,20 @@ docs/
 Clone the repository:
 
 ```bash
-git clone https://github.com/blacksheepkhan/fileserver-mcp.git
-cd fileserver-mcp
+git clone https://github.com/blacksheepkhan/flashgate-mcp.git
+cd flashgate-mcp
 ```
 
 Build the server:
 
 ```bash
-go build -o build/fileserver-mcp ./cmd/server
+go build -o build/flashgate-mcp ./cmd/server
 ```
 
 On Windows, the common build command is:
 
 ```powershell
-go build -o build/fileserver-mcp.exe ./cmd/server
+go build -o build/flashgate-mcp.exe ./cmd/server
 ```
 
 ## Testing and Quality Checks
@@ -270,13 +271,13 @@ golangci-lint run
 Build after validation:
 
 ```bash
-go build -o build/fileserver-mcp ./cmd/server
+go build -o build/flashgate-mcp ./cmd/server
 ```
 
 On Windows:
 
 ```powershell
-go build -o build/fileserver-mcp.exe ./cmd/server
+go build -o build/flashgate-mcp.exe ./cmd/server
 ```
 
 Run the JSON-RPC smoke test on Windows:
@@ -344,8 +345,8 @@ The workflow accepts an optional version label. This value is embedded into the 
 Release builds currently produce the following artifacts:
 
 ```text
-fileserver-mcp-linux-amd64
-fileserver-mcp-windows-amd64
+flashgate-mcp-linux-amd64
+flashgate-mcp-windows-amd64
 ```
 
 Artifacts are uploaded by GitHub Actions and can be downloaded from the completed workflow run.
@@ -382,7 +383,7 @@ $env:MCP_READ_ONLY = "true"
 Run the server:
 
 ```powershell
-.\build\fileserver-mcp.exe
+.\build\flashgate-mcp.exe
 ```
 
 The process expects JSON-RPC messages on standard input and writes JSON-RPC responses to standard output.
@@ -392,24 +393,24 @@ The process expects JSON-RPC messages on standard input and writes JSON-RPC resp
 The binary supports a dedicated help mode:
 
 ```powershell
-.\build\fileserver-mcp.exe --help
+.\build\flashgate-mcp.exe --help
 ```
 
 Short form:
 
 ```powershell
-.\build\fileserver-mcp.exe -h
+.\build\flashgate-mcp.exe -h
 ```
 
 Example output:
 
 ```text
-fileserver-mcp
+flashgate-mcp
 
 Usage:
-  fileserver-mcp
-  fileserver-mcp --version
-  fileserver-mcp --help
+  flashgate-mcp
+  flashgate-mcp --version
+  flashgate-mcp --help
 
 Environment:
   MCP_ROOT    Root directory exposed to MCP clients
@@ -418,13 +419,13 @@ Environment:
 The binary also supports a dedicated version mode:
 
 ```powershell
-.\build\fileserver-mcp.exe --version
+.\build\flashgate-mcp.exe --version
 ```
 
 A local development build without embedded release metadata prints default values:
 
 ```text
-fileserver-mcp
+flashgate-mcp
 version: dev
 commit: unknown
 date: unknown
@@ -433,7 +434,7 @@ date: unknown
 Release builds embed the version label, Git commit SHA, and UTC build date:
 
 ```text
-fileserver-mcp
+flashgate-mcp
 version: v0.1.0-test
 commit: d9342ef1f1c4ebf03c2716f11d10b7fdb8dd316a
 date: 2026-07-05T20:02:54Z
@@ -454,7 +455,7 @@ On Windows, a simple smoke test can be executed with a JSONL file:
 ```powershell
 $json = '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
 [System.IO.File]::WriteAllText("$PWD\request-tools-list.jsonl", $json + "`n", [System.Text.UTF8Encoding]::new($false))
-cmd /c ".\build\fileserver-mcp.exe < request-tools-list.jsonl"
+cmd /c ".\build\flashgate-mcp.exe < request-tools-list.jsonl"
 Remove-Item request-tools-list.jsonl
 ```
 
@@ -470,7 +471,7 @@ go fmt ./...
 go vet ./...
 go test ./...
 golangci-lint run
-go build -o build/fileserver-mcp ./cmd/server
+go build -o build/flashgate-mcp ./cmd/server
 git add .
 git commit -m "Describe focused change"
 git checkout main

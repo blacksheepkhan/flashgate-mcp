@@ -4,11 +4,11 @@ import (
 	"context"
 	"os"
 
-	"github.com/blacksheepkhan/fileserver-mcp/internal/config"
-	"github.com/blacksheepkhan/fileserver-mcp/internal/diagnostics"
-	"github.com/blacksheepkhan/fileserver-mcp/internal/fs"
-	"github.com/blacksheepkhan/fileserver-mcp/internal/mcp/server"
-	"github.com/blacksheepkhan/fileserver-mcp/internal/security"
+	"github.com/blacksheepkhan/flashgate-mcp/internal/config"
+	"github.com/blacksheepkhan/flashgate-mcp/internal/diagnostics"
+	"github.com/blacksheepkhan/flashgate-mcp/internal/fs"
+	"github.com/blacksheepkhan/flashgate-mcp/internal/mcp/server"
+	"github.com/blacksheepkhan/flashgate-mcp/internal/security"
 )
 
 func run(ctx context.Context) error {

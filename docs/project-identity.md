@@ -29,21 +29,11 @@ Public, community, vendor, organization-internal, and Voxtronic-specific **Flash
 
 An **MCP protocol extension** is a separate negotiated addition to the MCP wire protocol and follows the official vendor-prefix/slash identifier contract, for example `io.modelcontextprotocol/tasks`. FlashGate modules/providers do not automatically define or implement MCP protocol extensions.
 
-## Technical-name transition
+## Technical rename completed
 
-Public name from Sprint 3.41: FlashGate MCP.
+Sprint 3.42 completed the technical rename. Current identifiers are:
 
-Current technical identifiers remain `fileserver-mcp` until Sprint 3.42:
-
-- repository and local directory
-- Go module and import paths
-- binary and release artifacts
-- MCP server implementation name (`serverInfo.name`)
-- scripts, workflows, examples, and machine-readable catalog
-
-Planned Sprint 3.42 targets:
-
-| Item | Target |
+| Item | Current value |
 |---|---|
 | Repository | `flashgate-mcp` |
 | Binary | `flashgate-mcp` |
@@ -51,4 +41,4 @@ Planned Sprint 3.42 targets:
 | Go module | `github.com/blacksheepkhan/flashgate-mcp` |
 | Short name | FlashGate |
 
-No technical rename is part of Sprint 3.41. After Sprint 3.42, old identifiers should remain only where required for changelog history, migration guidance, and historical records.
+The old technical name remains only in changelog history, migration guidance, and historical records. See [the technical rename migration note](technical-rename-to-flashgate-2026-07-11.md) for clone and redirect guidance.

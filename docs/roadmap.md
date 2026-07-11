@@ -4,7 +4,7 @@
 
 ## Current direction
 
-FlashGate MCP is the binding project name. The repository, Go module, binary, and MCP server implementation name (`serverInfo.name`) remain technically named `fileserver-mcp` until the dedicated Sprint 3.42 rename.
+FlashGate MCP is the binding project name. Sprint 3.42 completed the repository, Go module, binary, and MCP server implementation name (`serverInfo.name`) rename; the current values are `blacksheepkhan/flashgate-mcp`, `github.com/blacksheepkhan/flashgate-mcp`, `flashgate-mcp`, and `flashgate`.
 
 The current implementation focuses on secure, root-confined filesystem tools. Filesystem contract and efficiency work comes before process and execution work because it exercises shared policies, limits, structured results, benchmarks, named roots, capabilities, and the Operations/Job Manager with a smaller risk surface.
 

@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/blacksheepkhan/fileserver-mcp/internal/config"
+	"github.com/blacksheepkhan/flashgate-mcp/internal/config"
 )
 
 func TestSecurityPolicyFromConfigUsesSecureDefaults(t *testing.T) {

@@ -1,6 +1,6 @@
 package config
 
-// Package config loads and exposes runtime configuration for fileserver-mcp.
+// Package config loads and exposes runtime configuration for FlashGate MCP.
 //
 // The package is responsible for translating environment variables and other
 // configuration sources into typed configuration values used by the server.

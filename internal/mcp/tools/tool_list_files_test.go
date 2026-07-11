@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/blacksheepkhan/fileserver-mcp/internal/fs"
-	"github.com/blacksheepkhan/fileserver-mcp/internal/protocol"
-	"github.com/blacksheepkhan/fileserver-mcp/internal/security"
+	"github.com/blacksheepkhan/flashgate-mcp/internal/fs"
+	"github.com/blacksheepkhan/flashgate-mcp/internal/protocol"
+	"github.com/blacksheepkhan/flashgate-mcp/internal/security"
 )
 
 func TestListFilesToolDefinition(t *testing.T) {

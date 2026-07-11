@@ -3,8 +3,8 @@ package tools
 import (
 	"encoding/json"
 
-	"github.com/blacksheepkhan/fileserver-mcp/internal/mcp/handlers"
-	"github.com/blacksheepkhan/fileserver-mcp/internal/protocol"
+	"github.com/blacksheepkhan/flashgate-mcp/internal/mcp/handlers"
+	"github.com/blacksheepkhan/flashgate-mcp/internal/protocol"
 )
 
 // ListHandler handles the MCP tools/list method.

@@ -74,3 +74,7 @@ The current `cmd/server/main.go` is only a bootstrap placeholder until the real 
 ## Amendment - 2026-07-10
 
 The public project name is FlashGate MCP; the technical rename remains planned for Sprint 3.42. Server wiring is now implemented under `cmd/server` and uses the STDIO transport. This updated implementation state does not change the original STDIO decision. See ADR-0006 through ADR-0013 for the current architecture and compatibility strategy.
+
+## Amendment - 2026-07-11
+
+Sprint 3.42 completed the technical rename. The binary is `flashgate-mcp` and the MCP server implementation name (`serverInfo.name`) is `flashgate`; `cmd/server` remains the generic command path. This does not change the original STDIO transport decision.

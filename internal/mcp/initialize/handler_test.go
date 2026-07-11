@@ -4,14 +4,14 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/blacksheepkhan/fileserver-mcp/internal/mcp/handlers"
-	"github.com/blacksheepkhan/fileserver-mcp/internal/protocol"
+	"github.com/blacksheepkhan/flashgate-mcp/internal/mcp/handlers"
+	"github.com/blacksheepkhan/flashgate-mcp/internal/protocol"
 )
 
 func TestHandlerMethod(t *testing.T) {
 	t.Parallel()
 
-	handler := NewHandler("fileserver-mcp", "0.1.0-dev")
+	handler := NewHandler("flashgate", "0.1.0-dev")
 
 	if handler.Method() != "initialize" {
 		t.Fatalf("expected initialize, got %q", handler.Method())
@@ -21,7 +21,7 @@ func TestHandlerMethod(t *testing.T) {
 func TestHandlerReturnsInitializeResult(t *testing.T) {
 	t.Parallel()
 
-	handler := NewHandler("fileserver-mcp", "0.1.0-dev")
+	handler := NewHandler("flashgate", "0.1.0-dev")
 
 	result, rpcErr := handler.Handle(
 		handlers.Context{},
@@ -63,8 +63,8 @@ func TestHandlerReturnsInitializeResult(t *testing.T) {
 		t.Fatalf("expected protocol version %q, got %q", protocol.ProtocolVersion, decoded.ProtocolVersion)
 	}
 
-	if decoded.ServerInfo.Name != "fileserver-mcp" {
-		t.Fatalf("expected server name fileserver-mcp, got %q", decoded.ServerInfo.Name)
+	if decoded.ServerInfo.Name != "flashgate" {
+		t.Fatalf("expected server name flashgate, got %q", decoded.ServerInfo.Name)
 	}
 
 	if decoded.ServerInfo.Version != "0.1.0-dev" {
@@ -79,7 +79,7 @@ func TestHandlerReturnsInitializeResult(t *testing.T) {
 func TestHandlerReturnsInvalidParamsForMalformedJSON(t *testing.T) {
 	t.Parallel()
 
-	handler := NewHandler("fileserver-mcp", "0.1.0-dev")
+	handler := NewHandler("flashgate", "0.1.0-dev")
 
 	result, rpcErr := handler.Handle(
 		handlers.Context{},
@@ -102,7 +102,7 @@ func TestHandlerReturnsInvalidParamsForMalformedJSON(t *testing.T) {
 func TestHandlerReturnsInvalidParamsForMissingProtocolVersion(t *testing.T) {
 	t.Parallel()
 
-	handler := NewHandler("fileserver-mcp", "0.1.0-dev")
+	handler := NewHandler("flashgate", "0.1.0-dev")
 
 	result, rpcErr := handler.Handle(
 		handlers.Context{},
@@ -131,7 +131,7 @@ func TestHandlerReturnsInvalidParamsForMissingProtocolVersion(t *testing.T) {
 func TestHandlerAcceptsDifferentClientProtocolVersion(t *testing.T) {
 	t.Parallel()
 
-	handler := NewHandler("fileserver-mcp", "0.1.0-dev")
+	handler := NewHandler("flashgate", "0.1.0-dev")
 
 	result, rpcErr := handler.Handle(
 		handlers.Context{},

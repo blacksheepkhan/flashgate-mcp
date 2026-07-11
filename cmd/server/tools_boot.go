@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/blacksheepkhan/fileserver-mcp/internal/fs"
-	"github.com/blacksheepkhan/fileserver-mcp/internal/mcp/tools"
+	"github.com/blacksheepkhan/flashgate-mcp/internal/fs"
+	"github.com/blacksheepkhan/flashgate-mcp/internal/mcp/tools"
 )
 
 type toolCapabilities struct {
