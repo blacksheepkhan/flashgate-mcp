@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-The architecture must permit reuse and optional local FlashGate modules/providers without creating an unnecessary distributed system or fixing a plug-in ABI before real requirements exist. MCP protocol extensions are a separate negotiated wire-protocol concept.
+The architecture must permit reuse and optional local FlashGate modules/providers without creating an unnecessary distributed system or fixing a module/provider contract before real requirements exist. MCP protocol extensions are a separate negotiated wire-protocol concept.
 
 ## Decision
 
@@ -14,7 +14,7 @@ Keep one repository and one primary binary initially. Use packages, interfaces, 
 
 FlashGate modules/providers may later be public standard, community, vendor-specific, organization-internal, or Voxtronic-specific. Possible metadata includes name, version, vendor, declared capabilities, tools, configuration schema, security classification, platform requirements, and dependencies. No identifier syntax is selected.
 
-Sprint 3.41 neither selects nor implements a plug-in system.
+Sprint 3.41 neither selects nor implements a FlashGate module/provider runtime model.
 
 ## Rationale
 
