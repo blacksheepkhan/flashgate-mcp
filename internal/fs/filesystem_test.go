@@ -421,93 +421,30 @@ func TestLocalFileSystemStatRejectsSymlinkEscape(t *testing.T) {
 	}
 }
 
-func TestLocalFileSystemExistsReturnsTrueForExistingFile(t *testing.T) {
+func TestLocalFileSystemStatReturnsNotFoundForMissingFile(t *testing.T) {
 	t.Parallel()
 
 	root := t.TempDir()
-	writeTestFile(t, filepath.Join(root, "file.txt"), "hello")
-
 	filesystem := mustNewLocalFileSystem(t, root)
 
-	exists, err := filesystem.Exists("file.txt")
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	if !exists {
-		t.Fatal("expected file to exist")
+	_, err := filesystem.Stat("missing.txt")
+	if !errors.Is(err, ErrNotFound) {
+		t.Fatalf("expected ErrNotFound, got %v", err)
 	}
 }
 
-func TestLocalFileSystemExistsReturnsFalseForMissingFile(t *testing.T) {
+func TestLocalFileSystemStatRejectsHiddenMissingPathByDefault(t *testing.T) {
 	t.Parallel()
 
 	root := t.TempDir()
 	filesystem := mustNewLocalFileSystem(t, root)
 
-	exists, err := filesystem.Exists("missing.txt")
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	if exists {
-		t.Fatal("expected file to be missing")
-	}
-}
-
-func TestLocalFileSystemExistsRejectsHiddenMissingPathByDefault(t *testing.T) {
-	t.Parallel()
-
-	root := t.TempDir()
-	filesystem := mustNewLocalFileSystem(t, root)
-
-	exists, err := filesystem.Exists(".missing")
+	_, err := filesystem.Stat(".missing")
 
 	if !errors.Is(err, security.ErrHiddenPathDenied) {
 		t.Fatalf("expected ErrHiddenPathDenied, got %v", err)
 	}
 
-	if exists {
-		t.Fatal("expected hidden missing path to not exist")
-	}
-}
-
-func TestLocalFileSystemExistsRejectsTraversal(t *testing.T) {
-	t.Parallel()
-
-	root := t.TempDir()
-	filesystem := mustNewLocalFileSystem(t, root)
-
-	exists, err := filesystem.Exists("..")
-
-	if !errors.Is(err, security.ErrPathTraversal) {
-		t.Fatalf("expected ErrPathTraversal, got %v", err)
-	}
-
-	if exists {
-		t.Fatal("expected traversal path to not exist")
-	}
-}
-
-func TestLocalFileSystemExistsRejectsSymlinkEscape(t *testing.T) {
-	t.Parallel()
-
-	root := t.TempDir()
-	outside := t.TempDir()
-	writeTestFile(t, filepath.Join(outside, "secret.txt"), "secret")
-	createTestSymlinkOrSkip(t, filepath.Join(outside, "secret.txt"), filepath.Join(root, "escape.txt"))
-
-	filesystem := mustNewLocalFileSystem(t, root)
-
-	exists, err := filesystem.Exists("escape.txt")
-
-	if !errors.Is(err, security.ErrSymlinkDenied) {
-		t.Fatalf("expected ErrSymlinkDenied, got %v", err)
-	}
-
-	if exists {
-		t.Fatal("expected symlink escape path to not be reported as existing")
-	}
 }
 
 func TestLocalFileSystemWriteCreatesFile(t *testing.T) {
@@ -650,9 +587,12 @@ func TestLocalFileSystemMkdirCreatesDirectory(t *testing.T) {
 	root := t.TempDir()
 	filesystem := mustNewLocalFileSystem(t, root)
 
-	err := filesystem.Mkdir(filepath.Join("alpha", "beta"))
+	created, err := filesystem.Mkdir(filepath.Join("alpha", "beta"))
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
+	}
+	if !created {
+		t.Fatal("expected created=true")
 	}
 
 	info, err := os.Stat(filepath.Join(root, "alpha", "beta"))
@@ -665,13 +605,39 @@ func TestLocalFileSystemMkdirCreatesDirectory(t *testing.T) {
 	}
 }
 
+func TestLocalFileSystemMkdirReportsExistingDirectory(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	mkdir(t, filepath.Join(root, "existing"))
+	filesystem := mustNewLocalFileSystem(t, root)
+
+	created, err := filesystem.Mkdir("existing")
+	if err != nil || created {
+		t.Fatalf("expected created=false without error, got created=%v err=%v", created, err)
+	}
+}
+
+func TestLocalFileSystemMkdirRejectsExistingFile(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	writeTestFile(t, filepath.Join(root, "file.txt"), "content")
+	filesystem := mustNewLocalFileSystem(t, root)
+
+	created, err := filesystem.Mkdir("file.txt")
+	if created || !errors.Is(err, ErrPathIsNotDirectory) {
+		t.Fatalf("expected ErrPathIsNotDirectory, got created=%v err=%v", created, err)
+	}
+}
+
 func TestLocalFileSystemMkdirRejectsTraversal(t *testing.T) {
 	t.Parallel()
 
 	root := t.TempDir()
 	filesystem := mustNewLocalFileSystem(t, root)
 
-	err := filesystem.Mkdir("..")
+	_, err := filesystem.Mkdir("..")
 
 	if !errors.Is(err, security.ErrPathTraversal) {
 		t.Fatalf("expected ErrPathTraversal, got %v", err)
@@ -684,7 +650,7 @@ func TestLocalFileSystemMkdirRejectsAbsolutePath(t *testing.T) {
 	root := t.TempDir()
 	filesystem := mustNewLocalFileSystem(t, root)
 
-	err := filesystem.Mkdir(filepath.Join(root, "alpha"))
+	_, err := filesystem.Mkdir(filepath.Join(root, "alpha"))
 
 	if !errors.Is(err, security.ErrAbsolutePath) {
 		t.Fatalf("expected ErrAbsolutePath, got %v", err)
@@ -700,7 +666,7 @@ func TestLocalFileSystemMkdirRejectsSymlinkedParentEscape(t *testing.T) {
 
 	filesystem := mustNewLocalFileSystem(t, root)
 
-	err := filesystem.Mkdir(filepath.Join("escape-dir", "created"))
+	_, err := filesystem.Mkdir(filepath.Join("escape-dir", "created"))
 
 	if !errors.Is(err, security.ErrSymlinkDenied) {
 		t.Fatalf("expected ErrSymlinkDenied, got %v", err)
@@ -717,7 +683,7 @@ func TestLocalFileSystemMkdirRejectsHiddenDirectoryByDefault(t *testing.T) {
 	root := t.TempDir()
 	filesystem := mustNewLocalFileSystem(t, root)
 
-	err := filesystem.Mkdir(".secret-dir")
+	_, err := filesystem.Mkdir(".secret-dir")
 
 	if !errors.Is(err, security.ErrHiddenPathDenied) {
 		t.Fatalf("expected ErrHiddenPathDenied, got %v", err)
@@ -925,6 +891,236 @@ func TestLocalFileSystemMoveOverwritesExistingTarget(t *testing.T) {
 
 	if readTestFile(t, filepath.Join(root, "target.txt")) != "source" {
 		t.Fatal("expected target to contain source content")
+	}
+}
+
+func TestLocalFileSystemMoveRejectsSamePathBeforeOverwrite(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	path := filepath.Join(root, "same.txt")
+	writeTestFile(t, path, "content")
+	filesystem := mustNewLocalFileSystem(t, root)
+
+	for _, overwrite := range []bool{false, true} {
+		err := filesystem.Move("same.txt", "same.txt", overwrite)
+		if !errors.Is(err, ErrSamePath) {
+			t.Fatalf("overwrite=%v: expected ErrSamePath, got %v", overwrite, err)
+		}
+		if readTestFile(t, path) != "content" {
+			t.Fatalf("overwrite=%v: expected source to remain", overwrite)
+		}
+	}
+}
+
+func TestLocalFileSystemMoveRejectsHardlinkSameFile(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	source := filepath.Join(root, "source.txt")
+	target := filepath.Join(root, "alias.txt")
+	writeTestFile(t, source, "content")
+	if err := os.Link(source, target); err != nil {
+		t.Skipf("hardlinks are not available: %v", err)
+	}
+	filesystem := mustNewLocalFileSystem(t, root)
+
+	err := filesystem.Move("source.txt", "alias.txt", true)
+	if !errors.Is(err, ErrSamePath) {
+		t.Fatalf("expected ErrSamePath, got %v", err)
+	}
+	if readTestFile(t, source) != "content" || readTestFile(t, target) != "content" {
+		t.Fatal("expected both hardlink names to remain")
+	}
+}
+
+func TestLocalFileSystemMoveRenamesDirectory(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	mkdir(t, filepath.Join(root, "old"))
+	writeTestFile(t, filepath.Join(root, "old", "file.txt"), "content")
+	filesystem := mustNewLocalFileSystem(t, root)
+
+	if err := filesystem.Move("old", "new", false); err != nil {
+		t.Fatalf("expected directory rename, got %v", err)
+	}
+	if readTestFile(t, filepath.Join(root, "new", "file.txt")) != "content" {
+		t.Fatal("expected directory content at target")
+	}
+}
+
+func TestLocalFileSystemMoveMovesDirectoryAcrossParents(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	mkdir(t, filepath.Join(root, "source-parent", "dir"))
+	mkdir(t, filepath.Join(root, "target-parent"))
+	filesystem := mustNewLocalFileSystem(t, root)
+
+	if err := filesystem.Move(filepath.Join("source-parent", "dir"), filepath.Join("target-parent", "dir"), false); err != nil {
+		t.Fatalf("expected same-volume directory move, got %v", err)
+	}
+	if !fileExists(t, filepath.Join(root, "target-parent", "dir")) {
+		t.Fatal("expected target directory")
+	}
+}
+
+func TestLocalFileSystemMoveMovesFileAcrossParents(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	mkdir(t, filepath.Join(root, "source-parent"))
+	mkdir(t, filepath.Join(root, "target-parent"))
+	writeTestFile(t, filepath.Join(root, "source-parent", "file.txt"), "content")
+	filesystem := mustNewLocalFileSystem(t, root)
+
+	if err := filesystem.Move(filepath.Join("source-parent", "file.txt"), filepath.Join("target-parent", "file.txt"), false); err != nil {
+		t.Fatalf("expected same-volume file move, got %v", err)
+	}
+	if readTestFile(t, filepath.Join(root, "target-parent", "file.txt")) != "content" {
+		t.Fatal("expected target file content")
+	}
+}
+
+func TestLocalFileSystemMoveReturnsNotFoundForMissingSource(t *testing.T) {
+	t.Parallel()
+
+	filesystem := mustNewLocalFileSystem(t, t.TempDir())
+	if err := filesystem.Move("missing", "target", false); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("expected ErrNotFound, got %v", err)
+	}
+}
+
+func TestLocalFileSystemMoveRejectsExistingTargetTypeCombinations(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		sourceDir bool
+		targetDir bool
+	}{
+		{"file-to-directory", false, true},
+		{"directory-to-file", true, false},
+		{"directory-to-directory", true, true},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			root := t.TempDir()
+			if test.sourceDir {
+				mkdir(t, filepath.Join(root, "source"))
+			} else {
+				writeTestFile(t, filepath.Join(root, "source"), "source")
+			}
+			if test.targetDir {
+				mkdir(t, filepath.Join(root, "target"))
+			} else {
+				writeTestFile(t, filepath.Join(root, "target"), "target")
+			}
+			filesystem := mustNewLocalFileSystem(t, root)
+
+			err := filesystem.Move("source", "target", true)
+			if !errors.Is(err, ErrMoveTypeMismatch) {
+				t.Fatalf("expected ErrMoveTypeMismatch, got %v", err)
+			}
+			if !fileExists(t, filepath.Join(root, "source")) || !fileExists(t, filepath.Join(root, "target")) {
+				t.Fatal("expected source and target to remain")
+			}
+		})
+	}
+}
+
+func TestLocalFileSystemMoveRejectsDirectoryIntoOwnSubtree(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	mkdir(t, filepath.Join(root, "source", "child"))
+	filesystem := mustNewLocalFileSystem(t, root)
+
+	err := filesystem.Move("source", filepath.Join("source", "child", "moved"), false)
+	if !errors.Is(err, ErrMoveIntoSelf) {
+		t.Fatalf("expected ErrMoveIntoSelf, got %v", err)
+	}
+	if !fileExists(t, filepath.Join(root, "source", "child")) {
+		t.Fatal("expected source tree to remain")
+	}
+}
+
+func TestLocalFileSystemMoveRejectsEffectiveDirectoryIntoOwnSubtree(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	mkdir(t, filepath.Join(root, "source", "child"))
+	createTestSymlinkOrSkip(t, filepath.Join(root, "source", "child"), filepath.Join(root, "alias"))
+	filesystem := mustNewLocalFileSystemWithPolicy(t, root, security.Policy{FollowSymlinks: true})
+
+	err := filesystem.Move("source", filepath.Join("alias", "moved"), false)
+	if !errors.Is(err, ErrMoveIntoSelf) {
+		t.Fatalf("expected ErrMoveIntoSelf, got %v", err)
+	}
+	if !fileExists(t, filepath.Join(root, "source", "child")) {
+		t.Fatal("expected source tree to remain")
+	}
+}
+
+func TestRevalidateMoveStateRejectsReplacedTarget(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	source := filepath.Join(root, "source.txt")
+	target := filepath.Join(root, "target.txt")
+	writeTestFile(t, source, "source")
+	writeTestFile(t, target, "target")
+	sourceInfo, err := os.Stat(source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	targetInfo, err := os.Stat(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(target); err != nil {
+		t.Fatal(err)
+	}
+	mkdir(t, target)
+
+	err = revalidateMoveState(source, target, sourceInfo, targetInfo, true)
+	if !errors.Is(err, ErrMovePathChanged) {
+		t.Fatalf("expected ErrMovePathChanged, got %v", err)
+	}
+	if readTestFile(t, source) != "source" {
+		t.Fatal("expected source to remain")
+	}
+	info, err := os.Stat(target)
+	if err != nil || !info.IsDir() {
+		t.Fatalf("expected replacement directory to remain, info=%#v err=%v", info, err)
+	}
+}
+
+func TestRenameOnSameVolumeRejectsCrossVolumeWithoutFallback(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	source := filepath.Join(root, "source.txt")
+	target := filepath.Join(root, "target.txt")
+	writeTestFile(t, source, "source")
+	renameCalled := false
+
+	err := renameOnSameVolume(source, target, false, func(string, string) error {
+		renameCalled = true
+		return nil
+	})
+	if !errors.Is(err, ErrCrossVolumeMoveUnsupported) {
+		t.Fatalf("expected ErrCrossVolumeMoveUnsupported, got %v", err)
+	}
+	if renameCalled {
+		t.Fatal("expected no rename or fallback operation")
+	}
+	if readTestFile(t, source) != "source" {
+		t.Fatal("expected source to remain")
+	}
+	if fileExists(t, target) {
+		t.Fatal("expected target to remain absent")
 	}
 }
 
@@ -1145,7 +1341,7 @@ func TestLocalFileSystemCopyRejectsSymlinkedTargetParentEscape(t *testing.T) {
 	}
 }
 
-func TestLocalFileSystemRenameFile(t *testing.T) {
+func TestLocalFileSystemMoveRenamesFile(t *testing.T) {
 	t.Parallel()
 
 	root := t.TempDir()
@@ -1153,7 +1349,7 @@ func TestLocalFileSystemRenameFile(t *testing.T) {
 
 	filesystem := mustNewLocalFileSystem(t, root)
 
-	err := filesystem.Rename("old.txt", "new.txt", false)
+	err := filesystem.Move("old.txt", "new.txt", false)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -1167,7 +1363,7 @@ func TestLocalFileSystemRenameFile(t *testing.T) {
 	}
 }
 
-func TestLocalFileSystemRenameRejectsSymlinkEscapeSource(t *testing.T) {
+func TestLocalFileSystemMoveRenameRejectsSymlinkEscapeSource(t *testing.T) {
 	t.Parallel()
 
 	root := t.TempDir()
@@ -1178,7 +1374,7 @@ func TestLocalFileSystemRenameRejectsSymlinkEscapeSource(t *testing.T) {
 
 	filesystem := mustNewLocalFileSystem(t, root)
 
-	err := filesystem.Rename("escape.txt", "target.txt", false)
+	err := filesystem.Move("escape.txt", "target.txt", false)
 
 	if !errors.Is(err, security.ErrSymlinkDenied) {
 		t.Fatalf("expected ErrSymlinkDenied, got %v", err)
@@ -1189,7 +1385,7 @@ func TestLocalFileSystemRenameRejectsSymlinkEscapeSource(t *testing.T) {
 	}
 }
 
-func TestLocalFileSystemRenameRejectsSymlinkedTargetParentEscape(t *testing.T) {
+func TestLocalFileSystemMoveRenameRejectsSymlinkedTargetParentEscape(t *testing.T) {
 	t.Parallel()
 
 	root := t.TempDir()
@@ -1199,7 +1395,7 @@ func TestLocalFileSystemRenameRejectsSymlinkedTargetParentEscape(t *testing.T) {
 
 	filesystem := mustNewLocalFileSystem(t, root)
 
-	err := filesystem.Rename("source.txt", filepath.Join("escape-dir", "target.txt"), false)
+	err := filesystem.Move("source.txt", filepath.Join("escape-dir", "target.txt"), false)
 
 	if !errors.Is(err, security.ErrSymlinkDenied) {
 		t.Fatalf("expected ErrSymlinkDenied, got %v", err)

@@ -63,7 +63,7 @@ Sprint 3.44 replaces the former Sprint 3.41 Codex preparation plan and must use 
 | ID | Status | Task | Scope and acceptance notes |
 |---|---|---|---|
 | BL-001 | Done | Establish Go project foundation | Module, package layout, configuration, security, and filesystem abstraction |
-| BL-002 | Done | Implement root-confined filesystem tools | Current list/read/stat/exists/write/mkdir/delete/move/copy/rename implementation |
+| BL-002 | Done | Implement root-confined filesystem tools | Current list/read/info/write/create/delete/copy/move implementation |
 | BL-003 | Done | Implement MCP server foundation | JSON-RPC, initialize, `tools/list`, `tools/call`, routing, and server loop |
 | BL-004 | Done | Add package and tool documentation | README, package docs, human and machine-readable tool references |
 | BL-005 | Done | Add CI pipeline | Formatting, vet, tests, lint, and build validation |
@@ -375,20 +375,20 @@ Sprint 3.44 replaces the former Sprint 3.41 Codex preparation plan and must use 
 
 | ID | Status | Task | Scope and acceptance notes |
 |---|---|---|---|
-| BL-244 | Planned | Rename `list_files` to `list_directory` | Code, schema, tests, docs, examples, smoke |
-| BL-245 | Planned | Rename `stat_path` to `get_path_info` | Clear general terminology |
-| BL-246 | Planned | Rename `mkdir` to `create_directory` | Avoid Unix jargon |
-| BL-247 | Planned | Remove `exists_path` | No compatibility alias for unpublished contract |
-| BL-248 | Planned | Remove `rename_path` | `move_path` covers rename and movement |
-| BL-249 | Planned | Define `move_path` rename/move semantics | Same/cross-volume and overwrite behavior |
-| BL-250 | Planned | Define missing-path `get_path_info` result | `{ "exists": false, "path": ... }` |
-| BL-251 | Planned | Define normalized filesystem error codes | Distinguish missing, access, root, invalid, type, I/O |
-| BL-252 | Planned | Review input/output schemas and required fields | Remove ambiguity and accidental optionality |
-| BL-253 | Planned | Optimize tool descriptions | Accurate, compact, model-useful language |
-| BL-254 | Planned | Update JSON schema snapshots and unit tests | Explicit breaking-contract approval |
-| BL-255 | Planned | Update smoke tests and MCP `tools/call` tests | New baseline and removed tools |
-| BL-256 | Planned | Update tool docs, client examples, and catalog | One coordinated contract view |
-| BL-257 | Planned | Document breaking changes in changelog | No artificial deprecation compatibility |
+| BL-244 | Done | Rename `list_files` to `list_directory` | Code, closed schema, runtime validation, tests, docs, catalog, examples, and smoke updated |
+| BL-245 | Done | Rename `stat_path` to `get_path_info` | Single-stat existing/missing contract implemented without exposing host paths |
+| BL-246 | Done | Rename `mkdir` to `create_directory` | Parent creation retained; `created` now reflects the actual leaf state |
+| BL-247 | Done | Remove `exists_path` | MCP tool and redundant core method removed; no compatibility alias |
+| BL-248 | Done | Remove `rename_path` | MCP tool and redundant core alias removed; `move_path` covers rename and movement |
+| BL-249 | Done | Define `move_path` rename/move semantics | Same-path/SameFile, overwrite type combinations, same-volume/cross-volume, Windows case aliases, hardlinks, and self-subtree covered; no copy/delete fallback |
+| BL-250 | Done | Define missing-path `get_path_info` result | Genuine missing returns `{ "path": ..., "exists": false }`; all policy denials remain errors |
+| BL-251 | Done | Define normalized filesystem error codes | Safe sprint-local categories map expected failures to `-32602` and unexpected I/O to `-32603`; stable wire objects remain later work |
+| BL-252 | Done | Review input/output schemas and required fields | Strict object/EOF/unknown-field validation, non-blank paths, optional list path, and `maxBytes >= 1` implemented |
+| BL-253 | Done | Optimize tool descriptions | Titles exposed via shared definitions; descriptions are compact and `copy_path` is explicitly file-only |
+| BL-254 | Done | Update JSON schema snapshots and unit tests | Runtime/catalog contract test covers names, titles, descriptions, required/property fields, and `additionalProperties` |
+| BL-255 | Done | Update smoke tests and MCP `tools/call` tests | Registry/router/call plus default, read-only, negative, Existing/Missing, and Move-as-Rename smoke contracts updated |
+| BL-256 | Done | Update tool docs, client examples, and catalog | README, current architecture/security/testing docs, tool docs, conventions, catalog, ADR amendments, and migration coordinated |
+| BL-257 | Done | Document breaking changes in changelog | Breaking pre-1.0 cleanup documented with no alias or artificial deprecation compatibility |
 
 ### Sprint 3.44 Codex read-only activation preparation
 

@@ -20,7 +20,9 @@ try {
         '{"jsonrpc":"2.0","id":1,"method":'
         '{"jsonrpc":"2.0","id":2,"method":"unknown/method","params":{}}'
         '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":123,"arguments":{}}}'
-        '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"list_files","arguments":{"path":"."}}}'
+        '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"list_directory","arguments":{"path":"."}}}'
+        '{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"list_files","arguments":{}}}'
+        '{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"rename_path","arguments":{}}}'
     )
 
     [System.IO.File]::WriteAllText($requestPath, (($requests -join "`n") + "`n"), [System.Text.UTF8Encoding]::new($false))
@@ -33,13 +35,15 @@ try {
 
     $responses = Get-Content $responsePath | Where-Object { $_.Trim().Length -gt 0 }
 
-    if ($responses.Count -ne 3) {
-        throw "Expected 3 JSON-RPC responses, got $($responses.Count). Response file: $responsePath"
+    if ($responses.Count -ne 5) {
+        throw "Expected 5 JSON-RPC responses, got $($responses.Count). Response file: $responsePath"
     }
 
     $parseError = $responses[0] | ConvertFrom-Json
     $methodNotFound = $responses[1] | ConvertFrom-Json
     $invalidParams = $responses[2] | ConvertFrom-Json
+    $removedListFiles = $responses[3] | ConvertFrom-Json
+    $removedRenamePath = $responses[4] | ConvertFrom-Json
 
     if ($null -ne $parseError.id) {
         throw "Expected parse error id null, got $($parseError.id)"
@@ -75,6 +79,12 @@ try {
 
     if ($invalidParams.error.message -ne "invalid params") {
         throw "Expected invalid params message, got $($invalidParams.error.message)"
+    }
+
+    foreach ($removedToolResponse in @($removedListFiles, $removedRenamePath)) {
+        if ($removedToolResponse.error.code -ne -32602 -or $removedToolResponse.error.message -ne "invalid params") {
+            throw "Expected removed tool name to return generic Invalid params"
+        }
     }
 
     Write-Host "Negative JSON-RPC smoke test passed."

@@ -8,6 +8,10 @@ The format follows the spirit of [Keep a Changelog](https://keepachangelog.com/)
 
 ### Changed
 
+- Sprint 3.43 replaces the pre-1.0 filesystem tool contract with the exact baseline `list_directory`, `read_file`, `get_path_info`, `write_file`, `create_directory`, `delete_path`, `copy_path`, and `move_path`.
+- Tool arguments are decoded strictly: unknown properties, trailing JSON values, wrong types, missing required fields, and blank required paths are rejected.
+- `get_path_info` reports genuine missing paths as successful `exists:false` results, `create_directory` reports the actual `created` state, and `move_path` safely covers same-volume move and rename.
+- `copy_path` is explicitly file-only; directory copy remains planned work.
 - Repository renamed to `flashgate-mcp`.
 - Go module renamed to `github.com/blacksheepkhan/flashgate-mcp` and internal imports updated.
 - Binary renamed to `flashgate-mcp`; scripts, workflows, release artifacts, tests, and documentation updated.
@@ -16,6 +20,8 @@ The format follows the spirit of [Keep a Changelog](https://keepachangelog.com/)
 
 ### Migration
 
+- See [filesystem tool contract cleanup](docs/filesystem-tool-contract-cleanup-2026-07-11.md). The old pre-1.0 tool names were removed without aliases; clients and smoke tests must use the eight-tool baseline.
+- Sprint 3.43 does not change `MCP_*` names, root defaults, capability policy, or the MCP protocol revision.
 - See [technical rename to FlashGate](docs/technical-rename-to-flashgate-2026-07-11.md).
 - No MCP tool-contract or runtime-security change was made; existing `MCP_*` variables remain unchanged.
 

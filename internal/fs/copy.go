@@ -61,3 +61,20 @@ func (f *LocalFileSystem) Copy(source string, target string, overwrite bool) err
 	_, err = io.Copy(targetFile, sourceFile)
 	return err
 }
+
+func ensureTargetPolicy(targetPath string, overwrite bool) error {
+	info, err := os.Stat(targetPath)
+	if err == nil {
+		if !overwrite {
+			return ErrFileExists
+		}
+		if info.IsDir() {
+			return ErrPathIsDirectory
+		}
+		return nil
+	}
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	return err
+}

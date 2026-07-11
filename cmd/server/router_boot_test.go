@@ -3,8 +3,11 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"testing"
 
+	"github.com/blacksheepkhan/flashgate-mcp/internal/fs"
 	"github.com/blacksheepkhan/flashgate-mcp/internal/mcp/handlers"
 	"github.com/blacksheepkhan/flashgate-mcp/internal/protocol"
 )
@@ -114,5 +117,42 @@ func TestCreateRouterRejectsUnknownMethod(t *testing.T) {
 
 	if protocolErr.Code != protocol.ErrMethodNotFound {
 		t.Fatalf("expected method not found, got: %+v", protocolErr)
+	}
+}
+
+func TestCreateRouterCallsGetPathInfoForMissingPath(t *testing.T) {
+	filesystem, err := fs.NewLocalFileSystem(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	router := createRouter("test-server", "test-version", createToolRegistry(filesystem, 1024, toolCapabilities{filesystemWrite: true}))
+
+	result, protocolErr := router.Dispatch("tools/call", handlers.Context{Context: context.Background()}, json.RawMessage(`{"name":"get_path_info","arguments":{"path":"missing.txt"}}`))
+	if protocolErr != nil {
+		t.Fatalf("unexpected error: %#v", protocolErr)
+	}
+	encoded, _ := json.Marshal(result)
+	if string(encoded) != `{"path":"missing.txt","exists":false}` {
+		t.Fatalf("unexpected missing result: %s", encoded)
+	}
+}
+
+func TestCreateRouterUsesMovePathForRename(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "old.txt"), []byte("content"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	filesystem, err := fs.NewLocalFileSystem(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	router := createRouter("test-server", "test-version", createToolRegistry(filesystem, 1024, toolCapabilities{filesystemWrite: true}))
+
+	_, protocolErr := router.Dispatch("tools/call", handlers.Context{Context: context.Background()}, json.RawMessage(`{"name":"move_path","arguments":{"source":"old.txt","target":"new.txt"}}`))
+	if protocolErr != nil {
+		t.Fatalf("unexpected error: %#v", protocolErr)
+	}
+	if _, err := os.Stat(filepath.Join(root, "new.txt")); err != nil {
+		t.Fatalf("expected renamed file: %v", err)
 	}
 }

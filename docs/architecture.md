@@ -37,7 +37,7 @@ The current implementation is a layered Go application using MCP JSON-RPC over S
 
 - configuration from environment variables
 - JSON-RPC validation, routing, MCP initialization, `tools/list`, and `tools/call`
-- ten filesystem tools documented in `tools.md`
+- eight filesystem tools documented in `tools.md`
 - one configured filesystem root through `MCP_ROOT`
 - read-only tool registration through `MCP_READ_ONLY`
 - central `PathGuard` validation and filesystem abstraction
@@ -244,10 +244,9 @@ An **MCP protocol extension** is different: it is a negotiated addition to the M
 
 The authoritative sequence is maintained in [BACKLOG.md](../BACKLOG.md). Near-term work is:
 
-1. Sprint 3.42: technical project rename.
-2. Sprint 3.43: pre-1.0 filesystem tool contract cleanup.
-3. Sprint 3.44: Codex read-only activation preparation.
-4. Sprint 3.45 onward: benchmarks/contracts, Operations/Job Manager, efficient filesystem work, search, named roots/capabilities, process, execution, and system information.
+1. Sprint 3.43: completed pre-1.0 filesystem tool contract cleanup with eight default tools and three read-only tools.
+2. Sprint 3.44: Codex read-only activation preparation.
+3. Sprint 3.45 onward: benchmarks/contracts, Operations/Job Manager, efficient filesystem work, search, named roots/capabilities, process, execution, and system information.
 
 ## Deferred decisions
 

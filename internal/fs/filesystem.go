@@ -27,6 +27,24 @@ var (
 
 	// ErrLimitExceeded is returned when an operation exceeds a configured limit.
 	ErrLimitExceeded = errors.New("filesystem limit exceeded")
+
+	// ErrNotFound is returned when an expected filesystem path does not exist.
+	ErrNotFound = errors.New("filesystem path not found")
+
+	// ErrSamePath is returned when a move source and target identify the same file.
+	ErrSamePath = errors.New("source and target identify the same path")
+
+	// ErrMoveIntoSelf is returned when a directory would be moved into its own subtree.
+	ErrMoveIntoSelf = errors.New("directory cannot be moved into its own subtree")
+
+	// ErrCrossVolumeMoveUnsupported is returned when a move would cross filesystem volumes.
+	ErrCrossVolumeMoveUnsupported = errors.New("cross-volume move is not supported")
+
+	// ErrMoveTypeMismatch is returned for unsupported source and target type combinations.
+	ErrMoveTypeMismatch = errors.New("unsupported move path type combination")
+
+	// ErrMovePathChanged is returned when a move path changes during validation.
+	ErrMovePathChanged = errors.New("move path changed during validation")
 )
 
 // Limits contains filesystem operation limits.
@@ -66,13 +84,11 @@ type FileSystem interface {
 	List(path string) ([]Entry, error)
 	Read(path string, maxBytes int64) ([]byte, error)
 	Stat(path string) (Metadata, error)
-	Exists(path string) (bool, error)
 	Write(path string, content []byte, overwrite bool) error
-	Mkdir(path string) error
+	Mkdir(path string) (bool, error)
 	Delete(path string, recursive bool) error
 	Move(source string, target string, overwrite bool) error
 	Copy(source string, target string, overwrite bool) error
-	Rename(source string, target string, overwrite bool) error
 }
 
 // LocalFileSystem implements FileSystem using the local operating system.

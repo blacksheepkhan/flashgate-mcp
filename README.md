@@ -20,16 +20,14 @@ The current implemented scope is filesystem operations. Search, process observat
 Implemented tools:
 
 ```text
-list_files
+list_directory
 read_file
-stat_path
-exists_path
+get_path_info
 write_file
-mkdir
+create_directory
 delete_path
-move_path
 copy_path
-rename_path
+move_path
 ```
 
 ## Design Goals
@@ -116,9 +114,9 @@ MCP_ALLOW_UNC_PATHS=false
 MCP_FOLLOW_SYMLINKS=false
 ```
 
-When hidden files are not allowed, dot-prefixed path components such as `.git/config` and Windows hidden-attribute paths are denied. `list_files` filters hidden entries instead of failing the whole parent listing.
+When hidden files are not allowed, dot-prefixed path components such as `.git/config` and Windows hidden-attribute paths are denied. `list_directory` filters hidden entries instead of failing the whole parent listing.
 
-When UNC paths are not allowed, UNC roots and UNC-style user paths are rejected. When symlink following is not enabled, existing symlink components are denied and `list_files` filters symlink or reparse entries. When symlink following is enabled, symlink targets are still constrained by effective root containment, and Windows junctions or non-symlink reparse points remain denied.
+When UNC paths are not allowed, UNC roots and UNC-style user paths are rejected. When symlink following is not enabled, existing symlink components are denied and `list_directory` filters symlink or reparse entries. When symlink following is enabled, symlink targets are still constrained by effective root containment, and Windows junctions or non-symlink reparse points remain denied.
 
 Security and path denials are mapped to generic invalid-path tool errors without exposing host absolute paths.
 
@@ -132,7 +130,7 @@ Sprint 3.39 adds conservative hard limits:
 | `MCP_MAX_JSONRPC_MESSAGE_BYTES` | `16777216` | Maximum single JSON-RPC stdin message. |
 | `MCP_MAX_TOOL_ARGUMENT_BYTES` | `12582912` | Maximum `tools/call` params or arguments payload. |
 | `MCP_MAX_WRITE_BYTES` | `10485760` | Maximum `write_file` content bytes. |
-| `MCP_MAX_LIST_ENTRIES` | `1000` | Maximum policy-visible entries returned by `list_files`. |
+| `MCP_MAX_LIST_ENTRIES` | `1000` | Maximum policy-visible entries returned by `list_directory`. |
 | `MCP_MAX_COPY_BYTES` | `10485760` | Maximum `copy_path` source file size. |
 | `MCP_MAX_DELETE_ENTRIES` | `1000` | Maximum entries allowed for recursive `delete_path`. |
 | `MCP_MAX_RESPONSE_BYTES` | `16777216` | Safety net for serialized JSON-RPC responses. |
@@ -154,13 +152,12 @@ MCP_READ_ONLY=true
 When read-only mode is enabled, only these tools are registered and returned by `tools/list`:
 
 ```text
-list_files
+list_directory
 read_file
-stat_path
-exists_path
+get_path_info
 ```
 
-Write-capable tools are not registered in read-only mode, so direct `tools/call` requests for `write_file`, `mkdir`, `delete_path`, `move_path`, `copy_path`, or `rename_path` are rejected with a generic Invalid params error without revealing whether the tool exists in another mode.
+Write-capable tools are not registered in read-only mode, so direct `tools/call` requests for `write_file`, `create_directory`, `delete_path`, `copy_path`, or `move_path` are rejected with a generic Invalid params error without revealing whether the tool exists in another mode.
 
 ## Tool Documentation
 
@@ -491,18 +488,16 @@ Each feature should include:
 
 | Tool | Description |
 |---|---|
-| `list_files` | Lists files and directories below the configured filesystem root. |
+| `list_directory` | Lists files and directories below the configured filesystem root. |
 | `read_file` | Reads a text file below the configured filesystem root. |
-| `stat_path` | Returns metadata for a file or directory. |
-| `exists_path` | Checks whether a file or directory exists. |
+| `get_path_info` | Returns existence and metadata; missing paths return `exists:false`. |
 | `write_file` | Writes a text file. |
-| `mkdir` | Creates a directory. |
+| `create_directory` | Creates a directory and reports whether it was newly created. |
 | `delete_path` | Deletes a file or directory. |
-| `move_path` | Moves a file or directory. |
 | `copy_path` | Copies a file. Directory copy is currently unsupported. |
-| `rename_path` | Renames a file or directory. |
+| `move_path` | Moves or renames a file or directory on the same volume. |
 
-When `MCP_READ_ONLY=true`, only `list_files`, `read_file`, `stat_path`, and `exists_path` are exposed.
+When `MCP_READ_ONLY=true`, only `list_directory`, `read_file`, and `get_path_info` are exposed.
 
 ## Roadmap
 

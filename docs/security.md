@@ -125,7 +125,9 @@ Destructive operations are intentionally conservative.
 
 ### Move
 
-`Move()` does not overwrite existing targets unless `overwrite=true`.
+`Move()` does not overwrite existing targets unless `overwrite=true`. Replacement is restricted to file-to-file, revalidates the observed source and target identities immediately before the rename, and uses `os.Rename` without a separate target deletion. Directory targets are never explicitly removed.
+
+The standard cross-platform API remains path-based: a concurrent writer could exchange the file at the already authorized target path after final revalidation. That residual race is bounded to the target path, cannot invoke directory removal or copy/delete fallback, and is narrower than the previous remove-then-rename sequence.
 
 ### Copy
 
@@ -147,7 +149,7 @@ MCP_FOLLOW_SYMLINKS
 
 Default: `false`.
 
-When `MCP_FOLLOW_SYMLINKS=false`, existing symlink path components are denied before filesystem operations. Create targets are denied when the nearest existing parent contains a symlink. `list_files` filters symlink entries instead of exposing them.
+When `MCP_FOLLOW_SYMLINKS=false`, existing symlink path components are denied before filesystem operations. Create targets are denied when the nearest existing parent contains a symlink. `list_directory` filters symlink entries instead of exposing them.
 
 When `MCP_FOLLOW_SYMLINKS=true`, classic symlinks may be followed only if the effective target remains inside the effective root. Symlink escapes are still denied. Windows junctions and non-symlink reparse points remain denied by default.
 
@@ -177,7 +179,7 @@ MCP_ALLOW_HIDDEN_FILES
 
 Default: `false`.
 
-When `MCP_ALLOW_HIDDEN_FILES=false`, path components whose names start with `.` are denied, except for `.` itself. Examples include `.git/config`, `.codex/settings`, and `dir/.secret`. Create targets with hidden names are denied. `list_files` filters hidden entries instead of failing the parent directory.
+When `MCP_ALLOW_HIDDEN_FILES=false`, path components whose names start with `.` are denied, except for `.` itself. Examples include `.git/config`, `.codex/settings`, and `dir/.secret`. Create targets with hidden names are denied. `list_directory` filters hidden entries instead of failing the parent directory.
 
 When `MCP_ALLOW_HIDDEN_FILES=true`, hidden and dotfile paths are allowed if all other policies pass.
 
@@ -207,7 +209,7 @@ Sprint 3.39 adds configurable hard limits for protocol input, tool arguments, fi
 | `MCP_MAX_JSONRPC_MESSAGE_BYTES` | `16777216` | Maximum single JSON-RPC message read from stdin. |
 | `MCP_MAX_TOOL_ARGUMENT_BYTES` | `12582912` | Maximum `tools/call` params or arguments payload. |
 | `MCP_MAX_WRITE_BYTES` | `10485760` | Maximum `write_file` content size. |
-| `MCP_MAX_LIST_ENTRIES` | `1000` | Maximum policy-visible `list_files` entries. |
+| `MCP_MAX_LIST_ENTRIES` | `1000` | Maximum policy-visible `list_directory` entries. |
 | `MCP_MAX_COPY_BYTES` | `10485760` | Maximum `copy_path` source file size. |
 | `MCP_MAX_DELETE_ENTRIES` | `1000` | Maximum entries for recursive `delete_path`. |
 | `MCP_MAX_RESPONSE_BYTES` | `16777216` | Maximum serialized JSON-RPC response size safety net. |
@@ -232,7 +234,7 @@ Security tests currently cover:
 - hidden dot-path and Windows hidden-attribute denial
 - create-target parent validation
 - safe path metadata
-- filesystem traversal rejection across list/read/stat/exists/write/mkdir/delete/move/copy
+- filesystem traversal rejection across list/read/info/write/create/delete/copy/move
 - JSON-RPC envelope validation
 - explicit `id:null` error responses
 - notification no-response and no tool execution behavior

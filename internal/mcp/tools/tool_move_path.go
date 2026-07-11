@@ -34,7 +34,7 @@ func (t *MovePathTool) Title() string {
 
 // Description returns the tool description.
 func (t *MovePathTool) Description() string {
-	return "Moves a file or directory below the configured filesystem root."
+	return "Moves or renames a file or directory on the same volume below the configured filesystem root."
 }
 
 // InputSchema returns the JSON schema for this tool.
@@ -44,10 +44,12 @@ func (t *MovePathTool) InputSchema() any {
 		"properties": map[string]any{
 			"source": map[string]any{
 				"type":        "string",
+				"minLength":   1,
 				"description": "Relative source file or directory path below the configured filesystem root.",
 			},
 			"target": map[string]any{
 				"type":        "string",
+				"minLength":   1,
 				"description": "Relative target file or directory path below the configured filesystem root.",
 			},
 			"overwrite": map[string]any{
@@ -73,25 +75,12 @@ func (t *MovePathTool) Definition() protocol.Tool {
 // Execute moves the requested source path to the target path.
 func (t *MovePathTool) Execute(_ context.Context, rawArguments json.RawMessage) (any, *protocol.Error) {
 	var arguments movePathArguments
-	if err := json.Unmarshal(rawArguments, &arguments); err != nil {
-		return nil, &protocol.Error{
-			Code:    protocol.ErrInvalidParams,
-			Message: "invalid move_path arguments",
-		}
+	if rpcErr := decodeStrictArguments(rawArguments, &arguments); rpcErr != nil {
+		return nil, rpcErr
 	}
 
-	if arguments.Source == "" {
-		return nil, &protocol.Error{
-			Code:    protocol.ErrInvalidParams,
-			Message: "missing source",
-		}
-	}
-
-	if arguments.Target == "" {
-		return nil, &protocol.Error{
-			Code:    protocol.ErrInvalidParams,
-			Message: "missing target",
-		}
+	if !isNonBlank(arguments.Source) || !isNonBlank(arguments.Target) {
+		return nil, invalidParamsError()
 	}
 
 	if err := t.filesystem.Move(arguments.Source, arguments.Target, arguments.Overwrite); err != nil {

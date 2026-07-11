@@ -21,16 +21,14 @@ func TestCreateToolRegistryRegistersExpectedToolsInOrder(t *testing.T) {
 	}
 
 	wantNames := []string{
-		"list_files",
+		"list_directory",
 		"read_file",
-		"stat_path",
-		"exists_path",
+		"get_path_info",
 		"write_file",
-		"mkdir",
+		"create_directory",
 		"delete_path",
-		"move_path",
 		"copy_path",
-		"rename_path",
+		"move_path",
 	}
 
 	if !reflect.DeepEqual(gotNames, wantNames) {
@@ -44,21 +42,28 @@ func TestCreateToolRegistryRegistersResolvableTools(t *testing.T) {
 	registry := createToolRegistry(filesystem, 1024, toolCapabilities{filesystemWrite: true})
 
 	expectedNames := []string{
-		"list_files",
+		"list_directory",
 		"read_file",
-		"stat_path",
-		"exists_path",
+		"get_path_info",
 		"write_file",
-		"mkdir",
+		"create_directory",
 		"delete_path",
-		"move_path",
 		"copy_path",
-		"rename_path",
+		"move_path",
 	}
 
 	for _, name := range expectedNames {
 		if _, ok := registry.Get(name); !ok {
 			t.Fatalf("expected tool %q to be registered", name)
+		}
+	}
+}
+
+func TestCreateToolRegistryDoesNotResolveRemovedTools(t *testing.T) {
+	registry := createToolRegistry(noopFileSystem{}, 1024, toolCapabilities{filesystemWrite: true})
+	for _, name := range []string{"list_files", "stat_path", "exists_path", "mkdir", "rename_path"} {
+		if _, ok := registry.Get(name); ok {
+			t.Fatalf("expected removed tool %q to be unavailable", name)
 		}
 	}
 }
@@ -76,10 +81,9 @@ func TestCreateToolRegistryOmitsWriteToolsWhenReadOnly(t *testing.T) {
 	}
 
 	wantNames := []string{
-		"list_files",
+		"list_directory",
 		"read_file",
-		"stat_path",
-		"exists_path",
+		"get_path_info",
 	}
 
 	if !reflect.DeepEqual(gotNames, wantNames) {
@@ -94,11 +98,10 @@ func TestCreateToolRegistryDoesNotResolveWriteToolsWhenReadOnly(t *testing.T) {
 
 	writeToolNames := []string{
 		"write_file",
-		"mkdir",
+		"create_directory",
 		"delete_path",
-		"move_path",
 		"copy_path",
-		"rename_path",
+		"move_path",
 	}
 
 	for _, name := range writeToolNames {
@@ -134,16 +137,12 @@ func (noopFileSystem) Stat(string) (fs.Metadata, error) {
 	return fs.Metadata{}, errors.New("not implemented")
 }
 
-func (noopFileSystem) Exists(string) (bool, error) {
-	return false, errors.New("not implemented")
-}
-
 func (noopFileSystem) Write(string, []byte, bool) error {
 	return errors.New("not implemented")
 }
 
-func (noopFileSystem) Mkdir(string) error {
-	return errors.New("not implemented")
+func (noopFileSystem) Mkdir(string) (bool, error) {
+	return false, errors.New("not implemented")
 }
 
 func (noopFileSystem) Delete(string, bool) error {
@@ -155,9 +154,5 @@ func (noopFileSystem) Move(string, string, bool) error {
 }
 
 func (noopFileSystem) Copy(string, string, bool) error {
-	return errors.New("not implemented")
-}
-
-func (noopFileSystem) Rename(string, string, bool) error {
 	return errors.New("not implemented")
 }

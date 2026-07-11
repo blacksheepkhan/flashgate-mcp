@@ -34,11 +34,7 @@ func (h *ListHandler) Handle(_ handlers.Context, rawParams json.RawMessage) (any
 
 	result := make([]protocol.Tool, 0, len(registeredTools))
 	for _, tool := range registeredTools {
-		result = append(result, protocol.Tool{
-			Name:        tool.Name(),
-			Description: tool.Description(),
-			InputSchema: tool.InputSchema(),
-		})
+		result = append(result, tool.Definition())
 	}
 
 	return map[string]any{

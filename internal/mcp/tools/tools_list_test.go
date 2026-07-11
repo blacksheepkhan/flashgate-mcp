@@ -13,8 +13,8 @@ func TestListHandlerReturnsRegisteredTools(t *testing.T) {
 
 	registry := NewRegistry()
 	registry.Register(&testTool{
-		name:        "list_files",
-		title:       "List Files",
+		name:        "list_directory",
+		title:       "List Directory",
 		description: "Lists files and directories.",
 		inputSchema: map[string]any{
 			"type": "object",
@@ -70,14 +70,17 @@ func TestListHandlerReturnsRegisteredTools(t *testing.T) {
 		if tool.Description == "" {
 			t.Fatalf("expected description for tool %q", tool.Name)
 		}
+		if tool.Title == "" {
+			t.Fatalf("expected title for tool %q", tool.Name)
+		}
 
 		if tool.InputSchema == nil {
 			t.Fatalf("expected input schema for tool %q", tool.Name)
 		}
 	}
 
-	if !names["list_files"] {
-		t.Fatal("expected list_files tool")
+	if !names["list_directory"] {
+		t.Fatal("expected list_directory tool")
 	}
 
 	if !names["read_file"] {

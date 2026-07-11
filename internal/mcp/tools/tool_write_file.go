@@ -44,6 +44,7 @@ func (t *WriteFileTool) InputSchema() any {
 		"properties": map[string]any{
 			"path": map[string]any{
 				"type":        "string",
+				"minLength":   1,
 				"description": "Relative file path below the configured filesystem root.",
 			},
 			"content": map[string]any{
@@ -73,18 +74,12 @@ func (t *WriteFileTool) Definition() protocol.Tool {
 // Execute writes the requested file.
 func (t *WriteFileTool) Execute(_ context.Context, rawArguments json.RawMessage) (any, *protocol.Error) {
 	var arguments writeFileArguments
-	if err := json.Unmarshal(rawArguments, &arguments); err != nil {
-		return nil, &protocol.Error{
-			Code:    protocol.ErrInvalidParams,
-			Message: "invalid write_file arguments",
-		}
+	if rpcErr := decodeStrictArguments(rawArguments, &arguments); rpcErr != nil {
+		return nil, rpcErr
 	}
 
-	if arguments.Path == "" {
-		return nil, &protocol.Error{
-			Code:    protocol.ErrInvalidParams,
-			Message: "missing path",
-		}
+	if !isNonBlank(arguments.Path) {
+		return nil, invalidParamsError()
 	}
 
 	content := []byte(arguments.Content)

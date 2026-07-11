@@ -59,12 +59,34 @@ func (f *LocalFileSystem) Write(path string, content []byte, overwrite bool) err
 	return nil
 }
 
-// Mkdir creates a directory and any missing parent directories.
-func (f *LocalFileSystem) Mkdir(path string) error {
+// Mkdir creates a directory and any missing parent directories and reports whether the leaf was created.
+func (f *LocalFileSystem) Mkdir(path string) (bool, error) {
 	safePath, err := f.guard.ResolveForCreate(path)
 	if err != nil {
-		return err
+		return false, err
+	}
+	if pathsEquivalent(safePath.String(), f.guard.Root()) {
+		return false, nil
 	}
 
-	return os.MkdirAll(safePath.String(), 0o700)
+	parent := safePath.Dir()
+	if err := os.MkdirAll(parent, 0o700); err != nil {
+		return false, err
+	}
+
+	if err := os.Mkdir(safePath.String(), 0o700); err == nil {
+		return true, nil
+	} else if !errors.Is(err, os.ErrExist) {
+		return false, err
+	}
+
+	info, err := os.Stat(safePath.String())
+	if err != nil {
+		return false, err
+	}
+	if !info.IsDir() {
+		return false, ErrPathIsNotDirectory
+	}
+
+	return false, nil
 }

@@ -9,11 +9,17 @@ import (
 func (f *LocalFileSystem) Stat(path string) (Metadata, error) {
 	safePath, err := f.guard.ResolveExisting(path)
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return Metadata{}, ErrNotFound
+		}
 		return Metadata{}, err
 	}
 
 	info, err := os.Stat(safePath.String())
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return Metadata{}, ErrNotFound
+		}
 		return Metadata{}, err
 	}
 
@@ -22,23 +28,4 @@ func (f *LocalFileSystem) Stat(path string) (Metadata, error) {
 		IsDir: info.IsDir(),
 		Size:  info.Size(),
 	}, nil
-}
-
-// Exists checks whether a path exists.
-func (f *LocalFileSystem) Exists(path string) (bool, error) {
-	safePath, err := f.guard.ResolveForCreate(path)
-	if err != nil {
-		return false, err
-	}
-
-	_, err = os.Stat(safePath.String())
-	if err == nil {
-		return true, nil
-	}
-
-	if errors.Is(err, os.ErrNotExist) {
-		return false, nil
-	}
-
-	return false, err
 }

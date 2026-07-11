@@ -118,11 +118,13 @@ MCP_READ_ONLY=true bash scripts/smoke-jsonrpc.sh
 bash scripts/smoke-jsonrpc-negative.sh
 ```
 
-The default smoke test validates `initialize` and `tools/list`. The read-only variant verifies that write-capable tools are not registered when `MCP_READ_ONLY=true`. The negative smoke test validates malformed JSON, unknown methods, invalid `tools/call` params, and notification no-response behavior.
+The default smoke test validates `initialize`, the exact eight-tool `tools/list`, `list_directory`, `get_path_info` for existing and missing paths, and `move_path` rename behavior. The read-only variant verifies the exact three-tool read-only profile and its positive calls. The negative smoke test validates malformed JSON, unknown methods, invalid `tools/call` params, removed tool names, and notification no-response behavior.
 
 GitHub Actions runs default, read-only, and negative JSON-RPC smoke variants on both `windows-latest` and `ubuntu-latest`. The smoke scripts create per-run JSONL request and response files under `build/` and clean them up before exit. Script output is CI diagnostic output; server stdout remains reserved for redirected JSON-RPC protocol messages.
 
 Limit and redaction behavior is primarily covered by Go unit tests. Additional limit-negative smoke coverage can be added later if it can be done without broad smoke-script refactoring.
+
+Focused contract tests compare runtime tool definitions with `docs/mcp-tool-catalog.json` for name, title, description, and the complete input schema. Filesystem tests cover Missing normalization, truthful directory creation, same-path/SameFile protection, overwrite type combinations, lexical and effective self-subtree rejection, target-state revalidation, deterministic cross-volume no-fallback behavior, and platform error classification.
 
 ### Planned MCP Compatibility Testing
 
