@@ -89,7 +89,7 @@ The format follows the spirit of [Keep a Changelog](https://keepachangelog.com/)
 - Backlog consolidated into one canonical continuously numbered task catalog without a separate `BL-D` series.
 - Former Sprint 3.41 Codex read-only preparation shifted to Sprint 3.44.
 - Architecture expanded toward a domain-separated local system core while clearly distinguishing current and planned components.
-- Long-running work is modeled through a shared planned Operations/Job layer without changing domain ownership.
+- Long-running or managed work is planned to use an optional shared Operations/Job runtime service without changing domain ownership; short synchronous domain operations do not require it.
 - Pre-1.0 tool contracts are explicitly allowed to change before a stable external contract exists.
 - Vendor-neutral open-source core and optional FlashGate module/provider direction documented without selecting a runtime model; MCP protocol extensions are treated separately.
 - Sprint 3.41 review corrections align planning with SEP-1613, SEP-2133, SEP-2577, SEP-2663, and MCP `2025-11-25` implementation-name semantics.
