@@ -4,20 +4,32 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
+
+	"github.com/blacksheepkhan/flashgate-mcp/internal/config"
 )
 
 func main() {
-	exitCode, err := runCLI(context.Background(), os.Args[1:], os.Stdout, run)
-	if err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "flashgate-mcp: %v\n", err)
+	os.Exit(runMain(context.Background(), os.Args[1:], os.Stdout, os.Stderr, run))
+}
 
-		if errors.Is(err, errInvalidCLIArguments) {
-			os.Exit(2)
-		}
-
-		os.Exit(exitCode)
+func runMain(ctx context.Context, args []string, stdout io.Writer, stderr io.Writer, runServer serverRunner) int {
+	exitCode, err := runCLI(ctx, args, stdout, runServer)
+	if err == nil {
+		return exitCode
 	}
 
-	os.Exit(exitCode)
+	if errors.Is(err, errInvalidCLIArguments) {
+		_, _ = fmt.Fprintf(stderr, "flashgate-mcp: %v\n", err)
+		return 2
+	}
+
+	category, ok := config.CategoryOf(err)
+	if !ok {
+		category = config.CategoryStartupFailed
+	}
+	_, _ = fmt.Fprintf(stderr, "flashgate-mcp: startup failed (%s)\n", category)
+
+	return exitCode
 }

@@ -104,3 +104,9 @@ The public project name is FlashGate MCP; the technical rename remains planned f
 Sprint 3.43 removes the redundant `FileSystem.Exists` method and the `FileSystem.Rename` alias. A single `Stat` path normalizes genuine absence for `get_path_info`, avoiding an Exists-then-Stat race, while `Move` is the domain operation for both move and rename.
 
 Directory creation now reports whether the leaf was actually created while preserving parent creation. Move validates same path, effective path, `os.SameFile`, Windows case aliases, overwrite type combinations, directory self-subtrees, changed path identities, and same-volume support before replacement. Existing files are replaced by rename without a separate target deletion. Cross-volume moves are rejected without copy/delete fallback. These changes retain centralized PathGuard enforcement and do not add directory copy.
+
+## Implementation Amendment - 2026-07-11
+
+Sprint 3.44 makes `MCP_ROOT` mandatory and requires absolute production roots. Missing, empty, whitespace-only and general relative roots fail closed. `MCP_ROOT=.` is development-only and requires exact `MCP_ALLOW_CWD_ROOT=true`; no other relative root is enabled.
+
+Root preflight verifies existence, current policy, canonical/effective resolution and directory type before constructing the Filesystem, tool Registry, Router or STDIO server. Expected root/configuration failures leave stdout empty, use safe stderr categories and exit code 3. This implements the existing centralized PathGuard decision without introducing named roots or a second filesystem boundary.

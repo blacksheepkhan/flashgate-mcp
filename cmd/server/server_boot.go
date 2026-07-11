@@ -2,39 +2,149 @@ package main
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"io"
 	"os"
+	"reflect"
 
 	"github.com/blacksheepkhan/flashgate-mcp/internal/config"
 	"github.com/blacksheepkhan/flashgate-mcp/internal/diagnostics"
 	"github.com/blacksheepkhan/flashgate-mcp/internal/fs"
+	"github.com/blacksheepkhan/flashgate-mcp/internal/mcp/router"
 	"github.com/blacksheepkhan/flashgate-mcp/internal/mcp/server"
+	"github.com/blacksheepkhan/flashgate-mcp/internal/mcp/tools"
 	"github.com/blacksheepkhan/flashgate-mcp/internal/security"
 )
 
+const developmentCWDWarning = "flashgate-mcp: warning: development CWD root enabled"
+
+var errInvalidBootstrapDependencies = errors.New("invalid bootstrap dependencies")
+
+type runnableServer interface {
+	Run(context.Context) error
+}
+
+type bootstrapDependencies struct {
+	loadConfig      func() (config.Config, error)
+	newFilesystem   func(config.Config) (fs.FileSystem, error)
+	newToolRegistry func(fs.FileSystem, int64, toolCapabilities) *tools.Registry
+	newRouter       func(string, string, *tools.Registry) *router.Router
+	newServer       func(io.Reader, io.Writer, *router.Router, server.Options) runnableServer
+}
+
 func run(ctx context.Context) error {
-	cfg, err := config.LoadFromEnvironment()
+	return runWithIO(ctx, os.Stdin, os.Stdout, os.Stderr, defaultBootstrapDependencies())
+}
+
+func defaultBootstrapDependencies() bootstrapDependencies {
+	return bootstrapDependencies{
+		loadConfig: config.LoadFromEnvironment,
+		newFilesystem: func(cfg config.Config) (fs.FileSystem, error) {
+			return fs.NewLocalFileSystemWithPolicyAndLimits(
+				cfg.Filesystem().RootPath(),
+				securityPolicyFromConfig(cfg),
+				filesystemLimitsFromConfig(cfg),
+			)
+		},
+		newToolRegistry: createToolRegistry,
+		newRouter:       createRouter,
+		newServer: func(in io.Reader, out io.Writer, mcpRouter *router.Router, options server.Options) runnableServer {
+			return server.NewWithOptions(in, out, mcpRouter, options)
+		},
+	}
+}
+
+func runWithIO(
+	ctx context.Context,
+	stdin io.Reader,
+	stdout io.Writer,
+	stderr io.Writer,
+	dependencies bootstrapDependencies,
+) error {
+	if err := validateBootstrapDependencies(dependencies); err != nil {
+		return err
+	}
+
+	cfg, err := dependencies.loadConfig()
 	if err != nil {
 		return err
 	}
 
-	filesystem, err := fs.NewLocalFileSystemWithPolicyAndLimits(
-		cfg.Filesystem().RootPath(),
-		securityPolicyFromConfig(cfg),
-		filesystemLimitsFromConfig(cfg),
-	)
+	filesystem, err := dependencies.newFilesystem(cfg)
 	if err != nil {
-		return err
+		return categorizeRootError(err)
+	}
+	if isNilBootstrapValue(filesystem) {
+		return config.NewError(config.CategoryStartupFailed, errInvalidBootstrapDependencies)
 	}
 
-	toolRegistry := createToolRegistry(
+	toolRegistry := dependencies.newToolRegistry(
 		filesystem,
 		cfg.Filesystem().MaxFileSize(),
 		capabilitiesFromReadOnly(cfg.Filesystem().ReadOnly()),
 	)
-	mcpRouter := createRouter(cfg.Server().Name(), cfg.Server().Version(), toolRegistry)
-	mcpServer := server.NewWithOptions(os.Stdin, os.Stdout, mcpRouter, serverOptionsFromConfig(cfg))
+	if toolRegistry == nil {
+		return config.NewError(config.CategoryStartupFailed, errInvalidBootstrapDependencies)
+	}
+	mcpRouter := dependencies.newRouter(cfg.Server().Name(), cfg.Server().Version(), toolRegistry)
+	if mcpRouter == nil {
+		return config.NewError(config.CategoryStartupFailed, errInvalidBootstrapDependencies)
+	}
+	mcpServer := dependencies.newServer(stdin, stdout, mcpRouter, serverOptionsFromConfig(cfg, stderr))
+	if isNilBootstrapValue(mcpServer) {
+		return config.NewError(config.CategoryStartupFailed, errInvalidBootstrapDependencies)
+	}
+
+	if cfg.Filesystem().RootPath() == "." && cfg.Filesystem().AllowCWDRoot() {
+		_, _ = fmt.Fprintln(stderr, developmentCWDWarning)
+	}
 
 	return mcpServer.Run(ctx)
+}
+
+func validateBootstrapDependencies(dependencies bootstrapDependencies) error {
+	if dependencies.loadConfig == nil ||
+		dependencies.newFilesystem == nil ||
+		dependencies.newToolRegistry == nil ||
+		dependencies.newRouter == nil ||
+		dependencies.newServer == nil {
+		return config.NewError(config.CategoryStartupFailed, errInvalidBootstrapDependencies)
+	}
+
+	return nil
+}
+
+func isNilBootstrapValue(value any) bool {
+	if value == nil {
+		return true
+	}
+
+	reflected := reflect.ValueOf(value)
+	switch reflected.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
+		return reflected.IsNil()
+	default:
+		return false
+	}
+}
+
+func categorizeRootError(err error) error {
+	switch {
+	case errors.Is(err, os.ErrNotExist):
+		return config.NewError(config.CategoryRootNotFound, err)
+	case errors.Is(err, security.ErrRootNotDirectory):
+		return config.NewError(config.CategoryRootNotDirectory, err)
+	case errors.Is(err, os.ErrPermission),
+		errors.Is(err, security.ErrHiddenPathDenied),
+		errors.Is(err, security.ErrUNCPathDenied),
+		errors.Is(err, security.ErrSymlinkDenied),
+		errors.Is(err, security.ErrReparsePointDenied),
+		errors.Is(err, security.ErrOutsideRoot):
+		return config.NewError(config.CategoryRootNotAllowed, err)
+	default:
+		return config.NewError(config.CategoryStartupFailed, err)
+	}
 }
 
 func filesystemLimitsFromConfig(cfg config.Config) fs.Limits {
@@ -54,11 +164,11 @@ func securityPolicyFromConfig(cfg config.Config) security.Policy {
 	}
 }
 
-func serverOptionsFromConfig(cfg config.Config) server.Options {
+func serverOptionsFromConfig(cfg config.Config, stderr io.Writer) server.Options {
 	return server.Options{
 		MaxMessageBytes:  cfg.Server().MaxMessageBytes(),
 		MaxArgumentBytes: cfg.Server().MaxArgumentBytes(),
 		MaxResponseBytes: cfg.Server().MaxResponseBytes(),
-		Diagnostics:      diagnostics.NewLogger(cfg.Server().Debug(), os.Stderr),
+		Diagnostics:      diagnostics.NewLogger(cfg.Server().Debug(), stderr),
 	}
 }

@@ -11,6 +11,9 @@ var (
 	// ErrEmptyRoot is returned when the configured root path is empty.
 	ErrEmptyRoot = errors.New("root path must not be empty")
 
+	// ErrRootNotDirectory is returned when the configured or effective root is not a directory.
+	ErrRootNotDirectory = errors.New("root path is not a directory")
+
 	// ErrAbsolutePath is returned when a user path is absolute.
 	ErrAbsolutePath = errors.New("absolute paths are not allowed")
 
@@ -107,6 +110,14 @@ func NewPathGuardWithPolicy(root string, policy Policy) (*PathGuard, error) {
 	effectiveRoot, err := evalEffectivePath(absoluteRoot)
 	if err != nil {
 		return nil, err
+	}
+
+	effectiveInfo, err := os.Stat(effectiveRoot)
+	if err != nil {
+		return nil, err
+	}
+	if !effectiveInfo.IsDir() {
+		return nil, ErrRootNotDirectory
 	}
 
 	return &PathGuard{

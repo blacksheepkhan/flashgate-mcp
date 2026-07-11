@@ -55,6 +55,75 @@ func TestNewPathGuardRejectsNonExistentRoot(t *testing.T) {
 	}
 }
 
+func TestNewPathGuardRejectsFileRoot(t *testing.T) {
+	t.Parallel()
+
+	root := filepath.Join(t.TempDir(), "root.txt")
+	writeSecurityTestFile(t, root, "not a directory")
+
+	_, err := NewPathGuard(root)
+
+	if !errors.Is(err, ErrRootNotDirectory) {
+		t.Fatalf("expected ErrRootNotDirectory, got %v", err)
+	}
+}
+
+func TestNewPathGuardAcceptsDirectoryWithTrailingSeparator(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir() + string(filepath.Separator)
+	guard, err := NewPathGuard(root)
+	if err != nil {
+		t.Fatalf("expected trailing separator root to be accepted, got %v", err)
+	}
+	if !filepath.IsAbs(guard.Root()) {
+		t.Fatalf("expected absolute root, got %q", guard.Root())
+	}
+}
+
+func TestNewPathGuardAcceptsFilesystemRoot(t *testing.T) {
+	t.Parallel()
+
+	tempRoot := t.TempDir()
+	volumeRoot := filepath.VolumeName(tempRoot) + string(filepath.Separator)
+	if filepath.VolumeName(tempRoot) == "" {
+		volumeRoot = string(filepath.Separator)
+	}
+
+	if _, err := NewPathGuardWithPolicy(volumeRoot, Policy{AllowHiddenFiles: true}); err != nil {
+		t.Fatalf("expected filesystem root to be accepted, got %v", err)
+	}
+}
+
+func TestNewPathGuardSymlinkRootPolicy(t *testing.T) {
+	t.Parallel()
+
+	target := t.TempDir()
+	link := filepath.Join(t.TempDir(), "root-link")
+	createSecurityTestSymlinkOrSkip(t, target, link)
+
+	if _, err := NewPathGuard(link); !errors.Is(err, ErrSymlinkDenied) {
+		t.Fatalf("expected symlink root to be denied by default, got %v", err)
+	}
+	if _, err := NewPathGuardWithPolicy(link, Policy{FollowSymlinks: true}); err != nil {
+		t.Fatalf("expected followed directory symlink root to be accepted, got %v", err)
+	}
+}
+
+func TestNewPathGuardRejectsSymlinkRootToFileWhenFollowing(t *testing.T) {
+	t.Parallel()
+
+	target := filepath.Join(t.TempDir(), "target.txt")
+	writeSecurityTestFile(t, target, "file")
+	link := filepath.Join(t.TempDir(), "root-link")
+	createSecurityTestSymlinkOrSkip(t, target, link)
+
+	_, err := NewPathGuardWithPolicy(link, Policy{FollowSymlinks: true})
+	if !errors.Is(err, ErrRootNotDirectory) {
+		t.Fatalf("expected ErrRootNotDirectory, got %v", err)
+	}
+}
+
 func TestResolveAcceptsEmptyUserPathAsRoot(t *testing.T) {
 	t.Parallel()
 

@@ -73,6 +73,11 @@ jobs:
         shell: bash
         run: bash scripts/smoke-jsonrpc-negative.sh
 
+      - name: Startup negative smoke test (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: bash scripts/smoke-startup-negative.sh
+
       - name: JSON-RPC smoke test (Windows)
         if: matrix.os == 'windows-latest'
         shell: pwsh
@@ -89,6 +94,11 @@ jobs:
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: .\scripts\smoke-jsonrpc-negative.ps1
+
+      - name: Startup negative smoke test (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: .\scripts\smoke-startup-negative.ps1
 
   lint:
     name: Lint

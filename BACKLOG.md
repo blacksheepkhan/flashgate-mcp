@@ -280,7 +280,7 @@ Sprint 3.44 replaces the former Sprint 3.41 Codex preparation plan and must use 
 | BL-171 | Planned | Verify MCP annotations are never authorization | Documentation and negative tests |
 | BL-172 | Later | Review workflow pinning strategy | Supply-chain hardening and SHA-pin trade-offs |
 | BL-173 | Planned | Maintain public security policy | Reporting, supported versions, disclosure, and release gate |
-| BL-174 | Planned | Fail closed when no root is explicitly configured | Sprint 3.44 prerequisite: missing root must not expose process working directory; current-directory root requires explicit development opt-in; Sprint 3.41 documents but does not implement |
+| BL-174 | Done | Fail closed when no root is explicitly configured | Root is required; missing/empty/whitespace fail closed; production roots are absolute; `.` requires explicit `MCP_ALLOW_CWD_ROOT=true`; other relative roots are denied; root must exist and resolve to a permitted directory; safe categorized stderr and exit codes precede Registry/STDIO; Windows/Linux startup smokes cover the contract |
 
 ### Open source and FlashGate modules/providers epic
 
@@ -394,15 +394,15 @@ Sprint 3.44 replaces the former Sprint 3.41 Codex preparation plan and must use 
 
 | ID | Status | Task | Scope and acceptance notes |
 |---|---|---|---|
-| BL-258 | Planned | Add Codex read-only configuration example | Use FlashGate binary, implementation name (`serverInfo.name`), and cleaned tool names |
-| BL-259 | Planned | Add Claude Desktop configuration example | Windows/Linux with renamed artifact |
-| BL-260 | Planned | Add general MCP client examples | Minimal local STDIO configuration |
-| BL-261 | Planned | Add read-only troubleshooting guide | Root, permissions, JSON-RPC, binary, and profile/tool-list issues |
-| BL-262 | Planned | Create activation checklist | Build, root, read-only profile, tools/list, smoke, rollback |
-| BL-263 | Planned | Update read-only smoke test | FlashGate paths and cleaned read tools |
-| BL-264 | Planned | Validate new documentation paths and links | No legacy installation path except migration |
-| BL-265 | Planned | Document non-developer read-only validation | Script-based checks without Go |
-| BL-266 | Planned | Keep activation external to preparation sprint | No live Codex/config/auth change without separate confirmation |
+| BL-258 | Done | Add Codex read-only configuration example | Prepared, not applied: verified binary, implementation name (`serverInfo.name`), cleaned tools, explicit root/read-only environment, and unconfirmed fields clearly marked |
+| BL-259 | Done | Add Claude Desktop configuration example | Prepared Windows-oriented example plus Linux perspective with renamed artifact; no client changed |
+| BL-260 | Done | Add general MCP client examples | Minimal local STDIO contract uses absolute binary/root and explicit read-only/CWD policy |
+| BL-261 | Done | Add read-only troubleshooting guide | Safe categories cover root, permissions/policy, JSON-RPC, binary, and profile/tool-list issues without raw host details |
+| BL-262 | Done | Create activation checklist | Covers commit/binary/hash, root, read-only profile, exact tools/list, positive/negative smokes, backup, acceptance, and rollback |
+| BL-263 | Done | Update read-only smoke test | Exact three read-only tools; all five write and five legacy names negative; Windows/Ubuntu startup smokes verify stdout/stderr, root failures, and cleanup |
+| BL-264 | Done | Validate new documentation paths and links | Current FlashGate paths used; legacy installation paths remain only in immutable migration/history context |
+| BL-265 | Done | Document non-developer read-only validation | Script-based binary/hash/root/tool-list/negative/rollback checklist requires no Go build at client start |
+| BL-266 | Done | Keep activation external to preparation sprint | No real Codex configuration, MCP entry, or auth file changed; activation remains a separately confirmed post-merge step |
 
 ### Documentation and client compatibility epic
 

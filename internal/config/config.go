@@ -5,11 +5,13 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 )
 
 const (
 	envRootPath         = "MCP_ROOT"
 	envReadOnly         = "MCP_READ_ONLY"
+	envAllowCWDRoot     = "MCP_ALLOW_CWD_ROOT"
 	envMaxFileSize      = "MCP_MAX_FILE_SIZE"
 	envMaxWriteBytes    = "MCP_MAX_WRITE_BYTES"
 	envMaxListEntries   = "MCP_MAX_LIST_ENTRIES"
@@ -23,7 +25,7 @@ const (
 	envMaxArgumentBytes = "MCP_MAX_TOOL_ARGUMENT_BYTES"
 	envMaxResponseBytes = "MCP_MAX_RESPONSE_BYTES"
 
-	defaultRootPath         = "."
+	defaultRootPath         = ""
 	defaultMaxFileSize      = int64(10 * 1024 * 1024) // 10 MiB
 	defaultMaxWriteBytes    = int64(10 * 1024 * 1024) // 10 MiB
 	defaultMaxListEntries   = 1000
@@ -47,6 +49,7 @@ type Config struct {
 type FilesystemConfig struct {
 	rootPath         string
 	readOnly         bool
+	allowCWDRoot     bool
 	maxFileSize      int64
 	maxWriteBytes    int64
 	maxListEntries   int
@@ -77,6 +80,7 @@ func DefaultConfig() Config {
 		filesystem: FilesystemConfig{
 			rootPath:         defaultRootPath,
 			readOnly:         false,
+			allowCWDRoot:     false,
 			maxFileSize:      defaultMaxFileSize,
 			maxWriteBytes:    defaultMaxWriteBytes,
 			maxListEntries:   defaultMaxListEntries,
@@ -103,16 +107,29 @@ func DefaultConfig() Config {
 func LoadFromEnvironment() (Config, error) {
 	cfg := DefaultConfig()
 
-	if value := os.Getenv(envRootPath); value != "" {
-		cfg.filesystem.rootPath = value
+	rootPath, rootConfigured := os.LookupEnv(envRootPath)
+	if !rootConfigured {
+		return Config{}, NewError(CategoryMissingRoot, nil)
 	}
+	cfg.filesystem.rootPath = rootPath
 
-	if value := os.Getenv(envReadOnly); value != "" {
+	if value, configured := os.LookupEnv(envReadOnly); configured {
 		parsed, err := strconv.ParseBool(value)
 		if err != nil {
-			return Config{}, errors.New("invalid MCP_READ_ONLY value")
+			return Config{}, NewError(CategoryInvalidProfile, err)
 		}
 		cfg.filesystem.readOnly = parsed
+	}
+
+	if value, configured := os.LookupEnv(envAllowCWDRoot); configured {
+		switch value {
+		case "true":
+			cfg.filesystem.allowCWDRoot = true
+		case "false":
+			cfg.filesystem.allowCWDRoot = false
+		default:
+			return Config{}, NewError(CategoryInvalidDevelopmentOption, nil)
+		}
 	}
 
 	if value := os.Getenv(envMaxFileSize); value != "" {
@@ -220,8 +237,8 @@ func LoadFromEnvironment() (Config, error) {
 
 // Validate validates the complete configuration.
 func (c Config) Validate() error {
-	if c.filesystem.rootPath == "" {
-		return errors.New("filesystem root path must not be empty")
+	if strings.TrimSpace(c.filesystem.rootPath) == "" {
+		return NewError(CategoryInvalidRoot, nil)
 	}
 
 	if c.filesystem.maxFileSize <= 0 {
@@ -260,12 +277,11 @@ func (c Config) Validate() error {
 		return nil
 	}
 
-	cleaned := filepath.Clean(c.filesystem.rootPath)
-	if cleaned == "." {
+	if c.filesystem.rootPath == "." && c.filesystem.allowCWDRoot {
 		return nil
 	}
 
-	return nil
+	return NewError(CategoryInvalidRoot, nil)
 }
 
 func parsePositiveInt64(value string, name string) (int64, error) {
@@ -309,6 +325,11 @@ func (c FilesystemConfig) RootPath() string {
 // ReadOnly returns whether filesystem writes are disabled.
 func (c FilesystemConfig) ReadOnly() bool {
 	return c.readOnly
+}
+
+// AllowCWDRoot returns whether an explicit MCP_ROOT=. development root is enabled.
+func (c FilesystemConfig) AllowCWDRoot() bool {
+	return c.allowCWDRoot
 }
 
 // MaxFileSize returns the maximum allowed file size in bytes.

@@ -38,7 +38,7 @@ The current implementation is a layered Go application using MCP JSON-RPC over S
 - configuration from environment variables
 - JSON-RPC validation, routing, MCP initialization, `tools/list`, and `tools/call`
 - eight filesystem tools documented in `tools.md`
-- one configured filesystem root through `MCP_ROOT`
+- one required, preflighted filesystem root through `MCP_ROOT`
 - read-only tool registration through `MCP_READ_ONLY`
 - central `PathGuard` validation and filesystem abstraction
 - hard protocol, argument, filesystem, and response limits
@@ -61,6 +61,8 @@ PathGuard and current policies
     |
 Operating-system filesystem
 ```
+
+Startup now fails closed before this runtime path is exposed. Configuration distinguishes missing and invalid roots, production roots must be absolute, root existence/type/effective policy are validated, and only then are Filesystem, tool Registry, Router and STDIO Server created. `MCP_ROOT=.` is development-only and requires exact `MCP_ALLOW_CWD_ROOT=true`.
 
 The current implementation does not yet contain named roots, general capability profiles, an Operations/Job Manager, search, process management, command execution, system-information tools, a FlashGate module/provider system, MCP protocol extensions, or separate Windows/Linux domain adapters.
 

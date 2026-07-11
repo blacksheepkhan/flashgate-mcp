@@ -31,6 +31,9 @@ cat > "${REQUEST_PATH}" <<'JSONRPC'
 {"jsonrpc":"2.0","method":"tools/call","params":{"name":"list_directory","arguments":{"path":"."}}}
 {"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"list_files","arguments":{}}}
 {"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"rename_path","arguments":{}}}
+{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"stat_path","arguments":{}}}
+{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"exists_path","arguments":{}}}
+{"jsonrpc":"2.0","id":8,"method":"tools/call","params":{"name":"mkdir","arguments":{}}}
 JSONRPC
 
 "${BINARY_PATH}" < "${REQUEST_PATH}" > "${RESPONSE_PATH}"
@@ -44,8 +47,8 @@ response_path = sys.argv[1]
 with open(response_path, "r", encoding="utf-8") as handle:
     responses = [json.loads(line) for line in handle if line.strip()]
 
-if len(responses) != 5:
-    raise SystemExit(f"Expected 5 JSON-RPC responses, got {len(responses)}. Response file: {response_path}")
+if len(responses) != 8:
+    raise SystemExit(f"Expected 8 JSON-RPC responses, got {len(responses)}. Response file: {response_path}")
 
 parse_error = responses[0]
 method_not_found = responses[1]

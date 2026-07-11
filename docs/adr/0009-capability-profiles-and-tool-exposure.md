@@ -42,3 +42,7 @@ Centralize effective-capability calculation and registration. Apply the same dec
 - final profile names and configuration format
 - exact named-root request schema
 - whether a supported legacy client justifies optional deprecated MCP Roots compatibility
+
+## Implementation Amendment - 2026-07-11
+
+Sprint 3.44 prepares the existing restricted-profile case for later client activation without introducing final profile names or a general profile framework. A Codex read-only example must set `MCP_READ_ONLY=true` explicitly and then exposes exactly `list_directory`, `read_file`, and `get_path_info`. All five write names and all five removed legacy names return the same generic Invalid params contract in STDIO smokes. No client configuration is activated by this amendment.

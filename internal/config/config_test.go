@@ -1,6 +1,11 @@
 package config
 
-import "testing"
+import (
+	"errors"
+	"os"
+	"path/filepath"
+	"testing"
+)
 
 func TestDefaultConfig(t *testing.T) {
 	t.Parallel()
@@ -13,6 +18,10 @@ func TestDefaultConfig(t *testing.T) {
 
 	if cfg.Filesystem().ReadOnly() {
 		t.Fatal("expected read-only mode to be disabled by default")
+	}
+
+	if cfg.Filesystem().AllowCWDRoot() {
+		t.Fatal("expected CWD root development option to be disabled by default")
 	}
 
 	if cfg.Filesystem().MaxFileSize() != defaultMaxFileSize {
@@ -73,7 +82,8 @@ func TestDefaultConfig(t *testing.T) {
 }
 
 func TestLoadFromEnvironment(t *testing.T) {
-	t.Setenv(envRootPath, `C:\temp\flashgate-mcp`)
+	root := t.TempDir()
+	t.Setenv(envRootPath, root)
 	t.Setenv(envReadOnly, "true")
 	t.Setenv(envMaxFileSize, "1048576")
 	t.Setenv(envMaxWriteBytes, "2048")
@@ -93,7 +103,7 @@ func TestLoadFromEnvironment(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if cfg.Filesystem().RootPath() != `C:\temp\flashgate-mcp` {
+	if cfg.Filesystem().RootPath() != root {
 		t.Fatalf("unexpected root path: %q", cfg.Filesystem().RootPath())
 	}
 
@@ -151,6 +161,7 @@ func TestLoadFromEnvironment(t *testing.T) {
 }
 
 func TestLoadFromEnvironmentParsesFalseSecurityFlags(t *testing.T) {
+	setValidRoot(t)
 	t.Setenv(envAllowHiddenFiles, "false")
 	t.Setenv(envAllowUNCPaths, "false")
 	t.Setenv(envFollowSymlinks, "false")
@@ -174,15 +185,15 @@ func TestLoadFromEnvironmentParsesFalseSecurityFlags(t *testing.T) {
 }
 
 func TestLoadFromEnvironmentRejectsInvalidReadOnly(t *testing.T) {
+	setValidRoot(t)
 	t.Setenv(envReadOnly, "not-a-bool")
 
 	_, err := LoadFromEnvironment()
-	if err == nil {
-		t.Fatal("expected error for invalid read-only value")
-	}
+	assertCategory(t, err, CategoryInvalidProfile)
 }
 
 func TestLoadFromEnvironmentRejectsInvalidMaxFileSize(t *testing.T) {
+	setValidRoot(t)
 	t.Setenv(envMaxFileSize, "not-a-number")
 
 	_, err := LoadFromEnvironment()
@@ -208,6 +219,7 @@ func TestLoadFromEnvironmentRejectsInvalidLimits(t *testing.T) {
 		value := value
 
 		t.Run(name, func(t *testing.T) {
+			setValidRoot(t)
 			t.Setenv(name, value)
 
 			_, err := LoadFromEnvironment()
@@ -219,6 +231,7 @@ func TestLoadFromEnvironmentRejectsInvalidLimits(t *testing.T) {
 }
 
 func TestLoadFromEnvironmentRejectsInvalidAllowHiddenFiles(t *testing.T) {
+	setValidRoot(t)
 	t.Setenv(envAllowHiddenFiles, "not-a-bool")
 
 	_, err := LoadFromEnvironment()
@@ -228,6 +241,7 @@ func TestLoadFromEnvironmentRejectsInvalidAllowHiddenFiles(t *testing.T) {
 }
 
 func TestLoadFromEnvironmentRejectsInvalidAllowUNCPaths(t *testing.T) {
+	setValidRoot(t)
 	t.Setenv(envAllowUNCPaths, "not-a-bool")
 
 	_, err := LoadFromEnvironment()
@@ -237,6 +251,7 @@ func TestLoadFromEnvironmentRejectsInvalidAllowUNCPaths(t *testing.T) {
 }
 
 func TestLoadFromEnvironmentRejectsInvalidFollowSymlinks(t *testing.T) {
+	setValidRoot(t)
 	t.Setenv(envFollowSymlinks, "not-a-bool")
 
 	_, err := LoadFromEnvironment()
@@ -246,6 +261,7 @@ func TestLoadFromEnvironmentRejectsInvalidFollowSymlinks(t *testing.T) {
 }
 
 func TestLoadFromEnvironmentRejectsInvalidDebug(t *testing.T) {
+	setValidRoot(t)
 	t.Setenv(envServerDebug, "not-a-bool")
 
 	_, err := LoadFromEnvironment()
@@ -254,14 +270,12 @@ func TestLoadFromEnvironmentRejectsInvalidDebug(t *testing.T) {
 	}
 }
 
-func TestValidateAcceptsDefaultConfig(t *testing.T) {
+func TestValidateRejectsDefaultConfigWithoutRoot(t *testing.T) {
 	t.Parallel()
 
 	cfg := DefaultConfig()
 
-	if err := cfg.Validate(); err != nil {
-		t.Fatalf("expected default config to be valid, got %v", err)
-	}
+	assertCategory(t, cfg.Validate(), CategoryInvalidRoot)
 }
 
 func TestValidateRejectsEmptyRootPath(t *testing.T) {
@@ -286,15 +300,9 @@ func TestValidateRejectsEmptyRootPath(t *testing.T) {
 func TestValidateRejectsZeroMaxFileSize(t *testing.T) {
 	t.Parallel()
 
-	cfg := Config{
-		filesystem: FilesystemConfig{
-			rootPath:    defaultRootPath,
-			readOnly:    false,
-			maxFileSize: 0,
-		},
-		security: SecurityConfig{},
-		server:   ServerConfig{},
-	}
+	cfg := DefaultConfig()
+	cfg.filesystem.rootPath = t.TempDir()
+	cfg.filesystem.maxFileSize = 0
 
 	err := cfg.Validate()
 	if err == nil {
@@ -305,18 +313,169 @@ func TestValidateRejectsZeroMaxFileSize(t *testing.T) {
 func TestValidateRejectsNegativeMaxFileSize(t *testing.T) {
 	t.Parallel()
 
-	cfg := Config{
-		filesystem: FilesystemConfig{
-			rootPath:    defaultRootPath,
-			readOnly:    false,
-			maxFileSize: -1,
-		},
-		security: SecurityConfig{},
-		server:   ServerConfig{},
-	}
+	cfg := DefaultConfig()
+	cfg.filesystem.rootPath = t.TempDir()
+	cfg.filesystem.maxFileSize = -1
 
 	err := cfg.Validate()
 	if err == nil {
 		t.Fatal("expected error for negative max file size")
+	}
+}
+
+func TestLoadFromEnvironmentDistinguishesMissingAndEmptyRoot(t *testing.T) {
+	previous, existed := os.LookupEnv(envRootPath)
+	if err := os.Unsetenv(envRootPath); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if existed {
+			_ = os.Setenv(envRootPath, previous)
+		} else {
+			_ = os.Unsetenv(envRootPath)
+		}
+	})
+
+	_, err := LoadFromEnvironment()
+	assertCategory(t, err, CategoryMissingRoot)
+
+	t.Setenv(envRootPath, "")
+	_, err = LoadFromEnvironment()
+	assertCategory(t, err, CategoryInvalidRoot)
+}
+
+func TestLoadFromEnvironmentRejectsWhitespaceRoot(t *testing.T) {
+	for _, root := range []string{" \t ", "\r\n"} {
+		t.Run(root, func(t *testing.T) {
+			t.Setenv(envRootPath, root)
+			_, err := LoadFromEnvironment()
+			assertCategory(t, err, CategoryInvalidRoot)
+		})
+	}
+}
+
+func TestLoadFromEnvironmentAcceptsAbsoluteRootForms(t *testing.T) {
+	base := t.TempDir()
+	tests := map[string]string{
+		"absolute":           base,
+		"embedded spaces":    filepath.Join(base, "root with spaces"),
+		"trailing separator": base + string(filepath.Separator),
+	}
+
+	for name, root := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Setenv(envRootPath, root)
+			cfg, err := LoadFromEnvironment()
+			if err != nil {
+				t.Fatalf("expected root to be accepted, got %v", err)
+			}
+			if cfg.Filesystem().RootPath() != root {
+				t.Fatalf("expected root %q to remain unchanged, got %q", root, cfg.Filesystem().RootPath())
+			}
+		})
+	}
+}
+
+func TestLoadFromEnvironmentRejectsRelativeRoots(t *testing.T) {
+	tests := []string{
+		"subdir",
+		filepath.Join("subdir", "child"),
+		"..",
+		filepath.Join("subdir", ".."),
+		"./",
+		".\\",
+		"C:relative",
+	}
+
+	for _, root := range tests {
+		t.Run(root, func(t *testing.T) {
+			t.Setenv(envRootPath, root)
+			_, err := LoadFromEnvironment()
+			assertCategory(t, err, CategoryInvalidRoot)
+		})
+	}
+}
+
+func TestLoadFromEnvironmentRequiresOptInForDotRoot(t *testing.T) {
+	t.Setenv(envRootPath, ".")
+
+	_, err := LoadFromEnvironment()
+	assertCategory(t, err, CategoryInvalidRoot)
+
+	t.Setenv(envAllowCWDRoot, "true")
+	cfg, err := LoadFromEnvironment()
+	if err != nil {
+		t.Fatalf("expected explicit CWD root opt-in to succeed, got %v", err)
+	}
+	if !cfg.Filesystem().AllowCWDRoot() {
+		t.Fatal("expected CWD root opt-in to be enabled")
+	}
+}
+
+func TestLoadFromEnvironmentDevelopmentOptionDoesNotCreateRoot(t *testing.T) {
+	previous, existed := os.LookupEnv(envRootPath)
+	if err := os.Unsetenv(envRootPath); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if existed {
+			_ = os.Setenv(envRootPath, previous)
+		} else {
+			_ = os.Unsetenv(envRootPath)
+		}
+	})
+	t.Setenv(envAllowCWDRoot, "true")
+
+	_, err := LoadFromEnvironment()
+	assertCategory(t, err, CategoryMissingRoot)
+}
+
+func TestLoadFromEnvironmentParsesStrictDevelopmentOption(t *testing.T) {
+	t.Setenv(envRootPath, ".")
+
+	for _, value := range []string{"TRUE", "False", "1", "yes", "t", "", " ", "\t", "\r\n"} {
+		t.Run(value, func(t *testing.T) {
+			t.Setenv(envAllowCWDRoot, value)
+			_, err := LoadFromEnvironment()
+			assertCategory(t, err, CategoryInvalidDevelopmentOption)
+		})
+	}
+
+	t.Run("false", func(t *testing.T) {
+		t.Setenv(envAllowCWDRoot, "false")
+		_, err := LoadFromEnvironment()
+		assertCategory(t, err, CategoryInvalidRoot)
+	})
+}
+
+func TestConfigErrorSupportsErrorsIsAndAs(t *testing.T) {
+	cause := errors.New("internal cause")
+	err := NewError(CategoryRootNotAllowed, cause)
+
+	if !errors.Is(err, &ConfigError{Category: CategoryRootNotAllowed}) {
+		t.Fatal("expected errors.Is category match")
+	}
+	if !errors.Is(err, cause) {
+		t.Fatal("expected wrapped cause match")
+	}
+	assertCategory(t, err, CategoryRootNotAllowed)
+	if err.Error() != string(CategoryRootNotAllowed) {
+		t.Fatalf("expected safe category error text, got %q", err.Error())
+	}
+}
+
+func setValidRoot(t *testing.T) {
+	t.Helper()
+	t.Setenv(envRootPath, t.TempDir())
+}
+
+func assertCategory(t *testing.T, err error, expected ErrorCategory) {
+	t.Helper()
+	if err == nil {
+		t.Fatalf("expected category %s, got nil", expected)
+	}
+	category, ok := CategoryOf(err)
+	if !ok || category != expected {
+		t.Fatalf("expected category %s, got %s (%v)", expected, category, err)
 	}
 }

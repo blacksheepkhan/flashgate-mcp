@@ -100,8 +100,11 @@ func TestRunCLIUnknownArgument(t *testing.T) {
 		t.Fatalf("expected exit code 2, got %d", exitCode)
 	}
 
-	if !strings.Contains(err.Error(), "unknown argument: --unknown") {
+	if !strings.Contains(err.Error(), "unknown argument") {
 		t.Fatalf("expected unknown argument error, got %v", err)
+	}
+	if strings.Contains(err.Error(), "--unknown") {
+		t.Fatalf("expected argument value to be omitted, got %v", err)
 	}
 
 	if stdout.Len() != 0 {
@@ -187,6 +190,27 @@ func TestRunCLIWithoutArgumentsReturnsServerError(t *testing.T) {
 		t.Fatalf("expected exit code 1, got %d", exitCode)
 	}
 
+	if stdout.Len() != 0 {
+		t.Fatalf("expected no stdout output, got %q", stdout.String())
+	}
+}
+
+func TestRunCLIContextCancellationIsNormalShutdown(t *testing.T) {
+	var stdout bytes.Buffer
+
+	exitCode, err := runCLI(
+		context.Background(),
+		nil,
+		&stdout,
+		func(context.Context) error { return context.Canceled },
+	)
+
+	if err != nil {
+		t.Fatalf("expected context cancellation to be treated as normal shutdown, got %v", err)
+	}
+	if exitCode != 0 {
+		t.Fatalf("expected exit code 0, got %d", exitCode)
+	}
 	if stdout.Len() != 0 {
 		t.Fatalf("expected no stdout output, got %q", stdout.String())
 	}

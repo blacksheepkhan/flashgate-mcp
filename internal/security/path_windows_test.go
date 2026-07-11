@@ -4,7 +4,9 @@ package security
 
 import (
 	"errors"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"testing"
 )
@@ -40,6 +42,35 @@ func TestResolveExistingAllowsWindowsHiddenAttributeWhenConfigured(t *testing.T)
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
+	}
+}
+
+func TestNewPathGuardAcceptsWindowsRootCaseVariant(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	caseVariant := strings.ToUpper(root)
+	guard, err := NewPathGuard(caseVariant)
+	if err != nil {
+		t.Fatalf("expected case-variant root to be accepted, got %v", err)
+	}
+	if !strings.EqualFold(guard.Root(), filepath.Clean(root)) {
+		t.Fatalf("expected equivalent Windows root, got %q and %q", guard.Root(), root)
+	}
+}
+
+func TestNewPathGuardRejectsWindowsJunctionRoot(t *testing.T) {
+	t.Parallel()
+
+	target := t.TempDir()
+	junction := filepath.Join(t.TempDir(), "junction-root")
+	if output, err := exec.Command("cmd", "/c", "mklink", "/J", junction, target).CombinedOutput(); err != nil {
+		t.Skipf("junction creation is not available: %v (%s)", err, output)
+	}
+
+	_, err := NewPathGuardWithPolicy(junction, Policy{FollowSymlinks: true})
+	if !errors.Is(err, ErrReparsePointDenied) {
+		t.Fatalf("expected ErrReparsePointDenied, got %v", err)
 	}
 }
 

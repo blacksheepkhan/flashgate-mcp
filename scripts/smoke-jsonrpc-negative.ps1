@@ -23,6 +23,9 @@ try {
         '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"list_directory","arguments":{"path":"."}}}'
         '{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"list_files","arguments":{}}}'
         '{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"rename_path","arguments":{}}}'
+        '{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"stat_path","arguments":{}}}'
+        '{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"exists_path","arguments":{}}}'
+        '{"jsonrpc":"2.0","id":8,"method":"tools/call","params":{"name":"mkdir","arguments":{}}}'
     )
 
     [System.IO.File]::WriteAllText($requestPath, (($requests -join "`n") + "`n"), [System.Text.UTF8Encoding]::new($false))
@@ -35,8 +38,8 @@ try {
 
     $responses = Get-Content $responsePath | Where-Object { $_.Trim().Length -gt 0 }
 
-    if ($responses.Count -ne 5) {
-        throw "Expected 5 JSON-RPC responses, got $($responses.Count). Response file: $responsePath"
+    if ($responses.Count -ne 8) {
+        throw "Expected 8 JSON-RPC responses, got $($responses.Count). Response file: $responsePath"
     }
 
     $parseError = $responses[0] | ConvertFrom-Json
@@ -44,6 +47,9 @@ try {
     $invalidParams = $responses[2] | ConvertFrom-Json
     $removedListFiles = $responses[3] | ConvertFrom-Json
     $removedRenamePath = $responses[4] | ConvertFrom-Json
+	$removedStatPath = $responses[5] | ConvertFrom-Json
+	$removedExistsPath = $responses[6] | ConvertFrom-Json
+	$removedMkdir = $responses[7] | ConvertFrom-Json
 
     if ($null -ne $parseError.id) {
         throw "Expected parse error id null, got $($parseError.id)"
@@ -81,7 +87,7 @@ try {
         throw "Expected invalid params message, got $($invalidParams.error.message)"
     }
 
-    foreach ($removedToolResponse in @($removedListFiles, $removedRenamePath)) {
+    foreach ($removedToolResponse in @($removedListFiles, $removedRenamePath, $removedStatPath, $removedExistsPath, $removedMkdir)) {
         if ($removedToolResponse.error.code -ne -32602 -or $removedToolResponse.error.message -ne "invalid params") {
             throw "Expected removed tool name to return generic Invalid params"
         }

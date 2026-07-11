@@ -8,6 +8,10 @@ The format follows the spirit of [Keep a Changelog](https://keepachangelog.com/)
 
 ### Changed
 
+- Sprint 3.44 requires an explicit absolute `MCP_ROOT`; missing, empty, whitespace-only, and general relative roots now fail closed before tool registration or JSON-RPC processing.
+- `MCP_ROOT=.` now requires the explicit lowercase `MCP_ALLOW_CWD_ROOT=true` development opt-in and emits one safe stderr warning.
+- Root startup validates existence, policy, canonical resolution, and directory type before exposing tools.
+- Codex, Claude Desktop, and general STDIO read-only activation examples now require `MCP_READ_ONLY=true` and remain preparation only.
 - Sprint 3.43 replaces the pre-1.0 filesystem tool contract with the exact baseline `list_directory`, `read_file`, `get_path_info`, `write_file`, `create_directory`, `delete_path`, `copy_path`, and `move_path`.
 - Tool arguments are decoded strictly: unknown properties, trailing JSON values, wrong types, missing required fields, and blank required paths are rejected.
 - `get_path_info` reports genuine missing paths as successful `exists:false` results, `create_directory` reports the actual `created` state, and `move_path` safely covers same-volume move and rename.
@@ -20,6 +24,7 @@ The format follows the spirit of [Keep a Changelog](https://keepachangelog.com/)
 
 ### Migration
 
+- See [fail-closed root configuration](docs/fail-closed-root-configuration-2026-07-11.md). Clients must set an explicit absolute root; development CWD use requires the new opt-in.
 - See [filesystem tool contract cleanup](docs/filesystem-tool-contract-cleanup-2026-07-11.md). The old pre-1.0 tool names were removed without aliases; clients and smoke tests must use the eight-tool baseline.
 - Sprint 3.43 does not change `MCP_*` names, root defaults, capability policy, or the MCP protocol revision.
 - See [technical rename to FlashGate](docs/technical-rename-to-flashgate-2026-07-11.md).
@@ -27,6 +32,7 @@ The format follows the spirit of [Keep a Changelog](https://keepachangelog.com/)
 
 ### Added
 
+- Sprint 3.44 categorized startup configuration errors, exit-code tests, Windows/Linux startup-negative smokes, and a Codex read-only activation/rollback guide.
 - FlashGate MCP project identity and transition documentation.
 - Sprint 3.41 architecture baseline.
 - Vendor-neutral open-source and FlashGate module/provider direction, separated from MCP protocol extensions.
@@ -143,6 +149,8 @@ The format follows the spirit of [Keep a Changelog](https://keepachangelog.com/)
 
 ### Security
 
+- Sprint 3.44 prevents implicit process-working-directory exposure, rejects file roots, keeps startup stdout empty, and redacts startup failures to safe categories.
+- Read-only STDIO smokes reject all five write tool names, and negative smokes reject all five removed legacy names with the same generic Invalid params contract.
 - Sprint 3.38 validates JSON-RPC envelopes before dispatch, rejects unsupported batches, suppresses responses for notifications, prevents `tools/call` notification execution, serializes unknown IDs as `id:null`, and converts handler panics to generic Internal error responses.
 - Sprint 3.39 bounds JSON-RPC messages, tool arguments, filesystem operation payloads, recursive delete scope, and serialized responses with generic limit errors.
 - Sprint 3.39 adds centralized redaction before debug diagnostics reach stderr.

@@ -10,6 +10,20 @@ $moveSourceRelative = "build/smoke-move-$stamp-source.txt"
 $moveTargetRelative = "build/smoke-move-$stamp-target.txt"
 $moveSourcePath = Join-Path $repoRoot $moveSourceRelative
 $moveTargetPath = Join-Path $repoRoot $moveTargetRelative
+$readOnlyWriteRelative = "build/smoke-readonly-$stamp-write.txt"
+$readOnlyCreateRelative = "build/smoke-readonly-$stamp-directory"
+$readOnlyDeleteRelative = "build/smoke-readonly-$stamp-delete.txt"
+$readOnlyCopySourceRelative = "build/smoke-readonly-$stamp-copy-source.txt"
+$readOnlyCopyTargetRelative = "build/smoke-readonly-$stamp-copy-target.txt"
+$readOnlyMoveSourceRelative = "build/smoke-readonly-$stamp-move-source.txt"
+$readOnlyMoveTargetRelative = "build/smoke-readonly-$stamp-move-target.txt"
+$readOnlyWritePath = Join-Path $repoRoot $readOnlyWriteRelative
+$readOnlyCreatePath = Join-Path $repoRoot $readOnlyCreateRelative
+$readOnlyDeletePath = Join-Path $repoRoot $readOnlyDeleteRelative
+$readOnlyCopySourcePath = Join-Path $repoRoot $readOnlyCopySourceRelative
+$readOnlyCopyTargetPath = Join-Path $repoRoot $readOnlyCopyTargetRelative
+$readOnlyMoveSourcePath = Join-Path $repoRoot $readOnlyMoveSourceRelative
+$readOnlyMoveTargetPath = Join-Path $repoRoot $readOnlyMoveTargetRelative
 
 if (-not (Test-Path $binaryPath)) {
     throw "Binary not found: $binaryPath. Run: go build -o build/flashgate-mcp.exe ./cmd/server"
@@ -20,6 +34,12 @@ $env:MCP_ROOT = $repoRoot
 New-Item -ItemType Directory -Path $buildDir -Force | Out-Null
 
 try {
+    if ($env:MCP_READ_ONLY -eq "true") {
+        foreach ($fixturePath in @($readOnlyDeletePath, $readOnlyCopySourcePath, $readOnlyMoveSourcePath)) {
+            [System.IO.File]::WriteAllText($fixturePath, "read-only-smoke-fixture", [System.Text.UTF8Encoding]::new($false))
+        }
+    }
+
     $requests = @(
         '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"smoke-test","version":"dev"}}}'
         '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}'
@@ -31,6 +51,14 @@ try {
     if ($env:MCP_READ_ONLY -ne "true") {
         [System.IO.File]::WriteAllText($moveSourcePath, "move-smoke", [System.Text.UTF8Encoding]::new($false))
         $requests += '{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"move_path","arguments":{"source":"' + $moveSourceRelative + '","target":"' + $moveTargetRelative + '"}}}'
+    } else {
+        $requests += @(
+            ('{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"write_file","arguments":{"path":"' + $readOnlyWriteRelative + '","content":"blocked"}}}')
+            ('{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"create_directory","arguments":{"path":"' + $readOnlyCreateRelative + '"}}}')
+            ('{"jsonrpc":"2.0","id":8,"method":"tools/call","params":{"name":"delete_path","arguments":{"path":"' + $readOnlyDeleteRelative + '"}}}')
+            ('{"jsonrpc":"2.0","id":9,"method":"tools/call","params":{"name":"copy_path","arguments":{"source":"' + $readOnlyCopySourceRelative + '","target":"' + $readOnlyCopyTargetRelative + '"}}}')
+            ('{"jsonrpc":"2.0","id":10,"method":"tools/call","params":{"name":"move_path","arguments":{"source":"' + $readOnlyMoveSourceRelative + '","target":"' + $readOnlyMoveTargetRelative + '"}}}')
+        )
     }
 
     [System.IO.File]::WriteAllText($requestPath, (($requests -join "`n") + "`n"), [System.Text.UTF8Encoding]::new($false))
@@ -43,7 +71,7 @@ try {
 
     $responses = Get-Content $responsePath | Where-Object { $_.Trim().Length -gt 0 }
 
-    $expectedResponseCount = if ($env:MCP_READ_ONLY -eq "true") { 5 } else { 6 }
+    $expectedResponseCount = if ($env:MCP_READ_ONLY -eq "true") { 10 } else { 6 }
     if ($responses.Count -ne $expectedResponseCount) {
         throw "Expected $expectedResponseCount JSON-RPC responses, got $($responses.Count). Response file: $responsePath"
     }
@@ -92,6 +120,10 @@ try {
         )
     }
 
+    if (($toolNames -join "`0") -cne ($expectedTools -join "`0")) {
+        throw "Unexpected tool order. Expected: $($expectedTools -join ', '). Actual: $($toolNames -join ', ')"
+    }
+
     foreach ($expectedTool in $expectedTools) {
         if ($toolNames -notcontains $expectedTool) {
             throw "Expected tool '$expectedTool' was not listed. Actual tools: $($toolNames -join ', ')"
@@ -118,11 +150,31 @@ try {
         if ($moveResult.id -ne 6 -or -not $moveResult.result.moved -or -not (Test-Path -LiteralPath $moveTargetPath)) {
             throw "move_path did not perform rename semantics"
         }
+    } else {
+        $writeToolResponses = @($responses[5..9] | ForEach-Object { $_ | ConvertFrom-Json })
+        for ($index = 0; $index -lt $writeToolResponses.Count; $index++) {
+            $response = $writeToolResponses[$index]
+            $expectedId = $index + 6
+            if ($response.id -ne $expectedId -or $response.error.code -ne -32602 -or $response.error.message -ne "invalid params") {
+                throw "Expected read-only-gated write tool id $expectedId to return generic Invalid params"
+            }
+        }
+        foreach ($expectedFixture in @($readOnlyDeletePath, $readOnlyCopySourcePath, $readOnlyMoveSourcePath)) {
+            if (-not (Test-Path -LiteralPath $expectedFixture -PathType Leaf)) {
+                throw "Read-only smoke fixture was modified or removed: $expectedFixture"
+            }
+        }
+        foreach ($unexpectedPath in @($readOnlyWritePath, $readOnlyCreatePath, $readOnlyCopyTargetPath, $readOnlyMoveTargetPath)) {
+            if (Test-Path -LiteralPath $unexpectedPath) {
+                throw "Read-only smoke created an unexpected path: $unexpectedPath"
+            }
+        }
     }
 
     Write-Host "JSON-RPC smoke test passed."
     Write-Host "Protocol version: $($initialize.result.protocolVersion)"
     Write-Host "Tools: $($toolNames -join ', ')"
 } finally {
-    Remove-Item -LiteralPath $requestPath, $responsePath, $moveSourcePath, $moveTargetPath -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $requestPath, $responsePath, $moveSourcePath, $moveTargetPath, $readOnlyWritePath, $readOnlyDeletePath, $readOnlyCopySourcePath, $readOnlyCopyTargetPath, $readOnlyMoveSourcePath, $readOnlyMoveTargetPath -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $readOnlyCreatePath -Recurse -Force -ErrorAction SilentlyContinue
 }

@@ -60,6 +60,8 @@ get_path_info
 
 `write_file`, `create_directory`, `delete_path`, `copy_path`, and `move_path` are write-gated and absent from the read-only registry.
 
+Client activation must set `MCP_READ_ONLY=true` explicitly; the missing-variable default remains the eight-tool profile. The read-only and negative STDIO smokes require identical generic Invalid params responses for every write-gated and removed legacy name.
+
 ## Errors
 
 The adapter retains the existing JSON-RPC architecture:

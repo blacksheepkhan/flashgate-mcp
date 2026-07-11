@@ -12,9 +12,26 @@ MOVE_SOURCE_RELATIVE="build/smoke-move-${STAMP}-source.txt"
 MOVE_TARGET_RELATIVE="build/smoke-move-${STAMP}-target.txt"
 MOVE_SOURCE_PATH="${REPO_ROOT}/${MOVE_SOURCE_RELATIVE}"
 MOVE_TARGET_PATH="${REPO_ROOT}/${MOVE_TARGET_RELATIVE}"
+READ_ONLY_WRITE_RELATIVE="build/smoke-readonly-${STAMP}-write.txt"
+READ_ONLY_CREATE_RELATIVE="build/smoke-readonly-${STAMP}-directory"
+READ_ONLY_DELETE_RELATIVE="build/smoke-readonly-${STAMP}-delete.txt"
+READ_ONLY_COPY_SOURCE_RELATIVE="build/smoke-readonly-${STAMP}-copy-source.txt"
+READ_ONLY_COPY_TARGET_RELATIVE="build/smoke-readonly-${STAMP}-copy-target.txt"
+READ_ONLY_MOVE_SOURCE_RELATIVE="build/smoke-readonly-${STAMP}-move-source.txt"
+READ_ONLY_MOVE_TARGET_RELATIVE="build/smoke-readonly-${STAMP}-move-target.txt"
+READ_ONLY_WRITE_PATH="${REPO_ROOT}/${READ_ONLY_WRITE_RELATIVE}"
+READ_ONLY_CREATE_PATH="${REPO_ROOT}/${READ_ONLY_CREATE_RELATIVE}"
+READ_ONLY_DELETE_PATH="${REPO_ROOT}/${READ_ONLY_DELETE_RELATIVE}"
+READ_ONLY_COPY_SOURCE_PATH="${REPO_ROOT}/${READ_ONLY_COPY_SOURCE_RELATIVE}"
+READ_ONLY_COPY_TARGET_PATH="${REPO_ROOT}/${READ_ONLY_COPY_TARGET_RELATIVE}"
+READ_ONLY_MOVE_SOURCE_PATH="${REPO_ROOT}/${READ_ONLY_MOVE_SOURCE_RELATIVE}"
+READ_ONLY_MOVE_TARGET_PATH="${REPO_ROOT}/${READ_ONLY_MOVE_TARGET_RELATIVE}"
 
 cleanup() {
-  rm -f "${REQUEST_PATH}" "${RESPONSE_PATH}" "${MOVE_SOURCE_PATH}" "${MOVE_TARGET_PATH}"
+  rm -f "${REQUEST_PATH}" "${RESPONSE_PATH}" "${MOVE_SOURCE_PATH}" "${MOVE_TARGET_PATH}" \
+    "${READ_ONLY_WRITE_PATH}" "${READ_ONLY_DELETE_PATH}" "${READ_ONLY_COPY_SOURCE_PATH}" \
+    "${READ_ONLY_COPY_TARGET_PATH}" "${READ_ONLY_MOVE_SOURCE_PATH}" "${READ_ONLY_MOVE_TARGET_PATH}"
+  rm -rf "${READ_ONLY_CREATE_PATH}"
 }
 trap cleanup EXIT
 
@@ -39,6 +56,17 @@ JSONRPC
 if [[ "${MCP_READ_ONLY:-}" != "true" ]]; then
   printf '%s' 'move-smoke' > "${MOVE_SOURCE_PATH}"
   printf '%s\n' "{\"jsonrpc\":\"2.0\",\"id\":6,\"method\":\"tools/call\",\"params\":{\"name\":\"move_path\",\"arguments\":{\"source\":\"${MOVE_SOURCE_RELATIVE}\",\"target\":\"${MOVE_TARGET_RELATIVE}\"}}}" >> "${REQUEST_PATH}"
+else
+  printf '%s' 'read-only-smoke-fixture' > "${READ_ONLY_DELETE_PATH}"
+  printf '%s' 'read-only-smoke-fixture' > "${READ_ONLY_COPY_SOURCE_PATH}"
+  printf '%s' 'read-only-smoke-fixture' > "${READ_ONLY_MOVE_SOURCE_PATH}"
+  cat >> "${REQUEST_PATH}" <<JSONRPC
+{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"write_file","arguments":{"path":"${READ_ONLY_WRITE_RELATIVE}","content":"blocked"}}}
+{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"create_directory","arguments":{"path":"${READ_ONLY_CREATE_RELATIVE}"}}}
+{"jsonrpc":"2.0","id":8,"method":"tools/call","params":{"name":"delete_path","arguments":{"path":"${READ_ONLY_DELETE_RELATIVE}"}}}
+{"jsonrpc":"2.0","id":9,"method":"tools/call","params":{"name":"copy_path","arguments":{"source":"${READ_ONLY_COPY_SOURCE_RELATIVE}","target":"${READ_ONLY_COPY_TARGET_RELATIVE}"}}}
+{"jsonrpc":"2.0","id":10,"method":"tools/call","params":{"name":"move_path","arguments":{"source":"${READ_ONLY_MOVE_SOURCE_RELATIVE}","target":"${READ_ONLY_MOVE_TARGET_RELATIVE}"}}}
+JSONRPC
 fi
 
 "${BINARY_PATH}" < "${REQUEST_PATH}" > "${RESPONSE_PATH}"
@@ -54,7 +82,7 @@ move_target_path = sys.argv[2]
 with open(response_path, "r", encoding="utf-8") as handle:
     responses = [json.loads(line) for line in handle if line.strip()]
 
-expected_response_count = 5 if os.environ.get("MCP_READ_ONLY") == "true" else 6
+expected_response_count = 10 if os.environ.get("MCP_READ_ONLY") == "true" else 6
 if len(responses) != expected_response_count:
     raise SystemExit(f"Expected {expected_response_count} JSON-RPC responses, got {len(responses)}. Response file: {response_path}")
 
@@ -111,6 +139,11 @@ for tool_name in tool_names:
             f"Unexpected tool {tool_name!r} was listed. Expected tools: {', '.join(expected_tools)}"
         )
 
+if tool_names != expected_tools:
+    raise SystemExit(
+        f"Unexpected tool order. Expected: {', '.join(expected_tools)}. Actual: {', '.join(tool_names)}"
+    )
+
 if list_directory.get("id") != 3 or "entries" not in list_directory.get("result", {}):
     raise SystemExit("list_directory did not return entries")
 if existing_path_info.get("id") != 4 or existing_path_info.get("result", {}).get("exists") is not True:
@@ -123,8 +156,28 @@ if os.environ.get("MCP_READ_ONLY") != "true":
         raise SystemExit("move_path did not return moved=true")
     if not os.path.isfile(move_target_path):
         raise SystemExit("move_path did not perform rename semantics")
+else:
+    for expected_id, response in enumerate(responses[5:10], start=6):
+        error = response.get("error", {})
+        if response.get("id") != expected_id or error.get("code") != -32602 or error.get("message") != "invalid params":
+            raise SystemExit(f"Expected read-only-gated write tool id {expected_id} to return generic Invalid params")
 
 print("JSON-RPC smoke test passed.")
 print(f"Protocol version: {protocol_version}")
 print(f"Tools: {', '.join(tool_names)}")
 PY
+
+if [[ "${MCP_READ_ONLY:-}" == "true" ]]; then
+  for expected_fixture in "${READ_ONLY_DELETE_PATH}" "${READ_ONLY_COPY_SOURCE_PATH}" "${READ_ONLY_MOVE_SOURCE_PATH}"; do
+    if [[ ! -f "${expected_fixture}" ]]; then
+      echo "Read-only smoke fixture was modified or removed: ${expected_fixture}" >&2
+      exit 1
+    fi
+  done
+  for unexpected_path in "${READ_ONLY_WRITE_PATH}" "${READ_ONLY_CREATE_PATH}" "${READ_ONLY_COPY_TARGET_PATH}" "${READ_ONLY_MOVE_TARGET_PATH}"; do
+    if [[ -e "${unexpected_path}" ]]; then
+      echo "Read-only smoke created an unexpected path: ${unexpected_path}" >&2
+      exit 1
+    fi
+  done
+fi

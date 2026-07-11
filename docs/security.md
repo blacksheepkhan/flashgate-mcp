@@ -16,19 +16,18 @@ The root is configured through:
 MCP_ROOT
 ```
 
-If no root is provided, the default root is:
+`MCP_ROOT` is required. Production roots must be absolute, exist, be accessible under the current policy, and resolve to a directory. Missing, empty, whitespace-only, relative, non-existent, file, and policy-denied roots stop startup before Filesystem, Registry, Router or JSON-RPC processing.
+
+Expected configuration/root failures use safe categories on stderr and exit code `3`; stdout remains empty. Unexpected bootstrap failures use `startup_failed` and exit code `1`. Raw roots and operating-system errors are not emitted.
+
+The process working directory is available only for explicit development use:
 
 ```text
-.
+MCP_ROOT=.
+MCP_ALLOW_CWD_ROOT=true
 ```
 
-Production deployments should explicitly set `MCP_ROOT`.
-
-### Accepted fail-closed startup target
-
-The current implementation still defaults a missing `MCP_ROOT` to the process working directory (`.`). Sprint 3.41 does not change that runtime behavior.
-
-Before real client activation, a missing root must not unintentionally expose the process working directory. The preferred target is fail-closed startup without explicit root configuration. A current-directory root may be allowed only through an explicit development opt-in. This is planned work and must be validated before Codex read-only activation preparation.
+The opt-in accepts only lowercase `true` or `false`, never supplies a missing root, and never enables other relative roots. A successful CWD-development start emits one safe stderr warning. Production and Codex examples set `MCP_ALLOW_CWD_ROOT=false`.
 
 ### No Direct Filesystem Access Outside `internal/fs`
 
@@ -70,7 +69,7 @@ Path validation is intentionally layered:
 1. Lexical validation normalizes the user path and rejects absolute paths and leading parent traversal.
 2. Effective path validation uses evaluated filesystem paths to confirm the final existing path, or the nearest existing parent for create targets, remains inside the evaluated sandbox root.
 
-The configured root must exist and be evaluable when the server starts. This keeps root comparisons based on the effective filesystem location rather than only string-cleaned paths.
+The configured root must exist, pass policy, and resolve effectively to a directory when the server starts. This keeps root comparisons based on the effective filesystem location rather than only string-cleaned paths.
 
 ## SafePath
 
@@ -223,6 +222,9 @@ Limit violations use generic client-visible messages. Filesystem limit denials a
 Security tests currently cover:
 
 - empty root rejection
+- missing, whitespace, relative and development-CWD root contracts
+- root existence and directory type
+- categorized startup errors, exit codes, empty startup stdout and host-path redaction
 - absolute path rejection
 - path traversal rejection
 - root normalization
@@ -243,6 +245,8 @@ Security tests currently cover:
 - filesystem read/write/list/copy/delete limits
 - response-size safety net
 - diagnostics redaction
+
+Startup preflight completes before any tool Registry, Router or MCP server is created. Normal starts remain silent; diagnostics never share JSON-RPC stdout.
 
 ## Future Security Work
 

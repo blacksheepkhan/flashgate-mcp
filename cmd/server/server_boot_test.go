@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"testing"
 
 	"github.com/blacksheepkhan/flashgate-mcp/internal/config"
@@ -25,6 +26,7 @@ func TestSecurityPolicyFromConfigUsesSecureDefaults(t *testing.T) {
 }
 
 func TestSecurityPolicyFromConfigUsesEnvironment(t *testing.T) {
+	t.Setenv("MCP_ROOT", t.TempDir())
 	t.Setenv("MCP_ALLOW_HIDDEN_FILES", "true")
 	t.Setenv("MCP_ALLOW_UNC_PATHS", "true")
 	t.Setenv("MCP_FOLLOW_SYMLINKS", "true")
@@ -50,6 +52,7 @@ func TestSecurityPolicyFromConfigUsesEnvironment(t *testing.T) {
 }
 
 func TestFilesystemLimitsFromConfigUsesEnvironment(t *testing.T) {
+	t.Setenv("MCP_ROOT", t.TempDir())
 	t.Setenv("MCP_MAX_WRITE_BYTES", "111")
 	t.Setenv("MCP_MAX_LIST_ENTRIES", "22")
 	t.Setenv("MCP_MAX_COPY_BYTES", "333")
@@ -80,6 +83,7 @@ func TestFilesystemLimitsFromConfigUsesEnvironment(t *testing.T) {
 }
 
 func TestServerOptionsFromConfigUsesEnvironment(t *testing.T) {
+	t.Setenv("MCP_ROOT", t.TempDir())
 	t.Setenv("MCP_DEBUG", "true")
 	t.Setenv("MCP_MAX_JSONRPC_MESSAGE_BYTES", "111")
 	t.Setenv("MCP_MAX_TOOL_ARGUMENT_BYTES", "222")
@@ -90,7 +94,7 @@ func TestServerOptionsFromConfigUsesEnvironment(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	options := serverOptionsFromConfig(cfg)
+	options := serverOptionsFromConfig(cfg, io.Discard)
 
 	if options.MaxMessageBytes != 111 {
 		t.Fatalf("expected max message bytes 111, got %d", options.MaxMessageBytes)

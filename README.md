@@ -95,7 +95,9 @@ The root directory is configured through the `MCP_ROOT` environment variable:
 MCP_ROOT
 ```
 
-Current state: when `MCP_ROOT` is absent, the implementation defaults to the process working directory (`.`). Accepted security target before real client activation: fail closed unless a root is explicitly configured; current-directory exposure may be permitted only through an explicit development opt-in. Sprint 3.41 documents but does not implement this change.
+`MCP_ROOT` is required. Production roots must be absolute, exist, satisfy the current root policy, and resolve to a directory. Missing, empty, whitespace-only, relative, non-existent, file, or policy-denied roots fail before tool registration and JSON-RPC processing. Expected configuration failures exit with code `3`, leave stdout empty, and report only a safe category on stderr.
+
+The process working directory is available for development only when both `MCP_ROOT=.` and `MCP_ALLOW_CWD_ROOT=true` are set exactly. This opt-in never supplies a missing root and never enables other relative roots. It emits one safe warning on stderr.
 
 Tool arguments use relative paths below this root. Absolute paths, path traversal outside the configured root, and unsafe path forms are rejected by the filesystem and security layers.
 
@@ -178,6 +180,8 @@ A machine-readable MCP tool catalog is available at:
 ```text
 docs/mcp-tool-catalog.json
 ```
+
+Preparation for a later, separately approved Codex read-only activation is documented in [docs/codex-read-only-activation.md](docs/codex-read-only-activation.md). Sprint 3.44 does not modify Codex configuration or register FlashGate as an MCP server.
 
 The catalog contains tool names, descriptions, input schemas, result schemas, and common error behavior.
 
@@ -313,10 +317,22 @@ Run the negative JSON-RPC smoke test on Windows:
 .\scripts\smoke-jsonrpc-negative.ps1
 ```
 
+Run fail-closed startup validation:
+
+```powershell
+.\scripts\smoke-startup-negative.ps1
+```
+
 On Linux:
 
 ```bash
 bash scripts/smoke-jsonrpc-negative.sh
+```
+
+Linux startup validation uses:
+
+```bash
+bash scripts/smoke-startup-negative.sh
 ```
 
 The negative smoke test verifies malformed JSON, unknown methods, invalid `tools/call` params, and notification no-response behavior.
@@ -371,6 +387,8 @@ Set the filesystem root:
 $env:MCP_ROOT = "C:\Path\To\Allowed\Root"
 ```
 
+The value must be an explicit absolute directory. For development only, `MCP_ROOT=.` additionally requires `MCP_ALLOW_CWD_ROOT=true`; client activation examples do not use that opt-in.
+
 For read-only operation:
 
 ```powershell
@@ -410,7 +428,9 @@ Usage:
   flashgate-mcp --help
 
 Environment:
-  MCP_ROOT    Root directory exposed to MCP clients
+  MCP_ROOT             Required absolute root directory exposed to MCP clients
+  MCP_READ_ONLY        Set to true to expose only read-only filesystem tools
+  MCP_ALLOW_CWD_ROOT   Development only: set to true with MCP_ROOT=.
 ```
 
 The binary also supports a dedicated version mode:
