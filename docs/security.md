@@ -1,6 +1,6 @@
 # FlashGate MCP Security Model
 
-FlashGate MCP is designed as a secure-by-default local host-operations MCP server. The current technical implementation is still named `fileserver-mcp` until Sprint 3.42 and currently exposes only the filesystem functionality described below.
+FlashGate MCP is designed as a secure-by-default local host-operations MCP server. Sprint 3.42 completed its technical rename; it currently exposes only the filesystem functionality described below.
 
 Filesystem access is security-sensitive because MCP clients may request operations on local files. For this reason, all filesystem operations are restricted to a configured sandbox root.
 

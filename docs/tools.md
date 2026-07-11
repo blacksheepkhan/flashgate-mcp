@@ -1,6 +1,6 @@
-﻿# MCP Tool Reference
+# MCP Tool Reference
 
-This document describes the tools currently exposed by the technical `fileserver-mcp` implementation of FlashGate MCP.
+This document describes the tools currently exposed by FlashGate MCP. The binary is `flashgate-mcp`; the MCP server implementation name (`serverInfo.name`) is `flashgate`.
 
 > The current tool names remain active until the dedicated pre-1.0
 > tool contract cleanup sprint. This document distinguishes implemented
@@ -55,7 +55,7 @@ Other failures remain distinguishable, with candidate categories `not_found`, `a
 
 Future, not implemented operation types include paginated listing, ranged and batch reads, batch path inspection and hashing, bounded trees and search, targeted/conditional writes, internal Operations/Job handles, managed process operations, allowlisted command execution, and controlled system information. Custom status/result/cancel tools are not the accepted primary MCP job contract. The MCP adapter will first evaluate mapping eligible internal jobs to the negotiated Tasks Extension `io.modelcontextprotocol/tasks` and decide bounded behavior for clients without Tasks support.
 
-`fileserver-mcp` uses MCP over JSON-RPC via STDIO. Tools are invoked through the MCP `tools/call` method.
+`flashgate-mcp` uses MCP over JSON-RPC via STDIO. Tools are invoked through the MCP `tools/call` method.
 
 All paths are relative to the configured filesystem root.
 
@@ -170,7 +170,7 @@ When hidden files or symlinks/reparse points are denied by policy, matching chil
 {
   "name": "list_files",
   "arguments": {
-    "path": "fileserver-mcp"
+    "path": "flashgate-mcp"
   }
 }
 ```
@@ -214,7 +214,7 @@ The maximum returned content is capped by `MCP_MAX_FILE_SIZE`. The optional `max
 {
   "name": "read_file",
   "arguments": {
-    "path": "fileserver-mcp/README.md",
+    "path": "flashgate-mcp/README.md",
     "maxBytes": 8192
   }
 }
@@ -256,7 +256,7 @@ Returns metadata for a file or directory below the configured filesystem root.
 {
   "name": "stat_path",
   "arguments": {
-    "path": "fileserver-mcp/README.md"
+    "path": "flashgate-mcp/README.md"
   }
 }
 ```
@@ -295,7 +295,7 @@ Checks whether a file or directory exists below the configured filesystem root.
 {
   "name": "exists_path",
   "arguments": {
-    "path": "fileserver-mcp/README.md"
+    "path": "flashgate-mcp/README.md"
   }
 }
 ```
@@ -342,7 +342,7 @@ Content size is capped by `MCP_MAX_WRITE_BYTES`.
 {
   "name": "write_file",
   "arguments": {
-    "path": "fileserver-mcp/tmp.txt",
+    "path": "flashgate-mcp/tmp.txt",
     "content": "hello",
     "overwrite": false
   }
@@ -384,7 +384,7 @@ Creates a directory below the configured filesystem root.
 {
   "name": "mkdir",
   "arguments": {
-    "path": "fileserver-mcp/tmp-dir"
+    "path": "flashgate-mcp/tmp-dir"
   }
 }
 ```
@@ -428,7 +428,7 @@ Recursive deletes are capped by `MCP_MAX_DELETE_ENTRIES`. If the target tree exc
 {
   "name": "delete_path",
   "arguments": {
-    "path": "fileserver-mcp/tmp.txt",
+    "path": "flashgate-mcp/tmp.txt",
     "recursive": false
   }
 }
@@ -474,8 +474,8 @@ Moves a file or directory below the configured filesystem root.
 {
   "name": "move_path",
   "arguments": {
-    "source": "fileserver-mcp/source.txt",
-    "target": "fileserver-mcp/target.txt",
+    "source": "flashgate-mcp/source.txt",
+    "target": "flashgate-mcp/target.txt",
     "overwrite": false
   }
 }
@@ -523,8 +523,8 @@ Source file size is capped by `MCP_MAX_COPY_BYTES`. Directory copy remains unsup
 {
   "name": "copy_path",
   "arguments": {
-    "source": "fileserver-mcp/source.txt",
-    "target": "fileserver-mcp/copy.txt",
+    "source": "flashgate-mcp/source.txt",
+    "target": "flashgate-mcp/copy.txt",
     "overwrite": false
   }
 }
@@ -570,8 +570,8 @@ Renames a file or directory below the configured filesystem root.
 {
   "name": "rename_path",
   "arguments": {
-    "source": "fileserver-mcp/old.txt",
-    "target": "fileserver-mcp/new.txt",
+    "source": "flashgate-mcp/old.txt",
+    "target": "flashgate-mcp/new.txt",
     "overwrite": false
   }
 }

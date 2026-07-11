@@ -43,3 +43,7 @@ Use FlashGate MCP for the public project. Use `fileserver-mcp` only when describ
 - FlashGate module/provider contract and runtime model
 - MCP protocol-extension compatibility, governed by ADR-0013
 - technical rename execution, reserved for Sprint 3.42
+
+## Amendment - 2026-07-11
+
+Sprint 3.42 completed the technical rename. The repository is `blacksheepkhan/flashgate-mcp`, the Go module is `github.com/blacksheepkhan/flashgate-mcp`, the binary is `flashgate-mcp`, and the MCP server implementation name (`serverInfo.name`) is `flashgate`. The original context, decision, and transition rationale remain historical records.

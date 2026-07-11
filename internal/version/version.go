@@ -26,5 +26,5 @@ func Get() Info {
 
 // String returns a human-readable version string.
 func (i Info) String() string {
-	return fmt.Sprintf("fileserver-mcp\nversion: %s\ncommit: %s\ndate: %s", i.Version, i.Commit, i.Date)
+	return fmt.Sprintf("flashgate-mcp\nversion: %s\ncommit: %s\ndate: %s", i.Version, i.Commit, i.Date)
 }

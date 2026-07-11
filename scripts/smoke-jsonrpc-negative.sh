@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 
-BINARY_PATH="${REPO_ROOT}/build/fileserver-mcp"
+BINARY_PATH="${REPO_ROOT}/build/flashgate-mcp"
 STAMP="$$-$(date +%s%N)"
 REQUEST_PATH="${REPO_ROOT}/build/smoke-jsonrpc-negative-${STAMP}-request.jsonl"
 RESPONSE_PATH="${REPO_ROOT}/build/smoke-jsonrpc-negative-${STAMP}-response.jsonl"
@@ -16,7 +16,7 @@ trap cleanup EXIT
 
 if [[ ! -x "${BINARY_PATH}" ]]; then
   echo "Binary not found or not executable: ${BINARY_PATH}" >&2
-  echo "Run: go build -o build/fileserver-mcp ./cmd/server" >&2
+  echo "Run: go build -o build/flashgate-mcp ./cmd/server" >&2
   exit 1
 fi
 

@@ -85,3 +85,7 @@ The minimum expected Go version is Go 1.26 or newer.
 ## Amendment - 2026-07-10
 
 The public project name is FlashGate MCP. The repository, Go module, binary, and MCP server implementation name (`serverInfo.name`) retain the technical `fileserver-mcp` identifier until Sprint 3.42. This amendment does not change the historical context or the decision to use Go. See ADR-0006 through ADR-0013 for the current identity, architecture, and MCP compatibility direction.
+
+## Amendment - 2026-07-11
+
+Sprint 3.42 completed the technical rename: the Go module is now `github.com/blacksheepkhan/flashgate-mcp`, the binary is `flashgate-mcp`, and the MCP server implementation name (`serverInfo.name`) is `flashgate`. This amendment preserves the historical context and original Go decision.

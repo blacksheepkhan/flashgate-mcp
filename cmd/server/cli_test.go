@@ -23,10 +23,10 @@ func TestRunCLIHelp(t *testing.T) {
 
 	output := stdout.String()
 	expectedParts := []string{
-		"fileserver-mcp",
+		"flashgate-mcp",
 		"Usage:",
-		"fileserver-mcp --version",
-		"fileserver-mcp --help",
+		"flashgate-mcp --version",
+		"flashgate-mcp --help",
 		"MCP_ROOT",
 	}
 
@@ -70,7 +70,7 @@ func TestRunCLIVersion(t *testing.T) {
 
 	output := stdout.String()
 	expectedParts := []string{
-		"fileserver-mcp",
+		"flashgate-mcp",
 		"version:",
 		"commit:",
 		"date:",

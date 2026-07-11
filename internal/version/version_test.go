@@ -31,7 +31,7 @@ func TestInfoString(t *testing.T) {
 	output := info.String()
 
 	expectedParts := []string{
-		"fileserver-mcp",
+		"flashgate-mcp",
 		"version: v1.2.3",
 		"commit: abc123",
 		"date: 2026-07-05T12:00:00Z",

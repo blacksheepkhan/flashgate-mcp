@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/blacksheepkhan/fileserver-mcp/internal/version"
+	"github.com/blacksheepkhan/flashgate-mcp/internal/version"
 )
 
 var errInvalidCLIArguments = errors.New("invalid CLI arguments")
@@ -38,12 +38,12 @@ func runCLI(ctx context.Context, args []string, stdout io.Writer, runServer serv
 }
 
 func helpText() string {
-	return `fileserver-mcp
+	return `flashgate-mcp
 
 Usage:
-  fileserver-mcp
-  fileserver-mcp --version
-  fileserver-mcp --help
+  flashgate-mcp
+  flashgate-mcp --version
+  flashgate-mcp --help
 
 Environment:
   MCP_ROOT    Root directory exposed to MCP clients

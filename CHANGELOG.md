@@ -6,6 +6,19 @@ The format follows the spirit of [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+### Changed
+
+- Repository renamed to `flashgate-mcp`.
+- Go module renamed to `github.com/blacksheepkhan/flashgate-mcp` and internal imports updated.
+- Binary renamed to `flashgate-mcp`; scripts, workflows, release artifacts, tests, and documentation updated.
+- MCP server implementation name (`serverInfo.name`) changed to `flashgate`.
+- Local project folder, clone instructions, and remote instructions updated.
+
+### Migration
+
+- See [technical rename to FlashGate](docs/technical-rename-to-flashgate-2026-07-11.md).
+- No MCP tool-contract or runtime-security change was made; existing `MCP_*` variables remain unchanged.
+
 ### Added
 
 - FlashGate MCP project identity and transition documentation.

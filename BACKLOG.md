@@ -2,7 +2,7 @@
 
 This is the authoritative planning and steering document for FlashGate MCP.
 
-The public project name is FlashGate MCP from Sprint 3.41. The repository, local directory, Go module, binary, MCP server implementation name (`serverInfo.name`), scripts, workflows, and machine-readable catalog still use the technical identifier `fileserver-mcp` until Sprint 3.42. No technical rename is performed in Sprint 3.41.
+FlashGate MCP uses repository `blacksheepkhan/flashgate-mcp`, local directory `flashgate-mcp`, Go module `github.com/blacksheepkhan/flashgate-mcp`, binary `flashgate-mcp`, and MCP server implementation name (`serverInfo.name`) `flashgate`. Sprint 3.42 completed this technical rename without functional changes.
 
 ## Working rules
 
@@ -353,23 +353,23 @@ Sprint 3.44 replaces the former Sprint 3.41 Codex preparation plan and must use 
 
 | ID | Status | Task | Scope and acceptance notes |
 |---|---|---|---|
-| BL-227 | Planned | Rename local folder to `flashgate-mcp` | User-coordinated move after clean review |
-| BL-228 | Planned | Rename GitHub repository to `flashgate-mcp` | Manual owner action documented |
-| BL-229 | Planned | Update Git remote URL | Verify fetch/push and redirects; no auth change |
-| BL-230 | Planned | Update Go module and imports | `github.com/blacksheepkhan/flashgate-mcp` |
-| BL-231 | Planned | Rename binary to `flashgate-mcp` | Windows/Linux build and usage |
-| BL-232 | Planned | Change MCP server implementation name (`serverInfo.name`) to `flashgate` | Initialize response and tests |
-| BL-233 | Planned | Review package and command paths | Avoid unrelated refactoring |
-| BL-234 | Planned | Update README, changelog, and documentation names | Preserve migration/history context |
-| BL-235 | Planned | Update PowerShell and Bash scripts | Paths, errors, examples, and smoke expectations |
-| BL-236 | Planned | Update CI and release artifact names | Workflows only in rename sprint |
-| BL-237 | Planned | Update installation and configuration examples | New folder and binary names |
-| BL-238 | Planned | Update smoke tests | Implementation name (`serverInfo.name`), binary, paths, and current tool names |
-| BL-239 | Planned | Search all files for legacy names | Classify every remaining occurrence |
-| BL-240 | Planned | Write technical rename migration note | Old/new repository, module, binary, implementation name (`serverInfo.name`), local folder |
-| BL-241 | Planned | Verify GitHub redirect behavior | Clone links, issues, releases, actions, and remote guidance |
-| BL-242 | Planned | Document manual repository rename action | Exact prerequisites, action, verification, and rollback guidance |
-| BL-243 | Planned | Keep rename sprint functionally neutral | No feature or tool-contract changes mixed in |
+| BL-227 | Done | Rename local folder to `flashgate-mcp` | Manually completed before Sprint 3.42 implementation |
+| BL-228 | Done | Rename GitHub repository to `flashgate-mcp` | Manually completed before Sprint 3.42 implementation |
+| BL-229 | Done | Update Git remote URL | Remote verified with fetch and redirect checks |
+| BL-230 | Done | Update Go module and imports | `github.com/blacksheepkhan/flashgate-mcp` |
+| BL-231 | Done | Rename binary to `flashgate-mcp` | Windows/Linux build and usage updated |
+| BL-232 | Done | Change MCP server implementation name (`serverInfo.name`) to `flashgate` | Initialize response and smoke tests updated |
+| BL-233 | Done | Review package and command paths | `cmd/server` retained as a generic internal command path |
+| BL-234 | Done | Update README, changelog, and documentation names | Migration/history context preserved |
+| BL-235 | Done | Update PowerShell and Bash scripts | Paths, errors, examples, and smoke expectations updated |
+| BL-236 | Done | Update CI and release artifact names | Workflows updated without unrelated modernization |
+| BL-237 | Done | Update installation and configuration examples | New folder and binary names documented |
+| BL-238 | Done | Update smoke tests | Implementation name (`serverInfo.name`), binary, paths, and current tool names validated |
+| BL-239 | Done | Search all files for legacy names | Remaining occurrences classified as historical or migration guidance |
+| BL-240 | Done | Write technical rename migration note | Old/new repository, module, binary, implementation name (`serverInfo.name`), local folder |
+| BL-241 | Done | Verify GitHub redirect behavior | New path, remote, fetch, and legacy URL redirect verified |
+| BL-242 | Done | Document manual repository rename action | See dated migration note: clean-main/origin/auth/target/remote preconditions; GitHub rename, remote/default/folder actions and separate technical branch; view/remote/fetch/main/reachability/redirect/history/path verification; failure/rollback without force-pushes or old-name reuse |
+| BL-243 | Done | Keep rename sprint functionally neutral | No feature or tool-contract changes mixed in |
 
 ### Sprint 3.43 pre-1.0 tool contract cleanup
 

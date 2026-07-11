@@ -1,10 +1,10 @@
-﻿# MCP Tool Conventions
+# MCP Tool Conventions
 
-This document defines the conventions used by FlashGate MCP. The current technical implementation remains `fileserver-mcp` until Sprint 3.42.
+This document defines the conventions used by FlashGate MCP. Sprint 3.42 completed the technical rename; the binary is `flashgate-mcp` and the MCP server implementation name (`serverInfo.name`) is `flashgate`.
 
 ## Transport
 
-`fileserver-mcp` uses MCP over JSON-RPC via STDIO.
+`flashgate-mcp` uses MCP over JSON-RPC via STDIO.
 
 Standard output is reserved for JSON-RPC protocol messages. Diagnostic output, logs, and process errors must be written to standard error.
 

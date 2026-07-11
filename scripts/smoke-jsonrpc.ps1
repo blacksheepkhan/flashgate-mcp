@@ -1,14 +1,14 @@
 ﻿$ErrorActionPreference = "Stop"
 
 $repoRoot = Resolve-Path "$PSScriptRoot\.."
-$binaryPath = Join-Path $repoRoot "build\fileserver-mcp.exe"
+$binaryPath = Join-Path $repoRoot "build\flashgate-mcp.exe"
 $buildDir = Join-Path $repoRoot "build"
 $stamp = "{0}-{1}" -f ([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()), $PID
 $requestPath = Join-Path $buildDir "smoke-jsonrpc-$stamp-request.jsonl"
 $responsePath = Join-Path $buildDir "smoke-jsonrpc-$stamp-response.jsonl"
 
 if (-not (Test-Path $binaryPath)) {
-    throw "Binary not found: $binaryPath. Run: go build -o build/fileserver-mcp.exe ./cmd/server"
+    throw "Binary not found: $binaryPath. Run: go build -o build/flashgate-mcp.exe ./cmd/server"
 }
 
 $env:MCP_ROOT = $repoRoot
@@ -44,6 +44,10 @@ try {
 
     if (-not $initialize.result.protocolVersion) {
         throw "Initialize response does not contain protocolVersion"
+    }
+
+    if ($initialize.result.serverInfo.name -ne "flashgate") {
+        throw "Expected serverInfo.name flashgate, got $($initialize.result.serverInfo.name)"
     }
 
     if ($toolsList.id -ne 2) {

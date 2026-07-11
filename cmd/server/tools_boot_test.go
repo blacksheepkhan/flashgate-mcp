@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/blacksheepkhan/fileserver-mcp/internal/fs"
+	"github.com/blacksheepkhan/flashgate-mcp/internal/fs"
 )
 
 func TestCreateToolRegistryRegistersExpectedToolsInOrder(t *testing.T) {

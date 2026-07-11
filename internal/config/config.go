@@ -29,7 +29,7 @@ const (
 	defaultMaxListEntries   = 1000
 	defaultMaxCopyBytes     = int64(10 * 1024 * 1024) // 10 MiB
 	defaultMaxDeleteEntries = 1000
-	defaultServerName       = "fileserver-mcp"
+	defaultServerName       = "flashgate"
 	defaultVersion          = "0.1.0-dev"
 	defaultMaxMessageBytes  = int64(16 * 1024 * 1024) // 16 MiB
 	defaultMaxArgumentBytes = int64(12 * 1024 * 1024) // 12 MiB

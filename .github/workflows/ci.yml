@@ -51,9 +51,9 @@ jobs:
           mkdir -p build
 
           if [ "$RUNNER_OS" = "Windows" ]; then
-            go build -o build/fileserver-mcp.exe ./cmd/server
+            go build -o build/flashgate-mcp.exe ./cmd/server
           else
-            go build -o build/fileserver-mcp ./cmd/server
+            go build -o build/flashgate-mcp ./cmd/server
           fi
 
       - name: JSON-RPC smoke test (Ubuntu)
