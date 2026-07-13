@@ -8,6 +8,11 @@ The format follows the spirit of [Keep a Changelog](https://keepachangelog.com/)
 
 ### Changed
 
+- Sprint 3.45a wraps every successful filesystem `tools/call` result in an MCP 2025-11-25 `CallToolResult` with one compact JSON `TextContent` block and the same domain object in `structuredContent`.
+- All eight filesystem tools use one central adapter wrapper; internal filesystem and domain result types remain protocol-independent.
+- Windows and Bash positive STDIO smokes now strictly validate the outer `CallToolResult` and assert domain values through `structuredContent`.
+- The existing safe JSON-RPC tool-error contract remains unchanged; normalized `isError=true` migration stays planned under BL-203.
+- Runtime `outputSchema` remains a separate all-eight-tool Sprint 3.45 gate.
 - Sprint 3.44 requires an explicit absolute `MCP_ROOT`; missing, empty, whitespace-only, and general relative roots now fail closed before tool registration or JSON-RPC processing.
 - `MCP_ROOT=.` now requires the explicit lowercase `MCP_ALLOW_CWD_ROOT=true` development opt-in and emits one safe stderr warning.
 - Root startup validates existence, policy, canonical resolution, and directory type before exposing tools.
@@ -24,6 +29,8 @@ The format follows the spirit of [Keep a Changelog](https://keepachangelog.com/)
 
 ### Migration
 
+- See [CallToolResult contract migration](docs/call-tool-result-contract-2026-07-12.md). Clients must read successful domain values from `structuredContent` or parse the compact JSON text block; direct domain fields no longer occupy the outer JSON-RPC `result`.
+
 - See [fail-closed root configuration](docs/fail-closed-root-configuration-2026-07-11.md). Clients must set an explicit absolute root; development CWD use requires the new opt-in.
 - See [filesystem tool contract cleanup](docs/filesystem-tool-contract-cleanup-2026-07-11.md). The old pre-1.0 tool names were removed without aliases; clients and smoke tests must use the eight-tool baseline.
 - Sprint 3.43 does not change `MCP_*` names, root defaults, capability policy, or the MCP protocol revision.
@@ -31,6 +38,9 @@ The format follows the spirit of [Keep a Changelog](https://keepachangelog.com/)
 - No MCP tool-contract or runtime-security change was made; existing `MCP_*` variables remain unchanged.
 
 ### Added
+
+- Sprint 3.45a adds explicit `TextContent` and `CallToolResult` protocol DTOs, a strict project-local decoder with legacy unwrapped negative fixtures, full success/error wire tests, and reproducible tool-result serialization benchmarks.
+- A dated benchmark baseline records historical, text-only, and text-plus-structured payload/runtime/allocation costs without CI budgets.
 
 - Sprint 3.44 categorized startup configuration errors, exit-code tests, Windows/Linux startup-negative smokes, and a Codex read-only activation/rollback guide.
 - FlashGate MCP project identity and transition documentation.
@@ -141,6 +151,8 @@ The format follows the spirit of [Keep a Changelog](https://keepachangelog.com/)
   - `actions/upload-artifact@v6`
 
 ### Fixed
+
+- Fixed successful FlashGate tool responses that strict MCP clients such as Codex rejected as `Unexpected response type` because domain objects were returned directly instead of inside `CallToolResult.content[]`.
 
 - Stabilized golangci-lint execution in CI by installing the expected linter version.
 - Removed Node.js 20 deprecation annotations from CI and release workflows.

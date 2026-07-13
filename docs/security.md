@@ -198,6 +198,8 @@ Notifications do not receive JSON-RPC responses. `notifications/initialized` is 
 
 Unexpected handler panics are contained at the request boundary and returned as generic Internal error responses when the request requires a response.
 
+Every successful filesystem `tools/call` now crosses one central adapter boundary into MCP `CallToolResult`. The required outer `content` is a text-block array, and `structuredContent` repeats the same already-serialized domain object. The wrapper adds no resolved host paths and leaves the filesystem core protocol-independent. Existing safe JSON-RPC error classification is intentionally unchanged in Sprint 3.45a; BL-203 owns a later complete `isError=true` migration.
+
 ## Limits and Redaction
 
 Sprint 3.39 adds configurable hard limits for protocol input, tool arguments, filesystem payloads, and response size.
@@ -244,6 +246,7 @@ Security tests currently cover:
 - JSON-RPC message and tool argument limits
 - filesystem read/write/list/copy/delete limits
 - response-size safety net
+- strict successful `CallToolResult` envelope and text/structured parity without host-path additions
 - diagnostics redaction
 
 Startup preflight completes before any tool Registry, Router or MCP server is created. Normal starts remain silent; diagnostics never share JSON-RPC stdout.

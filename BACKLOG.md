@@ -310,18 +310,18 @@ Sprint 3.44 replaces the former Sprint 3.41 Codex preparation plan and must use 
 | BL-191 | Planned | Measure peak memory, CPU time, and allocations | Representative operations and concurrency |
 | BL-192 | Planned | Measure p50 and p95 latency | Reference calls and workflows |
 | BL-193 | Planned | Record scanned, read, and written bytes | Server-side primary counters |
-| BL-194 | Planned | Measure serialized result sizes | Bytes, characters, entries, and results |
+| BL-194 | Planned | Measure serialized result sizes | Sprint 3.45a records initial historical/text/text-plus-structured payload bytes for six result fixtures; broader characters/entries/results coverage remains planned |
 | BL-195 | Planned | Measure `tools/list` size | Bytes and schema count by profile |
 | BL-196 | Planned | Measure calls per reference workflow | Local-operation versus model-round-trip comparisons |
 | BL-197 | Planned | Add optional schema/response token approximation | Supplemental, not primary, metric |
-| BL-198 | Planned | Establish benchmark baselines | Versioned environment and reproducibility notes |
+| BL-198 | Planned | Establish benchmark baselines | Sprint 3.45a adds a versioned tool-result-contract baseline; broader sprint startup/resource/latency baselines remain planned |
 | BL-199 | Planned | Define CI regression budgets | Noise-aware thresholds and review path |
 | BL-200 | Planned | Add MCP `outputSchema` | Contract foundation after cleanup |
-| BL-201 | Planned | Add MCP `structuredContent` | Align runtime results and declared schema |
+| BL-201 | Done | Add MCP `CallToolResult` foundation and `structuredContent` | All eight successful filesystem tools use one central text-plus-structured wrapper with deterministic parity, strict decoder/wire tests, corrected smokes, and no runtime `outputSchema` |
 | BL-202 | Planned | Review MCP tool annotations | Accurate metadata, never authorization |
 | BL-203 | Planned | Define normalized machine-readable errors | Stable categories without raw OS leakage |
-| BL-204 | Planned | Evaluate official MCP conformance testing and add schema snapshots | Evaluate official conformance tooling; snapshot names, required fields, descriptions, input/output schemas |
-| BL-205 | Planned | Add response-size regression tests | Representative success/error results |
+| BL-204 | Planned | Evaluate official MCP conformance testing and add schema snapshots | Sprint 3.45a adds a strict local `CallToolResult` decoder and legacy negative fixtures; official tooling plus full input/output schema snapshots remain planned |
+| BL-205 | Planned | Add response-size regression tests | Sprint 3.45a benchmarks representative success payload sizes without hard budgets; persistent success/error regression gates remain planned |
 | BL-206 | Planned | Document local deterministic work principle | Prefer local copy/edit/hash/search over model retransmission |
 | BL-207 | Planned | Define supported MCP protocol-version strategy | Keep core version-independent; negotiation and compatibility tests for each advertised revision; current implementation remains `2025-11-25` |
 | BL-208 | Planned | Define MCP extension-negotiation strategy | Official vendor-prefix/slash identifiers, capability negotiation, downgrade/mismatch tests, no authorization implication |
@@ -413,7 +413,7 @@ Sprint 3.44 replaces the former Sprint 3.41 Codex preparation plan and must use 
 | BL-269 | Planned | Keep BACKLOG updated each sprint | Canonical IDs, sprint refs, migration rule, completed status |
 | BL-270 | Planned | Maintain FlashGate project identity reference | Name, tagline, scope, transition, planned identifiers |
 | BL-271 | Planned | Maintain architecture and ADRs | Current/target/planned/deferred separation |
-| BL-272 | Planned | Document benchmark method and baselines | Environments, noise, budgets, results |
+| BL-272 | Planned | Document benchmark method and baselines | Sprint 3.45a documents the tool-result-contract subset and single-machine noise limits; broader benchmark documentation remains planned |
 | BL-273 | Planned | Document capabilities, profiles, and named roots | Configuration and security model |
 | BL-274 | Planned | Document Operations/Job Manager | Handles, states, limits, lifecycle, cleanup |
 | BL-275 | Planned | Document process and execution security | Handles, PIDs, allowlists, isolation, redaction |

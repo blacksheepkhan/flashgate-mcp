@@ -130,7 +130,7 @@ On Linux:
 bash scripts/smoke-startup-negative.sh
 ```
 
-The default smoke test validates `initialize`, the exact eight-tool `tools/list`, `list_directory`, `get_path_info` for existing and missing paths, and `move_path` rename behavior. The read-only variant verifies the exact three-tool profile and invokes all five write-capable names, requiring the same generic Invalid params response without filesystem changes. The negative smoke validates all five removed legacy names in addition to malformed JSON, unknown methods, invalid `tools/call` params, and notification no-response behavior.
+The default smoke test validates `initialize`, the exact eight-tool `tools/list`, `list_directory`, `read_file`, `get_path_info` for existing and missing paths, and `move_path` rename behavior. Every positive result must have only the `CallToolResult` envelope fields, exactly one text block with only `type` and `text`, valid compact object JSON, and a deeply equal `structuredContent` object. The read-only variant verifies the exact three-tool profile and invokes all five write-capable names, requiring the same generic Invalid params response without filesystem changes. The negative smoke validates all five removed legacy names in addition to malformed JSON, unknown methods, invalid `tools/call` params, and notification no-response behavior.
 
 The startup-negative smoke covers missing/empty/whitespace/relative roots, `.` with and without the development opt-in, invalid development/read-only values, missing and file roots, a valid absolute root, exit codes, empty stdout, safe stderr categories and cleanup.
 
@@ -140,9 +140,11 @@ Limit and redaction behavior is primarily covered by Go unit tests. Additional l
 
 Focused contract tests compare runtime tool definitions with `docs/mcp-tool-catalog.json` for name, title, description, and the complete input schema. Filesystem tests cover Missing normalization, truthful directory creation, same-path/SameFile protection, overwrite type combinations, lexical and effective self-subtree rejection, target-state revalidation, deterministic cross-volume no-fallback behavior, and platform error classification.
 
-### Planned MCP Compatibility Testing
+### MCP Compatibility Testing
 
-The implemented protocol remains MCP `2025-11-25`. Future protocol or extension support requires version-negotiation, extension-negotiation, client fallback, and compatibility tests before it is advertised. Future input and output schemas will be validated against JSON Schema 2020-12, and official MCP conformance tooling will be evaluated. These checks are planned in Sprint 3.45 and are not current implementation claims.
+The implemented protocol remains MCP `2025-11-25`. Sprint 3.45a adds explicit `CallToolResult` DTO tests, a strict project-local decoder, legacy unwrapped negative fixtures, all-eight-tool adapter coverage, and full JSON-RPC wire tests for success and the unchanged error contract. The decoder intentionally validates the exact FlashGate-emitted subset (one text block, required object `structuredContent`, optional boolean `isError`, no `_meta`) rather than claiming to decode every standard-conformant MCP result. Windows and Bash positive smokes enforce the same shape.
+
+Future protocol or extension support still requires version-negotiation, extension-negotiation, client fallback, and compatibility tests before it is advertised. Runtime output schemas and their JSON Schema 2020-12 validation remain the next separate gate; official MCP conformance tooling remains under evaluation.
 
 ### Benchmarks
 
@@ -151,6 +153,7 @@ Benchmarks will be added for performance-sensitive operations such as:
 - directory listing
 - file reading
 - file copying
+- tool-result wrapping and serialized payload forms
 - search
 
 Benchmark command:

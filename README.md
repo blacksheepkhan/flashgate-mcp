@@ -13,7 +13,7 @@ It exposes secure filesystem operations to MCP-compatible clients through JSON-R
 
 ## Status
 
-The project currently implements the core MCP server loop, JSON-RPC routing and request validation, tool discovery, tool execution, filesystem abstraction, root-confined path handling, read-only tool gating, tests, and documentation.
+The project currently implements the core MCP server loop, JSON-RPC routing and request validation, tool discovery, tool execution, MCP-conformant `CallToolResult` wrapping, filesystem abstraction, root-confined path handling, read-only tool gating, tests, and documentation.
 
 The current implemented scope is filesystem operations. Search, process observation and management, allowlisted command execution, controlled system information, named roots, general capability profiles, and the Operations/Job Manager are accepted target architecture and remain planned work.
 
@@ -79,7 +79,9 @@ tools/list
 tools/call
 ```
 
-Filesystem operations are exposed as MCP tools and invoked through `tools/call`.
+Filesystem operations are exposed as MCP tools and invoked through `tools/call`. Every successful call is wrapped centrally as MCP `CallToolResult`: `content` contains exactly one text block with compact JSON, while `structuredContent` contains the same domain object. This applies to all eight tools, including the `read_file` domain field named `content`; only the outer MCP `content` is an array.
+
+Runtime `outputSchema` is not exposed yet. The static catalog `resultSchema` values document domain results and are the basis for the next separate Sprint 3.45 gate. The current safe JSON-RPC tool-error contract also remains unchanged pending BL-203.
 
 JSON-RPC request envelopes are validated before dispatch. Unsupported batch requests, invalid protocol versions, missing or invalid methods, invalid IDs, and malformed method params are rejected with generic JSON-RPC errors. Parse errors and invalid requests without a valid request ID serialize `id:null`. Notifications do not receive responses; `notifications/initialized` is accepted as a no-op, and other notifications are not executed.
 
@@ -183,7 +185,7 @@ docs/mcp-tool-catalog.json
 
 Preparation for a later, separately approved Codex read-only activation is documented in [docs/codex-read-only-activation.md](docs/codex-read-only-activation.md). Sprint 3.44 does not modify Codex configuration or register FlashGate as an MCP server.
 
-The catalog contains tool names, descriptions, input schemas, result schemas, and common error behavior.
+The catalog contains tool names, descriptions, input schemas, domain `resultSchema` values, the central `CallToolResult` envelope description, and common error behavior. Its result schemas are not yet advertised as runtime `outputSchema`.
 
 ## Project Planning
 
@@ -309,7 +311,7 @@ initialize
 tools/list
 ```
 
-The script also validates the negotiated protocol version and the registered MCP tool list.
+The script also validates the negotiated protocol version, the registered MCP tool list, and every positive `tools/call` result as text-plus-`structuredContent` with deterministic semantic parity.
 
 Run the negative JSON-RPC smoke test on Windows:
 

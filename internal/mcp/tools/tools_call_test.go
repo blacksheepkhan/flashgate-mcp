@@ -2,9 +2,12 @@ package tools
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 
+	"github.com/blacksheepkhan/flashgate-mcp/internal/fs"
 	"github.com/blacksheepkhan/flashgate-mcp/internal/mcp/handlers"
+	"github.com/blacksheepkhan/flashgate-mcp/internal/mcptest"
 	"github.com/blacksheepkhan/flashgate-mcp/internal/protocol"
 )
 
@@ -40,14 +43,11 @@ func TestCallHandlerCallsRegisteredTool(t *testing.T) {
 		t.Fatalf("expected arguments to be forwarded unchanged, got %s", string(tool.arguments))
 	}
 
-	resultMap, ok := result.(map[string]any)
+	callResult, ok := result.(protocol.CallToolResult)
 	if !ok {
-		t.Fatalf("expected result map, got %#v", result)
+		t.Fatalf("expected CallToolResult, got %#v", result)
 	}
-
-	if resultMap["ok"] != true {
-		t.Fatalf("expected ok=true, got %#v", resultMap["ok"])
-	}
+	assertWrappedToolResult(t, callResult, map[string]any{"ok": true})
 }
 
 func TestCallHandlerReturnsInvalidParamsForUnknownTool(t *testing.T) {
@@ -255,5 +255,111 @@ func TestCallHandlerMethod(t *testing.T) {
 
 	if handler.Method() != "tools/call" {
 		t.Fatalf("expected tools/call, got %q", handler.Method())
+	}
+}
+func TestWrapSuccessfulToolResultCoversAllFilesystemResultForms(t *testing.T) {
+	tests := map[string]any{
+		"list_directory":         listDirectoryResult{Entries: []fs.Entry{{Name: "Folder With Spaces", IsDir: true}, {Name: "grüße.txt", Size: 7}}},
+		"read_file":              readFileResult{Content: "line 1\nUnicode ÄÖÜ and folder\\relative\\file.txt", Size: 50},
+		"get_path_info existing": getPathInfoExistingResult{Path: "Folder With Spaces\\grüße.txt", Exists: true, Name: "grüße.txt", Size: 7},
+		"get_path_info missing":  getPathInfoMissingResult{Path: "does-not-exist.txt", Exists: false},
+		"write_file":             writeFileResult{Path: "output file.txt", Size: 4, Written: true},
+		"create_directory":       createDirectoryResult{Path: "new directory", Created: true},
+		"delete_path":            deletePathResult{Path: "old.txt", Deleted: true},
+		"copy_path":              copyPathResult{Source: "source.txt", Target: "target.txt", Copied: true},
+		"move_path":              movePathResult{Source: "old.txt", Target: "new.txt", Moved: true},
+		"empty directory":        listDirectoryResult{Entries: []fs.Entry{}},
+		"empty file":             readFileResult{Content: "", Size: 0},
+	}
+
+	for name, domainResult := range tests {
+		t.Run(name, func(t *testing.T) {
+			wrapped, rpcErr := wrapSuccessfulToolResult(domainResult)
+			if rpcErr != nil {
+				t.Fatalf("unexpected error: %#v", rpcErr)
+			}
+			assertWrappedToolResult(t, wrapped, domainResult)
+		})
+	}
+}
+
+func TestWrapSuccessfulToolResultRejectsUnsafeValues(t *testing.T) {
+	alreadyWrapped, err := protocol.NewCallToolResult(json.RawMessage(`{"ok":true}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	tests := []any{
+		map[string]any{"invalid": func() {}},
+		[]string{"not", "an", "object"},
+		nil,
+		(*listDirectoryResult)(nil),
+		alreadyWrapped,
+		&alreadyWrapped,
+	}
+	for _, value := range tests {
+		result, rpcErr := wrapSuccessfulToolResult(value)
+		if rpcErr == nil || rpcErr.Code != protocol.ErrInternalError || rpcErr.Message != "internal error" {
+			t.Fatalf("expected safe Internal error for %#v, result=%#v error=%#v", value, result, rpcErr)
+		}
+	}
+}
+
+func TestCallHandlerReturnsSafeInternalErrorForSerializationFailure(t *testing.T) {
+	registry := NewRegistry()
+	registry.Register(&testTool{name: "test_tool", result: map[string]any{"invalid": func() {}}})
+
+	result, rpcErr := NewCallHandler(registry).Handle(
+		handlers.Context{}, json.RawMessage(`{"name":"test_tool","arguments":{}}`),
+	)
+	if result != nil {
+		t.Fatalf("expected nil result, got %#v", result)
+	}
+	if rpcErr == nil || rpcErr.Code != protocol.ErrInternalError || rpcErr.Message != "internal error" {
+		t.Fatalf("expected safe Internal error, got %#v", rpcErr)
+	}
+}
+
+func assertWrappedToolResult(t *testing.T, result protocol.CallToolResult, expected any) {
+	t.Helper()
+	if result.Content == nil || len(result.Content) != 1 {
+		t.Fatalf("expected exactly one content block, got %#v", result.Content)
+	}
+	if result.Content[0].Type != "text" {
+		t.Fatalf("expected text content, got %#v", result.Content[0])
+	}
+	if result.IsError {
+		t.Fatal("successful result must not set isError")
+	}
+
+	encoded, err := json.Marshal(result)
+	if err != nil {
+		t.Fatal(err)
+	}
+	decoded, err := mcptest.DecodeCallToolResult(encoded)
+	if err != nil {
+		t.Fatalf("strict CallToolResult validation failed: %v; JSON=%s", err, encoded)
+	}
+	if !decoded.HasStructuredContent || decoded.IsError {
+		t.Fatalf("unexpected strict result: %#v", decoded)
+	}
+
+	expectedJSON, err := json.Marshal(expected)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var expectedValue any
+	if err := json.Unmarshal(expectedJSON, &expectedValue); err != nil {
+		t.Fatal(err)
+	}
+	actualJSON, err := json.Marshal(decoded.StructuredContent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var actualValue any
+	if err := json.Unmarshal(actualJSON, &actualValue); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(actualValue, expectedValue) {
+		t.Fatalf("structured result differs: actual=%#v expected=%#v", actualValue, expectedValue)
 	}
 }

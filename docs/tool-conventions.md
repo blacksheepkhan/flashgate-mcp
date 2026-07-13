@@ -36,13 +36,15 @@ Each tool owns a compact definition containing:
 
 `docs/mcp-tool-catalog.json` is the static contract view. A focused contract test compares runtime and catalog name, title, description, and the complete input schema without introducing a general schema engine.
 
-Result schemas remain documentation in Sprint 3.43. Runtime `outputSchema`, `structuredContent`, and a general JSON Schema 2020-12 migration remain later work.
+The catalog `resultSchema` values describe typed domain results. Sprint 3.45a does not expose them as runtime `outputSchema`; that remains one separate all-eight-tool gate.
+
+Every successful `tools/call` uses the central MCP adapter wrapper. The outer result is `CallToolResult` with exactly one `TextContent` block whose text is compact deterministic JSON and `structuredContent` containing the same object. No domain field is placed directly on the outer result. Productive results remain structs; Go's standard `encoding/json` provides deterministic struct-field output and sorted map keys if a map is ever used.
 
 ## Path and result conventions
 
 All client paths are relative to the configured root. Results may echo the public relative path supplied by the client; they must never expose the PathGuard-resolved absolute host path.
 
-`get_path_info` reports genuine absence as a successful `{path, exists:false}` result. Existing paths include `name`, `isDir`, and `size`. Policy denials are never converted to absence.
+`get_path_info` reports genuine absence as a successful `{path, exists:false}` domain result inside both `CallToolResult` representations, with no `isError=true`. Existing paths include `name`, `isDir`, and `size`. Policy denials are never converted to absence.
 
 `create_directory.created` is `true` only when the leaf directory was created by that call and `false` for an existing directory.
 

@@ -49,23 +49,24 @@ cat > "${REQUEST_PATH}" <<'JSONRPC'
 {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"smoke-test","version":"dev"}}}
 {"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}
 {"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"list_directory","arguments":{}}}
-{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"get_path_info","arguments":{"path":"README.md"}}}
-{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"get_path_info","arguments":{"path":"smoke-missing-path"}}}
+{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"read_file","arguments":{"path":"README.md"}}}
+{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"get_path_info","arguments":{"path":"README.md"}}}
+{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"get_path_info","arguments":{"path":"smoke-missing-path"}}}
 JSONRPC
 
 if [[ "${MCP_READ_ONLY:-}" != "true" ]]; then
   printf '%s' 'move-smoke' > "${MOVE_SOURCE_PATH}"
-  printf '%s\n' "{\"jsonrpc\":\"2.0\",\"id\":6,\"method\":\"tools/call\",\"params\":{\"name\":\"move_path\",\"arguments\":{\"source\":\"${MOVE_SOURCE_RELATIVE}\",\"target\":\"${MOVE_TARGET_RELATIVE}\"}}}" >> "${REQUEST_PATH}"
+  printf '%s\n' "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"move_path\",\"arguments\":{\"source\":\"${MOVE_SOURCE_RELATIVE}\",\"target\":\"${MOVE_TARGET_RELATIVE}\"}}}" >> "${REQUEST_PATH}"
 else
   printf '%s' 'read-only-smoke-fixture' > "${READ_ONLY_DELETE_PATH}"
   printf '%s' 'read-only-smoke-fixture' > "${READ_ONLY_COPY_SOURCE_PATH}"
   printf '%s' 'read-only-smoke-fixture' > "${READ_ONLY_MOVE_SOURCE_PATH}"
   cat >> "${REQUEST_PATH}" <<JSONRPC
-{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"write_file","arguments":{"path":"${READ_ONLY_WRITE_RELATIVE}","content":"blocked"}}}
-{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"create_directory","arguments":{"path":"${READ_ONLY_CREATE_RELATIVE}"}}}
-{"jsonrpc":"2.0","id":8,"method":"tools/call","params":{"name":"delete_path","arguments":{"path":"${READ_ONLY_DELETE_RELATIVE}"}}}
-{"jsonrpc":"2.0","id":9,"method":"tools/call","params":{"name":"copy_path","arguments":{"source":"${READ_ONLY_COPY_SOURCE_RELATIVE}","target":"${READ_ONLY_COPY_TARGET_RELATIVE}"}}}
-{"jsonrpc":"2.0","id":10,"method":"tools/call","params":{"name":"move_path","arguments":{"source":"${READ_ONLY_MOVE_SOURCE_RELATIVE}","target":"${READ_ONLY_MOVE_TARGET_RELATIVE}"}}}
+{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"write_file","arguments":{"path":"${READ_ONLY_WRITE_RELATIVE}","content":"blocked"}}}
+{"jsonrpc":"2.0","id":8,"method":"tools/call","params":{"name":"create_directory","arguments":{"path":"${READ_ONLY_CREATE_RELATIVE}"}}}
+{"jsonrpc":"2.0","id":9,"method":"tools/call","params":{"name":"delete_path","arguments":{"path":"${READ_ONLY_DELETE_RELATIVE}"}}}
+{"jsonrpc":"2.0","id":10,"method":"tools/call","params":{"name":"copy_path","arguments":{"source":"${READ_ONLY_COPY_SOURCE_RELATIVE}","target":"${READ_ONLY_COPY_TARGET_RELATIVE}"}}}
+{"jsonrpc":"2.0","id":11,"method":"tools/call","params":{"name":"move_path","arguments":{"source":"${READ_ONLY_MOVE_SOURCE_RELATIVE}","target":"${READ_ONLY_MOVE_TARGET_RELATIVE}"}}}
 JSONRPC
 fi
 
@@ -82,15 +83,16 @@ move_target_path = sys.argv[2]
 with open(response_path, "r", encoding="utf-8") as handle:
     responses = [json.loads(line) for line in handle if line.strip()]
 
-expected_response_count = 10 if os.environ.get("MCP_READ_ONLY") == "true" else 6
+expected_response_count = 11 if os.environ.get("MCP_READ_ONLY") == "true" else 7
 if len(responses) != expected_response_count:
     raise SystemExit(f"Expected {expected_response_count} JSON-RPC responses, got {len(responses)}. Response file: {response_path}")
 
 initialize = responses[0]
 tools_list = responses[1]
 list_directory = responses[2]
-existing_path_info = responses[3]
-missing_path_info = responses[4]
+read_file = responses[3]
+existing_path_info = responses[4]
+missing_path_info = responses[5]
 
 if initialize.get("id") != 1:
     raise SystemExit(f"Expected initialize response id 1, got {initialize.get('id')}")
@@ -144,20 +146,57 @@ if tool_names != expected_tools:
         f"Unexpected tool order. Expected: {', '.join(expected_tools)}. Actual: {', '.join(tool_names)}"
     )
 
-if list_directory.get("id") != 3 or "entries" not in list_directory.get("result", {}):
+def decode_call_tool_result(response, expected_id):
+    if response.get("id") != expected_id or "error" in response or not isinstance(response.get("result"), dict):
+        raise SystemExit(f"Expected successful tools/call response id {expected_id}")
+    result = response["result"]
+    allowed_fields = {"content", "structuredContent", "isError"}
+    unexpected = set(result) - allowed_fields
+    if unexpected:
+        raise SystemExit(f"tools/call result id {expected_id} has unexpected fields: {sorted(unexpected)}")
+    content = result.get("content")
+    if not isinstance(content, list) or len(content) != 1:
+        raise SystemExit(f"tools/call result id {expected_id} content must contain exactly one block")
+    decoded_text = None
+    for block in content:
+        if not isinstance(block, dict) or set(block) != {"type", "text"}:
+            raise SystemExit(f"tools/call result id {expected_id} contains an invalid block")
+        if block.get("type") != "text" or not isinstance(block.get("text"), str):
+            raise SystemExit(f"tools/call result id {expected_id} contains an invalid text block")
+        value = json.loads(block["text"])
+        if not isinstance(value, dict):
+            raise SystemExit(f"tools/call result id {expected_id} text must encode an object")
+        if decoded_text is None:
+            decoded_text = value
+        elif value != decoded_text:
+            raise SystemExit(f"tools/call result id {expected_id} text blocks disagree")
+    structured = result.get("structuredContent")
+    if not isinstance(structured, dict) or decoded_text != structured:
+        raise SystemExit(f"tools/call result id {expected_id} text and structuredContent differ")
+    if result.get("isError", False) is not False:
+        raise SystemExit(f"tools/call result id {expected_id} unexpectedly has isError=true")
+    return structured
+
+list_result = decode_call_tool_result(list_directory, 3)
+read_result = decode_call_tool_result(read_file, 4)
+existing_result = decode_call_tool_result(existing_path_info, 5)
+missing_result = decode_call_tool_result(missing_path_info, 6)
+if not isinstance(list_result.get("entries"), list):
     raise SystemExit("list_directory did not return entries")
-if existing_path_info.get("id") != 4 or existing_path_info.get("result", {}).get("exists") is not True:
+if not isinstance(read_result.get("content"), str) or read_result.get("size", 0) <= 0:
+    raise SystemExit("read_file did not return content and size")
+if existing_result.get("exists") is not True or existing_result.get("path") != "README.md":
     raise SystemExit("get_path_info did not report README.md as existing")
-if missing_path_info.get("id") != 5 or missing_path_info.get("result") != {"path": "smoke-missing-path", "exists": False}:
+if missing_result != {"path": "smoke-missing-path", "exists": False}:
     raise SystemExit("get_path_info did not report the missing path correctly")
 if os.environ.get("MCP_READ_ONLY") != "true":
-    move_result = responses[5]
-    if move_result.get("id") != 6 or move_result.get("result", {}).get("moved") is not True:
+    move_result = decode_call_tool_result(responses[6], 7)
+    if move_result.get("moved") is not True:
         raise SystemExit("move_path did not return moved=true")
     if not os.path.isfile(move_target_path):
         raise SystemExit("move_path did not perform rename semantics")
 else:
-    for expected_id, response in enumerate(responses[5:10], start=6):
+    for expected_id, response in enumerate(responses[6:11], start=7):
         error = response.get("error", {})
         if response.get("id") != expected_id or error.get("code") != -32602 or error.get("message") != "invalid params":
             raise SystemExit(f"Expected read-only-gated write tool id {expected_id} to return generic Invalid params")

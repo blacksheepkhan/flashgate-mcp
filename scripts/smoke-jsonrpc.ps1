@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Stop"
 
 $repoRoot = Resolve-Path "$PSScriptRoot\.."
 $binaryPath = Join-Path $repoRoot "build\flashgate-mcp.exe"
@@ -33,6 +33,65 @@ $env:MCP_ROOT = $repoRoot
 
 New-Item -ItemType Directory -Path $buildDir -Force | Out-Null
 
+function Get-CallToolStructuredContent {
+    param(
+        [object]$Response,
+        [int]$ExpectedId
+    )
+
+    if ($Response.id -ne $ExpectedId -or
+        $Response.PSObject.Properties.Name -contains "error" -or
+        -not ($Response.result -is [PSCustomObject])) {
+        throw "Expected successful tools/call response id $ExpectedId"
+    }
+
+    $allowedFields = @("content", "structuredContent", "isError")
+    foreach ($field in $Response.result.PSObject.Properties.Name) {
+        if ($allowedFields -notcontains $field) {
+            throw "tools/call result id $ExpectedId contains unexpected top-level field '$field'"
+        }
+    }
+    if ($Response.result.PSObject.Properties.Name -notcontains "content" -or -not ($Response.result.content -is [System.Array])) {
+        throw "tools/call result id $ExpectedId content must be an array"
+    }
+    $blocks = @($Response.result.content)
+    if ($blocks.Count -ne 1) {
+        throw "tools/call result id $ExpectedId content must contain exactly one block"
+    }
+    foreach ($block in $blocks) {
+        $blockFields = @($block.PSObject.Properties.Name)
+        if (-not ($block -is [PSCustomObject]) -or
+            $blockFields.Count -ne 2 -or
+            $blockFields -notcontains "type" -or
+            $blockFields -notcontains "text" -or
+            $block.type -cne "text" -or
+            -not ($block.text -is [string])) {
+            throw "tools/call result id $ExpectedId contains an invalid text block"
+        }
+    }
+    if ($Response.result.PSObject.Properties.Name -notcontains "structuredContent" -or
+        -not ($Response.result.structuredContent -is [PSCustomObject])) {
+        throw "tools/call result id $ExpectedId structuredContent must be an object"
+    }
+    if ($Response.result.PSObject.Properties.Name -contains "isError") {
+        if (-not ($Response.result.isError -is [bool]) -or $Response.result.isError) {
+            throw "tools/call result id $ExpectedId contains an invalid success isError value"
+        }
+    }
+
+    $textValue = $blocks[0].text | ConvertFrom-Json
+    if (-not ($textValue -is [PSCustomObject])) {
+        throw "tools/call result id $ExpectedId text must encode an object"
+    }
+    $textJSON = $textValue | ConvertTo-Json -Compress -Depth 100
+    $structuredJSON = $Response.result.structuredContent | ConvertTo-Json -Compress -Depth 100
+    if ($textJSON -cne $structuredJSON) {
+        throw "tools/call result id $ExpectedId text and structuredContent differ"
+    }
+
+    return $Response.result.structuredContent
+}
+
 try {
     if ($env:MCP_READ_ONLY -eq "true") {
         foreach ($fixturePath in @($readOnlyDeletePath, $readOnlyCopySourcePath, $readOnlyMoveSourcePath)) {
@@ -44,20 +103,21 @@ try {
         '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"smoke-test","version":"dev"}}}'
         '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}'
         '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"list_directory","arguments":{}}}'
-        '{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"get_path_info","arguments":{"path":"README.md"}}}'
-        '{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"get_path_info","arguments":{"path":"smoke-missing-path"}}}'
+        '{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"read_file","arguments":{"path":"README.md"}}}'
+        '{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"get_path_info","arguments":{"path":"README.md"}}}'
+        '{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"get_path_info","arguments":{"path":"smoke-missing-path"}}}'
     )
 
     if ($env:MCP_READ_ONLY -ne "true") {
         [System.IO.File]::WriteAllText($moveSourcePath, "move-smoke", [System.Text.UTF8Encoding]::new($false))
-        $requests += '{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"move_path","arguments":{"source":"' + $moveSourceRelative + '","target":"' + $moveTargetRelative + '"}}}'
+        $requests += '{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"move_path","arguments":{"source":"' + $moveSourceRelative + '","target":"' + $moveTargetRelative + '"}}}'
     } else {
         $requests += @(
-            ('{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"write_file","arguments":{"path":"' + $readOnlyWriteRelative + '","content":"blocked"}}}')
-            ('{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"create_directory","arguments":{"path":"' + $readOnlyCreateRelative + '"}}}')
-            ('{"jsonrpc":"2.0","id":8,"method":"tools/call","params":{"name":"delete_path","arguments":{"path":"' + $readOnlyDeleteRelative + '"}}}')
-            ('{"jsonrpc":"2.0","id":9,"method":"tools/call","params":{"name":"copy_path","arguments":{"source":"' + $readOnlyCopySourceRelative + '","target":"' + $readOnlyCopyTargetRelative + '"}}}')
-            ('{"jsonrpc":"2.0","id":10,"method":"tools/call","params":{"name":"move_path","arguments":{"source":"' + $readOnlyMoveSourceRelative + '","target":"' + $readOnlyMoveTargetRelative + '"}}}')
+            ('{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"write_file","arguments":{"path":"' + $readOnlyWriteRelative + '","content":"blocked"}}}')
+            ('{"jsonrpc":"2.0","id":8,"method":"tools/call","params":{"name":"create_directory","arguments":{"path":"' + $readOnlyCreateRelative + '"}}}')
+            ('{"jsonrpc":"2.0","id":9,"method":"tools/call","params":{"name":"delete_path","arguments":{"path":"' + $readOnlyDeleteRelative + '"}}}')
+            ('{"jsonrpc":"2.0","id":10,"method":"tools/call","params":{"name":"copy_path","arguments":{"source":"' + $readOnlyCopySourceRelative + '","target":"' + $readOnlyCopyTargetRelative + '"}}}')
+            ('{"jsonrpc":"2.0","id":11,"method":"tools/call","params":{"name":"move_path","arguments":{"source":"' + $readOnlyMoveSourceRelative + '","target":"' + $readOnlyMoveTargetRelative + '"}}}')
         )
     }
 
@@ -71,7 +131,7 @@ try {
 
     $responses = Get-Content $responsePath | Where-Object { $_.Trim().Length -gt 0 }
 
-    $expectedResponseCount = if ($env:MCP_READ_ONLY -eq "true") { 10 } else { 6 }
+    $expectedResponseCount = if ($env:MCP_READ_ONLY -eq "true") { 11 } else { 7 }
     if ($responses.Count -ne $expectedResponseCount) {
         throw "Expected $expectedResponseCount JSON-RPC responses, got $($responses.Count). Response file: $responsePath"
     }
@@ -79,8 +139,9 @@ try {
     $initialize = $responses[0] | ConvertFrom-Json
     $toolsList = $responses[1] | ConvertFrom-Json
     $listDirectory = $responses[2] | ConvertFrom-Json
-    $existingPathInfo = $responses[3] | ConvertFrom-Json
-    $missingPathInfo = $responses[4] | ConvertFrom-Json
+    $readFile = $responses[3] | ConvertFrom-Json
+    $existingPathInfo = $responses[4] | ConvertFrom-Json
+    $missingPathInfo = $responses[5] | ConvertFrom-Json
 
     if ($initialize.id -ne 1) {
         throw "Expected initialize response id 1, got $($initialize.id)"
@@ -136,25 +197,33 @@ try {
         }
     }
 
-    if ($listDirectory.id -ne 3 -or $null -eq $listDirectory.result.entries) {
+    $listResult = Get-CallToolStructuredContent -Response $listDirectory -ExpectedId 3
+    $readResult = Get-CallToolStructuredContent -Response $readFile -ExpectedId 4
+    $existingResult = Get-CallToolStructuredContent -Response $existingPathInfo -ExpectedId 5
+    $missingResult = Get-CallToolStructuredContent -Response $missingPathInfo -ExpectedId 6
+    if ($null -eq $listResult.entries) {
         throw "list_directory did not return entries"
     }
-    if ($existingPathInfo.id -ne 4 -or -not $existingPathInfo.result.exists -or $existingPathInfo.result.path -ne "README.md") {
+    if (-not ($readResult.content -is [string]) -or $readResult.size -le 0) {
+        throw "read_file did not return content and size"
+    }
+    if (-not $existingResult.exists -or $existingResult.path -ne "README.md") {
         throw "get_path_info did not report README.md as existing"
     }
-    if ($missingPathInfo.id -ne 5 -or $missingPathInfo.result.exists -or $missingPathInfo.result.path -ne "smoke-missing-path") {
+    if ($missingResult.exists -or $missingResult.path -ne "smoke-missing-path" -or @($missingResult.PSObject.Properties).Count -ne 2) {
         throw "get_path_info did not report the missing path correctly"
     }
     if ($env:MCP_READ_ONLY -ne "true") {
-        $moveResult = $responses[5] | ConvertFrom-Json
-        if ($moveResult.id -ne 6 -or -not $moveResult.result.moved -or -not (Test-Path -LiteralPath $moveTargetPath)) {
+        $moveResult = $responses[6] | ConvertFrom-Json
+        $moveStructured = Get-CallToolStructuredContent -Response $moveResult -ExpectedId 7
+        if (-not $moveStructured.moved -or -not (Test-Path -LiteralPath $moveTargetPath)) {
             throw "move_path did not perform rename semantics"
         }
     } else {
-        $writeToolResponses = @($responses[5..9] | ForEach-Object { $_ | ConvertFrom-Json })
+        $writeToolResponses = @($responses[6..10] | ForEach-Object { $_ | ConvertFrom-Json })
         for ($index = 0; $index -lt $writeToolResponses.Count; $index++) {
             $response = $writeToolResponses[$index]
-            $expectedId = $index + 6
+            $expectedId = $index + 7
             if ($response.id -ne $expectedId -or $response.error.code -ne -32602 -or $response.error.message -ne "invalid params") {
                 throw "Expected read-only-gated write tool id $expectedId to return generic Invalid params"
             }

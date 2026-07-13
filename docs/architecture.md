@@ -36,7 +36,7 @@ FlashGate MCP is not a web-hosting service and not a remote-shell replacement. I
 The current implementation is a layered Go application using MCP JSON-RPC over STDIO. It provides:
 
 - configuration from environment variables
-- JSON-RPC validation, routing, MCP initialization, `tools/list`, and `tools/call`
+- JSON-RPC validation, routing, MCP initialization, `tools/list`, and centrally wrapped MCP `CallToolResult` responses for `tools/call`
 - eight filesystem tools documented in `tools.md`
 - one required, preflighted filesystem root through `MCP_ROOT`
 - read-only tool registration through `MCP_READ_ONLY`
@@ -45,6 +45,8 @@ The current implementation is a layered Go application using MCP JSON-RPC over S
 - redacted debug diagnostics on stderr
 - Windows and Linux tests and smoke tests
 - MCP protocol version `2025-11-25`
+
+Successful filesystem tools retain typed domain results. At the MCP adapter boundary, `tools/call` serializes the domain value once to compact JSON and returns the same bytes as one text block and `structuredContent`. The wrapper applies to all eight tools; `internal/fs` remains independent of MCP types. Runtime `outputSchema` and general `isError=true` tool-error migration are not part of Sprint 3.45a.
 
 The implemented dependency path is:
 
