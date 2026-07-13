@@ -49,3 +49,9 @@ Perform the tool cleanup in its dedicated sprint. Record baselines before optimi
 Sprint 3.43 implements the decided pre-1.0 baseline as exactly eight default tools in this order: `list_directory`, `read_file`, `get_path_info`, `write_file`, `create_directory`, `delete_path`, `copy_path`, and `move_path`. The read-only profile exposes the first three read tools. The five replaced or redundant names have no aliases.
 
 Inputs are closed objects and are strictly decoded at runtime. `get_path_info` uses one metadata operation and represents genuine absence structurally; policy denials remain errors. `create_directory` reports actual creation state. `copy_path` remains file-only. `move_path` is the single same-volume Move/Rename contract with pre-replacement SameFile, effective-subtree, identity-revalidation, and overwrite safeguards. Stable machine-readable MCP error payloads, runtime output schemas, structured content, directory copy, and general compatibility infrastructure remain deferred.
+
+## Implementation Amendment - 2026-07-12
+
+Sprint 3.45a chooses MCP `CallToolResult` variant B for every successful call from all eight filesystem tools: one `TextContent` block contains compact deterministic JSON, and `structuredContent` contains the same domain object. Protocol conformance takes precedence over minimizing the duplicated payload. Reproducible benchmarks record response bytes, runtime, and allocations for the historical direct form, text-only form, and selected text-plus-structured form without setting CI budgets from a single machine.
+
+Typed domain results and the filesystem core remain independent of MCP. Runtime `outputSchema` is a separate all-eight-tool gate. The existing safe JSON-RPC tool-error model is not partially migrated; BL-203 remains responsible for a complete normalized `isError=true` contract.

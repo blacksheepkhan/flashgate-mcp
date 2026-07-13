@@ -44,7 +44,43 @@ func (h *CallHandler) Handle(ctx handlers.Context, rawParams json.RawMessage) (a
 		execCtx = context.Background()
 	}
 
-	return tool.Execute(execCtx, params.Arguments)
+	result, rpcErr := tool.Execute(execCtx, params.Arguments)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	wrapped, rpcErr := wrapSuccessfulToolResult(result)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	return wrapped, nil
+}
+
+func wrapSuccessfulToolResult(result any) (protocol.CallToolResult, *protocol.Error) {
+	switch result.(type) {
+	case protocol.CallToolResult, *protocol.CallToolResult:
+		return protocol.CallToolResult{}, internalToolResultError()
+	}
+
+	encoded, err := json.Marshal(result)
+	if err != nil {
+		return protocol.CallToolResult{}, internalToolResultError()
+	}
+
+	wrapped, err := protocol.NewCallToolResult(encoded)
+	if err != nil {
+		return protocol.CallToolResult{}, internalToolResultError()
+	}
+
+	return wrapped, nil
+}
+
+func internalToolResultError() *protocol.Error {
+	return &protocol.Error{
+		Code:    protocol.ErrInternalError,
+		Message: "internal error",
+	}
 }
 
 type callParams struct {

@@ -1,9 +1,15 @@
-﻿{
+{
   "schemaVersion": "1.0",
   "server": {
     "name": "flashgate",
     "transport": "stdio",
     "protocol": "MCP JSON-RPC",
+    "toolResultContract": {
+      "wireEnvelope": "CallToolResult",
+      "content": "non-empty TextContent array containing compact JSON",
+      "structuredContent": "same domain object described by each tool resultSchema",
+      "runtimeOutputSchema": false
+    },
     "rootConfiguration": {
       "environmentVariable": "MCP_ROOT",
       "pathMode": "relative tool paths below an absolute configured root",

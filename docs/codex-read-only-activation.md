@@ -9,7 +9,7 @@ Die reale Aktivierung darf erst nach Review, Commit, Pull Request, Merge und Pos
 - ein gemergter und geprüfter FlashGate-Commit;
 - ein reproduzierbar gebautes Windows- oder Linux-Binary;
 - ein kleiner, ausdrücklich freigegebener absoluter Root;
-- erfolgreiche Default-, Read-only-, Negative- und Startup-Negativ-Smokes;
+- erfolgreiche Default-, Read-only-, Negative- und Startup-Negativ-Smokes, deren positive Antworten `CallToolResult.content[]` und `structuredContent` validieren;
 - Backup der bestehenden Clientkonfiguration;
 - dokumentierter Rollback.
 
@@ -183,17 +183,17 @@ Kein Beispiel enthält Tokens, Passwörter oder Authentifizierungswerte.
 
 Nach einer später separat bestätigten Aktivierung:
 
-1. MCP-Erkennung und `serverInfo.name=flashgate` prüfen.
-2. Exakt drei Tools in der dokumentierten Reihenfolge prüfen.
-3. Root und Unterverzeichnis listen.
-4. normale, Leerzeichen- und Unicode-Dateien lesen.
-5. Datei-, Verzeichnis- und Missing-Metadaten prüfen.
-6. Traversal und absolute Outside-Root-Pfade ablehnen.
-7. alle Write- und Legacy-Namen negativ prüfen.
-8. stdout auf ausschließlich JSON-RPC prüfen.
-9. stderr auf sichere Kategorien und fehlende Hostpfade prüfen.
-10. Root und Repository auf neue Dateien prüfen.
-
+1. Vor jeder Konfigurationsänderung den direkten STDIO-Preflight mit einem strikten `CallToolResult`-Decoder ausführen; gültiges JSON und Fachfelder allein reichen nicht.
+2. MCP-Erkennung und `serverInfo.name=flashgate` prüfen.
+3. Exakt drei Tools in der dokumentierten Reihenfolge prüfen.
+4. Root und Unterverzeichnis listen.
+5. normale, Leerzeichen- und Unicode-Dateien lesen.
+6. Datei-, Verzeichnis- und Missing-Metadaten prüfen.
+7. Traversal und absolute Outside-Root-Pfade ablehnen.
+8. alle Write- und Legacy-Namen negativ prüfen.
+9. stdout auf ausschließlich JSON-RPC prüfen.
+10. stderr auf sichere Kategorien und fehlende Hostpfade prüfen.
+11. Root und Repository auf neue Dateien prüfen.
 Write-Namen:
 
 ```text
@@ -265,3 +265,9 @@ Rollback:
 7. Binary nur nach separater Freigabe entfernen.
 
 Sprint 3.44 führt weder `codex mcp add` noch `codex mcp remove` aus und verändert keine reale `config.toml` oder Auth-Datei.
+
+## 12. CallToolResult- und Canary-Gate
+
+Der erste Codex-Canary wurde nach gültigem JSON-RPC-Preflight aktiviert, scheiterte aber im echten Client mit `Unexpected response type`, weil erfolgreiche Fachobjekte ungewrappt waren. Sprint 3.45a korrigiert den Serververtrag, reaktiviert den Canary jedoch nicht.
+
+Eine Reaktivierung ist erst nach Review, Commit, PR, vollständig grüner Windows-/Ubuntu-CI, Merge, Post-Merge-Gates, neuem versioniertem Binary, strengem direkten Preflight, separater Benutzerfreigabe, vollständigem Codex-Neustart und erfolgreicher Wiederholung des modellgestützten End-to-End-Tests zulässig. Der bestehende Canary bleibt bis dahin deaktiviert.

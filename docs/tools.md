@@ -19,6 +19,26 @@ For later Codex activation, `MCP_READ_ONLY=true` must be explicit and `MCP_ROOT`
 
 All paths are relative to the configured root. Absolute paths, traversal, denied hidden/UNC paths, and denied symlink, junction, or reparse access remain server-side errors. Inputs are strict JSON objects: unknown properties, malformed JSON, trailing JSON values, wrong field types, explicit `null` field values, missing required fields, and blank required paths are rejected.
 
+## Successful MCP result envelope
+
+The result examples below are domain objects. Every successful `tools/call` places that object inside an MCP `CallToolResult`:
+
+```json
+{
+  "content": [
+    { "type": "text", "text": "{\"path\":\"missing.txt\",\"exists\":false}" }
+  ],
+  "structuredContent": {
+    "path": "missing.txt",
+    "exists": false
+  }
+}
+```
+
+The central adapter serializes the typed domain result once with `encoding/json`. The compact bytes become both the text and `structuredContent`, so decoding the text is deeply equal to the structured object. All eight tools use the same wrapper. For `read_file`, outer `content` is the MCP array while `structuredContent.content` remains the file-text string.
+
+Runtime `outputSchema` is not exposed in Sprint 3.45a. Catalog `resultSchema` entries describe the domain objects only. Tool failures retain the existing safe JSON-RPC contract until BL-203.
+
 ## `list_directory`
 
 Lists one directory. `path` is optional; omission means `.`, while an explicitly empty or whitespace-only value is invalid.
@@ -174,6 +194,6 @@ The source and target identities are revalidated immediately before the operatin
 
 Parse, invalid-request, and method errors use the standard JSON-RPC codes. Expected argument, path, policy, not-found, already-exists, path-type, unsupported-operation, and limit failures use `-32602`. Unexpected I/O failures use `-32603`. Error messages are normalized and do not expose absolute host paths or raw operating-system details.
 
-Stable machine-readable MCP tool-error payloads, `structuredContent`, and runtime `outputSchema` are not part of Sprint 3.43.
+Sprint 3.45a adds `structuredContent` for successful calls only. Stable machine-readable MCP tool-error payloads and runtime `outputSchema` remain later, separate work.
 
 The previous pre-1.0 contract and required client changes are documented in [filesystem tool contract cleanup](filesystem-tool-contract-cleanup-2026-07-11.md).

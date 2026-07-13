@@ -68,3 +68,7 @@ Extension negotiation is not authorization. Tasks and legacy compatibility paths
 - [SEP-2133: Extensions](https://modelcontextprotocol.io/seps/2133-extensions)
 - [SEP-2577: Deprecate Roots, Sampling, and Logging](https://modelcontextprotocol.io/seps/2577-deprecate-roots-sampling-and-logging)
 - [SEP-2663: Tasks Extension](https://modelcontextprotocol.io/seps/2663-tasks-extension)
+
+## Implementation Note - 2026-07-12
+
+Sprint 3.45a keeps protocol version `2025-11-25` and introduces explicit `TextContent` and `CallToolResult` DTOs at the MCP adapter boundary. This corrects `tools/call` response shape only; it adds no protocol-version or extension negotiation and does not expose runtime `outputSchema`.

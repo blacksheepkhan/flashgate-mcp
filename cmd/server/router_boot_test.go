@@ -11,6 +11,7 @@ import (
 
 	"github.com/blacksheepkhan/flashgate-mcp/internal/fs"
 	"github.com/blacksheepkhan/flashgate-mcp/internal/mcp/handlers"
+	"github.com/blacksheepkhan/flashgate-mcp/internal/mcptest"
 	"github.com/blacksheepkhan/flashgate-mcp/internal/protocol"
 )
 
@@ -133,9 +134,17 @@ func TestCreateRouterCallsGetPathInfoForMissingPath(t *testing.T) {
 	if protocolErr != nil {
 		t.Fatalf("unexpected error: %#v", protocolErr)
 	}
-	encoded, _ := json.Marshal(result)
-	if string(encoded) != `{"path":"missing.txt","exists":false}` {
-		t.Fatalf("unexpected missing result: %s", encoded)
+	encoded, err := json.Marshal(result)
+	if err != nil {
+		t.Fatal(err)
+	}
+	decoded, err := mcptest.DecodeCallToolResult(encoded)
+	if err != nil {
+		t.Fatalf("unexpected missing result: %v; JSON=%s", err, encoded)
+	}
+	missing, ok := decoded.StructuredContent.(map[string]any)
+	if !ok || missing["path"] != "missing.txt" || missing["exists"] != false || len(missing) != 2 || decoded.IsError {
+		t.Fatalf("unexpected missing result: %#v", decoded)
 	}
 }
 
@@ -209,6 +218,13 @@ func TestReadOnlyRouterPositiveAndSecurityContract(t *testing.T) {
 		}
 		if result == nil {
 			t.Fatalf("call %s returned nil", raw)
+		}
+		encoded, err := json.Marshal(result)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := mcptest.DecodeCallToolResult(encoded); err != nil {
+			t.Fatalf("call %s returned invalid CallToolResult: %v; JSON=%s", raw, err, encoded)
 		}
 	}
 
