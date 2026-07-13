@@ -2,6 +2,7 @@ package protocol
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 )
 
@@ -20,6 +21,14 @@ func TestToolMarshal(t *testing.T) {
 				},
 			},
 			"required": []string{"path"},
+		},
+		OutputSchema: map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				"entries": map[string]any{"type": "array"},
+			},
+			"required":             []string{"entries"},
+			"additionalProperties": false,
 		},
 	}
 
@@ -48,6 +57,18 @@ func TestToolMarshal(t *testing.T) {
 	if _, ok := decoded["inputSchema"].(map[string]any); !ok {
 		t.Fatalf("expected inputSchema object, got %#v", decoded["inputSchema"])
 	}
+
+	if _, ok := decoded["outputSchema"].(map[string]any); !ok {
+		t.Fatalf("expected outputSchema object, got %#v", decoded["outputSchema"])
+	}
+
+	var roundTrip Tool
+	if err := json.Unmarshal(encoded, &roundTrip); err != nil {
+		t.Fatalf("expected outputSchema to unmarshal, got %v", err)
+	}
+	if !reflect.DeepEqual(normalizeJSONValue(t, tool.OutputSchema), normalizeJSONValue(t, roundTrip.OutputSchema)) {
+		t.Fatalf("outputSchema changed after round trip: got %#v want %#v", roundTrip.OutputSchema, tool.OutputSchema)
+	}
 }
 
 func TestToolMarshalOmitsEmptyTitle(t *testing.T) {
@@ -74,4 +95,21 @@ func TestToolMarshalOmitsEmptyTitle(t *testing.T) {
 	if _, exists := decoded["title"]; exists {
 		t.Fatal("did not expect title field")
 	}
+
+	if _, exists := decoded["outputSchema"]; exists {
+		t.Fatal("did not expect outputSchema field")
+	}
+}
+
+func normalizeJSONValue(t *testing.T, value any) any {
+	t.Helper()
+	raw, err := json.Marshal(value)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var normalized any
+	if err := json.Unmarshal(raw, &normalized); err != nil {
+		t.Fatal(err)
+	}
+	return normalized
 }

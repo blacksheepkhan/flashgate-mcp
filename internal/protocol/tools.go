@@ -8,10 +8,11 @@ import (
 
 // Tool describes a MCP tool exposed by the server.
 type Tool struct {
-	Name        string `json:"name"`
-	Title       string `json:"title,omitempty"`
-	Description string `json:"description"`
-	InputSchema any    `json:"inputSchema"`
+	Name         string         `json:"name"`
+	Title        string         `json:"title,omitempty"`
+	Description  string         `json:"description"`
+	InputSchema  any            `json:"inputSchema"`
+	OutputSchema map[string]any `json:"outputSchema,omitempty"`
 }
 
 // TextContent is a text content block returned by an MCP tool call.

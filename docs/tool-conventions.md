@@ -15,7 +15,7 @@ copy_path
 move_path
 ```
 
-The registry determines deterministic exposure order. `tools/list` uses each implementation's single `Definition()` value for name, title, description, and input schema. MCP names remain in the adapter layer; the filesystem core keeps domain-oriented Go names such as `List`, `Stat`, and `Mkdir`.
+The registry determines deterministic exposure order. `tools/list` uses each implementation's single `Definition()` value for name, title, description, input schema, and output schema. MCP names remain in the adapter layer; the filesystem core keeps domain-oriented Go names such as `List`, `Stat`, and `Mkdir`.
 
 ## Arguments
 
@@ -32,11 +32,12 @@ Each tool owns a compact definition containing:
 - name;
 - human-readable title;
 - model-useful description;
-- closed input schema with explicit required fields.
+- closed input schema with explicit required fields;
+- closed success-only output schema for its `structuredContent` object.
 
-`docs/mcp-tool-catalog.json` is the static contract view. A focused contract test compares runtime and catalog name, title, description, and the complete input schema without introducing a general schema engine.
+`docs/mcp-tool-catalog.json` is the static contract view. A focused contract test compares runtime and catalog name, title, description, complete input schema, and complete runtime `outputSchema`/catalog `resultSchema` parity without introducing a general schema engine.
 
-The catalog `resultSchema` values describe typed domain results. Sprint 3.45a does not expose them as runtime `outputSchema`; that remains one separate all-eight-tool gate.
+The catalog `resultSchema` values and runtime `outputSchema` values describe typed successful domain results only. They do not model the outer `CallToolResult.content[]` or the current JSON-RPC error contract. A tests-only structural checker covers the schema keywords emitted by this project; it is not a general JSON Schema 2020-12 validator.
 
 Every successful `tools/call` uses the central MCP adapter wrapper. The outer result is `CallToolResult` with exactly one `TextContent` block whose text is compact deterministic JSON and `structuredContent` containing the same object. No domain field is placed directly on the outer result. Productive results remain structs; Go's standard `encoding/json` provides deterministic struct-field output and sorted map keys if a map is ever used.
 

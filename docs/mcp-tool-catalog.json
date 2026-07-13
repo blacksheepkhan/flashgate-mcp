@@ -8,7 +8,7 @@
       "wireEnvelope": "CallToolResult",
       "content": "non-empty TextContent array containing compact JSON",
       "structuredContent": "same domain object described by each tool resultSchema",
-      "runtimeOutputSchema": false
+      "runtimeOutputSchema": true
     },
     "rootConfiguration": {
       "environmentVariable": "MCP_ROOT",
@@ -134,6 +134,7 @@
         }
       },
       "resultSchema": {
+        "type": "object",
         "oneOf": [
           {
             "type": "object",
