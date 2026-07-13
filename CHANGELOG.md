@@ -8,11 +8,12 @@ The format follows the spirit of [Keep a Changelog](https://keepachangelog.com/)
 
 ### Changed
 
+- Sprint 3.45b exposes runtime `outputSchema` for all eight filesystem tools, with deep parity to catalog `resultSchema` and no changes to tool names or successful domain results.
 - Sprint 3.45a wraps every successful filesystem `tools/call` result in an MCP 2025-11-25 `CallToolResult` with one compact JSON `TextContent` block and the same domain object in `structuredContent`.
 - All eight filesystem tools use one central adapter wrapper; internal filesystem and domain result types remain protocol-independent.
 - Windows and Bash positive STDIO smokes now strictly validate the outer `CallToolResult` and assert domain values through `structuredContent`.
 - The existing safe JSON-RPC tool-error contract remains unchanged; normalized `isError=true` migration stays planned under BL-203.
-- Runtime `outputSchema` remains a separate all-eight-tool Sprint 3.45 gate.
+- Runtime output schemas describe successful `structuredContent` only; the existing JSON-RPC error contract remains unchanged.
 - Sprint 3.44 requires an explicit absolute `MCP_ROOT`; missing, empty, whitespace-only, and general relative roots now fail closed before tool registration or JSON-RPC processing.
 - `MCP_ROOT=.` now requires the explicit lowercase `MCP_ALLOW_CWD_ROOT=true` development opt-in and emits one safe stderr warning.
 - Root startup validates existence, policy, canonical resolution, and directory type before exposing tools.

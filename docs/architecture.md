@@ -46,7 +46,7 @@ The current implementation is a layered Go application using MCP JSON-RPC over S
 - Windows and Linux tests and smoke tests
 - MCP protocol version `2025-11-25`
 
-Successful filesystem tools retain typed domain results. At the MCP adapter boundary, `tools/call` serializes the domain value once to compact JSON and returns the same bytes as one text block and `structuredContent`. The wrapper applies to all eight tools; `internal/fs` remains independent of MCP types. Runtime `outputSchema` and general `isError=true` tool-error migration are not part of Sprint 3.45a.
+Successful filesystem tools retain typed domain results. At the MCP adapter boundary, `tools/call` serializes the domain value once to compact JSON and returns the same bytes as one text block and `structuredContent`. The wrapper applies to all eight tools; `internal/fs` remains independent of MCP types. Central adapter-owned runtime `outputSchema` values describe those successful structured objects and are contract-tested against the static catalog. They do not change the wrapper or the existing JSON-RPC error contract; general `isError=true` migration remains planned.
 
 The implemented dependency path is:
 

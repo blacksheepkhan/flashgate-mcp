@@ -311,24 +311,24 @@ Sprint 3.44 replaces the former Sprint 3.41 Codex preparation plan and must use 
 | BL-192 | Planned | Measure p50 and p95 latency | Reference calls and workflows |
 | BL-193 | Planned | Record scanned, read, and written bytes | Server-side primary counters |
 | BL-194 | Planned | Measure serialized result sizes | Sprint 3.45a records initial historical/text/text-plus-structured payload bytes for six result fixtures; broader characters/entries/results coverage remains planned |
-| BL-195 | Planned | Measure `tools/list` size | Bytes and schema count by profile |
+| BL-195 | Planned | Measure `tools/list` size | Sprint 3.45b records one deterministic JSON-RPC UTF-8 byte snapshot with and without runtime schemas for the read-only and default profiles; broader token/budget tracking remains planned |
 | BL-196 | Planned | Measure calls per reference workflow | Local-operation versus model-round-trip comparisons |
 | BL-197 | Planned | Add optional schema/response token approximation | Supplemental, not primary, metric |
 | BL-198 | Planned | Establish benchmark baselines | Sprint 3.45a adds a versioned tool-result-contract baseline; broader sprint startup/resource/latency baselines remain planned |
 | BL-199 | Planned | Define CI regression budgets | Noise-aware thresholds and review path |
-| BL-200 | Planned | Add MCP `outputSchema` | Contract foundation after cleanup |
+| BL-200 | Done | Add MCP `outputSchema` | All eight runtime filesystem tools expose success-only schemas matching catalog `resultSchema` and successful `structuredContent`; no error migration or complete general JSON Schema validation |
 | BL-201 | Done | Add MCP `CallToolResult` foundation and `structuredContent` | All eight successful filesystem tools use one central text-plus-structured wrapper with deterministic parity, strict decoder/wire tests, corrected smokes, and no runtime `outputSchema` |
 | BL-202 | Planned | Review MCP tool annotations | Accurate metadata, never authorization |
 | BL-203 | Planned | Define normalized machine-readable errors | Stable categories without raw OS leakage |
-| BL-204 | Planned | Evaluate official MCP conformance testing and add schema snapshots | Sprint 3.45a adds a strict local `CallToolResult` decoder and legacy negative fixtures; official tooling plus full input/output schema snapshots remain planned |
-| BL-205 | Planned | Add response-size regression tests | Sprint 3.45a benchmarks representative success payload sizes without hard budgets; persistent success/error regression gates remain planned |
+| BL-204 | Planned | Evaluate official MCP conformance testing and add schema snapshots | Sprint 3.45b adds full runtime/catalog output-schema parity and `tools/list` wire coverage; official tooling plus full input/output snapshots remain planned |
+| BL-205 | Planned | Add response-size regression tests | Sprint 3.45b measures `tools/list` payload impact without setting a persistent budget; success/error regression gates remain planned |
 | BL-206 | Planned | Document local deterministic work principle | Prefer local copy/edit/hash/search over model retransmission |
 | BL-207 | Planned | Define supported MCP protocol-version strategy | Keep core version-independent; negotiation and compatibility tests for each advertised revision; current implementation remains `2025-11-25` |
 | BL-208 | Planned | Define MCP extension-negotiation strategy | Official vendor-prefix/slash identifiers, capability negotiation, downgrade/mismatch tests, no authorization implication |
 | BL-209 | Planned | Decide MCP Tasks compatibility | Evaluate `io.modelcontextprotocol/tasks` and supported client behavior before asynchronous MCP exposure |
 | BL-210 | Planned | Map internal operation lifecycle to MCP Tasks | Define tested state, result, error, cancellation, TTL, and redaction mapping; internal states may be more detailed |
 | BL-211 | Planned | Decide fallback when MCP Tasks is unavailable | Bounded synchronous result or explicit capability error; no ad hoc custom job-tool contract |
-| BL-212 | Planned | Validate all input/output schemas as JSON Schema 2020-12 | Cover current and future schemas, dialect declarations, snapshots, and protocol-version compatibility |
+| BL-212 | Planned | Validate all input/output schemas as JSON Schema 2020-12 | Sprint 3.45b tests only the emitted project subset structurally; complete standard-conformant validation, dialect declarations, snapshots, and protocol-version compatibility remain planned |
 
 ### CI, release, and quality epic
 

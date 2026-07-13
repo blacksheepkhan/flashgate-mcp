@@ -16,10 +16,11 @@ func TestRuntimeDefinitionsMatchStaticCatalog(t *testing.T) {
 	}
 	var catalog struct {
 		Tools []struct {
-			Name        string         `json:"name"`
-			Title       string         `json:"title"`
-			Description string         `json:"description"`
-			InputSchema map[string]any `json:"inputSchema"`
+			Name         string         `json:"name"`
+			Title        string         `json:"title"`
+			Description  string         `json:"description"`
+			InputSchema  map[string]any `json:"inputSchema"`
+			ResultSchema map[string]any `json:"resultSchema"`
 		} `json:"tools"`
 	}
 	raw = bytes.TrimPrefix(raw, []byte{0xEF, 0xBB, 0xBF})
@@ -47,6 +48,11 @@ func TestRuntimeDefinitionsMatchStaticCatalog(t *testing.T) {
 		runtimeSchema := normalizeSchema(t, definition.InputSchema)
 		if !reflect.DeepEqual(runtimeSchema, entry.InputSchema) {
 			t.Fatalf("%s input schema mismatch: runtime=%#v catalog=%#v", definition.Name, runtimeSchema, entry.InputSchema)
+		}
+
+		runtimeOutputSchema := normalizeSchema(t, definition.OutputSchema)
+		if !reflect.DeepEqual(runtimeOutputSchema, entry.ResultSchema) {
+			t.Fatalf("%s output schema mismatch: runtime=%#v catalog=%#v", definition.Name, runtimeOutputSchema, entry.ResultSchema)
 		}
 	}
 }

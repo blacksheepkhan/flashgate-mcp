@@ -65,10 +65,11 @@ func (t *MovePathTool) InputSchema() any {
 // Definition returns the MCP tool definition.
 func (t *MovePathTool) Definition() protocol.Tool {
 	return protocol.Tool{
-		Name:        t.Name(),
-		Title:       t.Title(),
-		Description: t.Description(),
-		InputSchema: t.InputSchema(),
+		Name:         t.Name(),
+		Title:        t.Title(),
+		Description:  t.Description(),
+		InputSchema:  t.InputSchema(),
+		OutputSchema: filesystemOutputSchema(t.Name()),
 	}
 }
 

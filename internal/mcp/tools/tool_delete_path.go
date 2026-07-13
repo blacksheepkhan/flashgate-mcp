@@ -60,10 +60,11 @@ func (t *DeletePathTool) InputSchema() any {
 // Definition returns the MCP tool definition.
 func (t *DeletePathTool) Definition() protocol.Tool {
 	return protocol.Tool{
-		Name:        t.Name(),
-		Title:       t.Title(),
-		Description: t.Description(),
-		InputSchema: t.InputSchema(),
+		Name:         t.Name(),
+		Title:        t.Title(),
+		Description:  t.Description(),
+		InputSchema:  t.InputSchema(),
+		OutputSchema: filesystemOutputSchema(t.Name()),
 	}
 }
 
