@@ -30,6 +30,7 @@ stub_directory="${temporary_directory}/stub"
 mkdir -p -- "${fake_scripts}" "${fake_benchmarks}" "${stub_directory}"
 wrapper="${fake_scripts}/benchmark.sh"
 cp -- "${script_dir}/benchmark.sh" "${wrapper}"
+cp -- "${script_dir}/benchmark-window.sh" "${fake_scripts}/benchmark-window.sh"
 marker="${temporary_directory}/go-invoked.marker"
 output="${temporary_directory}/baseline.linux-amd64.json"
 stub="${stub_directory}/go"
@@ -57,7 +58,7 @@ canonical_exit_code=$?
 canonical_stdout="$(<"${stdout_path}")"
 canonical_stderr="$(<"${stderr_path}")"
 check "$([[ ${canonical_exit_code} -ne 0 ]] && printf true || printf false)" 'non-authoritative mode rejects canonical baseline path'
-check "$([[ "${canonical_stderr}" == *'Non-authoritative benchmark runs must not write a canonical versioned baseline path.'* ]] && printf true || printf false)" 'canonical-path rejection is reported'
+check "$([[ "${canonical_stderr}" == *'protected baseline directory'* ]] && printf true || printf false)" 'canonical-path rejection is reported'
 check "$([[ -z "${canonical_stdout}" ]] && printf true || printf false)" 'canonical-path rejection emits no success output'
 check "$([[ ! -e "${marker}" ]] && printf true || printf false)" 'canonical-path rejection does not invoke go'
 check "$([[ ! -e "${fake_repository}/benchmarks/baseline.linux-amd64.json" ]] && printf true || printf false)" 'canonical-path rejection does not write output'
