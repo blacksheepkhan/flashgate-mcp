@@ -319,7 +319,7 @@ Sprint 3.44 replaces the former Sprint 3.41 Codex preparation plan and must use 
 | ID | Status | Task | Scope and acceptance notes |
 |---|---|---|---|
 | BL-189 | Done | Add startup benchmark | Real binary over STDIO; one `first_process_start` after build plus 30 new subsequent processes by default, 10 in quick mode; no OS cold-cache claim |
-| BL-190 | Planned | Measure idle RSS | Collectors and partial-metric tests are implemented; completion requires clean Windows and native Linux baselines from the same implementation commit |
+| BL-190 | Done | Measure idle RSS | Clean 30-repetition Windows idle Working Set and native Linux `VmRSS` baselines from implementation commit `cfd211fa81cc48ee1dc463966718442f2ab5223c` are versioned by baseline commit `0f022648f6e30a37db53f457a920693904962f1e`; resources are supported in `benchmarks/baseline.windows-amd64.json` and `benchmarks/baseline.linux-amd64.json` |
 | BL-191 | Done | Measure peak memory, CPU time, and allocations | Win32 peak working set/user/kernel time, Linux `VmHWM`/user/system time, existing and direct-handler Go allocation benchmarks, representative single and multi-operation workflows |
 | BL-192 | Done | Measure p50 and p95 latency | Nearest-rank p50/p95 for startup and all ten real-process reference workflows |
 | BL-193 | Done | Record scanned, read, and written bytes | Runner-side counters have explicit semantics and remain outside public MCP results |
@@ -327,7 +327,7 @@ Sprint 3.44 replaces the former Sprint 3.41 Codex preparation plan and must use 
 | BL-195 | Done | Measure `tools/list` size | Read-only/default tool count, schema count, request/result/response bytes, and approximate tokens are deterministic gates |
 | BL-196 | Done | Measure calls per reference workflow | Machine-readable workflows record actual `tools/call` counts, including ten-call independent path/read cases |
 | BL-197 | Done | Add optional schema/response token approximation | `approx_tokens_bytes4 = ceil(UTF-8 bytes / 4)` is clearly non-model-specific and unsuitable for billing |
-| BL-198 | Planned | Establish benchmark baselines | Versioned v1 schema and clean-only generation scripts are implemented; clean Windows and native Linux baselines from the same implementation commit remain required |
+| BL-198 | Done | Establish benchmark baselines | Versioned v1 Windows and native Linux baselines from implementation commit `cfd211fa81cc48ee1dc463966718442f2ab5223c` are recorded by baseline commit `0f022648f6e30a37db53f457a920693904962f1e` in `benchmarks/baseline.windows-amd64.json` and `benchmarks/baseline.linux-amd64.json` with complete provenance, zero hard/soft budget findings, and passed artifact/platform checks |
 | BL-199 | Done | Define CI regression budgets | Machine-readable hard deterministic and soft noise-sensitive budgets with local evaluation; full CI execution/comparison remains BL-247/BL-248 |
 | BL-200 | Done | Add MCP `outputSchema` | All eight runtime filesystem tools expose success-only schemas matching catalog `resultSchema` and successful `structuredContent`; no error migration or complete general JSON Schema validation |
 | BL-201 | Done | Add MCP `CallToolResult` foundation and `structuredContent` | All eight successful filesystem tools use one central text-plus-structured wrapper with deterministic parity, strict decoder/wire tests, corrected smokes, and no runtime `outputSchema` |
