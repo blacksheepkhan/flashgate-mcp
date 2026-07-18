@@ -18,6 +18,15 @@ Run tests with the race detector:
 go test -race ./...
 ```
 
+The authoritative race gate runs on a platform with a supported race toolchain.
+The current Windows host has no CGO/GCC race toolchain, so Windows race is reported
+as an infrastructure limitation rather than worked around. Native Linux
+`go test -race ./...` is required. Functional serialization, payload, fixture, and
+budget-contract tests remain active under race; only the `testing.AllocsPerRun`
+budget assertion is skipped because race instrumentation changes allocation
+behavior. Ordinary non-race tests continue to enforce the unchanged allocation
+budgets.
+
 Run tests for a specific package:
 
 ```bash
@@ -164,11 +173,11 @@ Benchmark command:
 go test -bench=. ./...
 ```
 
-The deterministic benchmark tests also enforce the exact tool-profile and workflow measurement sets, the six payload/allocation budgets from `benchmarks/budgets.json`, initialized-notification framing, initialization-result validation, zero `scanned_bytes` for ordinary reads, partial Linux procfs metrics, host-path redaction, and clean versioned artifacts. Platform baseline generation is a second step after the implementation commit; dirty-tree baseline recording is rejected before measurement and immediately before publication.
+The deterministic benchmark tests also enforce the exact tool-profile and workflow measurement sets, the six payload/allocation budgets from `benchmarks/budgets.json`, initialized-notification framing, initialization-result validation, zero `scanned_bytes` for ordinary reads, partial Linux procfs metrics, host-path redaction, and clean versioned artifacts. Platform baseline generation is a separate two-phase operation after the implementation commit. The diagnostic wrappers recognize `-RecordBaseline` and `--record-baseline` only to reject them fail-closed before any Go invocation or write.
 
 Functional gates such as tests, builds, vet, lint, protocol smokes, and parser checks are independent of the host measurement window. Their timing and resource consumption are not performance evidence. Performance gates are valid only when the entire measurement series runs outside the primary development host's scheduled-load block from 19:00 inclusive until 04:00 exclusive in `Europe/Vienna`; the preferred safety-margin window is 04:15–18:45, and the series must finish before 19:00. The blocked interval is a formal baseline blocker.
 
-Every performance measurement report records the `Europe/Vienna` time window, start and end times, and whether known or unusual additional host load was present. A baseline is rejected if such load is known or observed even inside the nominally allowed interval. Contaminated runs are retained as diagnosis evidence without being approved, compared for regression, or used to tune budgets. The baseline scripts enforce the scheduled window before build/measurement and immediately before publication; ordinary runs may continue but are marked contaminated.
+Every performance measurement report records the `Europe/Vienna` time window, start and end times, and whether known or unusual additional host load was present. A baseline is rejected if such load is known or observed even inside the nominally allowed interval. Contaminated runs are retained as diagnosis evidence without being approved, compared for regression, or used to tune budgets. Ordinary wrapper runs may continue but are marked contaminated; they cannot record a baseline.
 
 ## Current Tested Packages
 
@@ -306,4 +315,17 @@ only afterward and is not part of the measured phase.
 The native Linux checkout and temporary output remain on the distribution's
 native ext4 filesystem under `/home`. A path below `/mnt` or `/media` is a formal
 baseline blocker.
+
+All validation, test, vet, lint, build, linker, and parser work finishes before
+the authoritative host gate. After the last such operation, wait at least 180
+seconds without Git, Go, scan, archive, or analysis activity. Run the authoritative
+three-block CPU/disk/RAM/per-process-delta preflight exactly once. If it passes,
+invoke the prepared binaries directly without rebuilding. A 15-second intermediate
+gate precedes native Linux measurement and a final host gate precedes any result
+copy, hash scan, JSON verification, report, archive, or OneDrive access.
+
+`scripts/benchmark.ps1 -RecordBaseline` and
+`scripts/benchmark.sh --record-baseline` are deliberately blocked compatibility
+flags, not an authoritative workflow. A separately prepared controller implements
+the two-phase attempt; no wrapper-side shortcut or time override is permitted.
 <!-- FLASHGATE_PERFORMANCE_WORKSPACE_POLICY_END -->

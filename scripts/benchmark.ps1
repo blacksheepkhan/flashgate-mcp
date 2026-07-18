@@ -5,6 +5,10 @@ param(
     [string]$OutputPath
 )
 
+if ($RecordBaseline) {
+    throw 'Authoritative baseline recording is not supported by scripts/benchmark.ps1. Use the documented two-phase prebuilt workflow in the local benchmark workspace C:\Voxtronic\Codex\Temp\Benchmarks.'
+}
+
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $true
@@ -22,47 +26,34 @@ $NextAction = 'Inspect the reported failure.'
 $ReportPath = $null
 $FailureMessage = $null
 $RunOutputPath = $null
-$CandidateCreated = $false
 $PerformanceContaminated = $false
 $MeasurementWarning = $null
 
 try {
     if ([string]::IsNullOrWhiteSpace($OutputPath)) {
-        if ($RecordBaseline) {
-            $OutputPath = Join-Path $RepoRoot 'benchmarks\baseline.windows-amd64.json'
-        }
-        else {
-            $OutputPath = Join-Path $BuildDirectory 'benchmark-current.windows-amd64.json'
-        }
+        $OutputPath = Join-Path $BuildDirectory 'benchmark-current.windows-amd64.json'
     }
     elseif (-not [IO.Path]::IsPathRooted($OutputPath)) {
         $OutputPath = Join-Path $RepoRoot $OutputPath
     }
 
-    if ($RecordBaseline) {
-        Assert-BaselineMeasurementWindow | Out-Null
+    $OutputFullPath = [IO.Path]::GetFullPath($OutputPath)
+    $BenchmarkDirectory = [IO.Path]::GetFullPath((Join-Path $RepoRoot 'benchmarks'))
+    if ([IO.Path]::GetDirectoryName($OutputFullPath).Equals($BenchmarkDirectory, [StringComparison]::OrdinalIgnoreCase) -and [IO.Path]::GetFileName($OutputFullPath) -like 'baseline.*-*.json') {
+        throw 'Non-authoritative benchmark runs must not write a canonical versioned baseline path.'
     }
-    else {
-        $PerformanceContaminated = (Get-EuropeViennaMeasurementWindowStatus).IsBlocked
-    }
+    $OutputPath = $OutputFullPath
+
+    $PerformanceContaminated = (Get-EuropeViennaMeasurementWindowStatus).IsBlocked
 
     $InitialStatus = @(& git status --porcelain --untracked-files=all)
     $WorkingTreeDirty = $InitialStatus.Count -gt 0
-    if ($RecordBaseline -and $WorkingTreeDirty) {
-        throw 'Refusing to record a versioned baseline from a dirty working tree.'
-    }
 
     New-Item -ItemType Directory -Path $BuildDirectory -Force | Out-Null
     & go build -o $ServerBinary ./cmd/server 2>&1 | Out-Null
     & go build -o $BenchmarkBinary ./cmd/benchmark 2>&1 | Out-Null
     $Commit = (& git rev-parse HEAD).Trim()
-    $RunOutputPath = if ($RecordBaseline) {
-        Join-Path $BuildDirectory ('.benchmark-baseline-candidate-' + [guid]::NewGuid().ToString('N') + '.json')
-    }
-    else {
-        $OutputPath
-    }
-    $CandidateCreated = $RecordBaseline
+    $RunOutputPath = $OutputPath
 
     $Arguments = @(
         '-binary', $ServerBinary,
@@ -85,15 +76,7 @@ try {
         throw "Benchmark reported $FailureCount hard budget failure(s)."
     }
 
-    if ($RecordBaseline) {
-        $FinalStatus = @(& git status --porcelain --untracked-files=all)
-        if ($FinalStatus.Count -gt 0) {
-            throw 'Refusing final baseline recording because the working tree became dirty.'
-        }
-        Publish-BenchmarkBaselineCandidate -CandidatePath $RunOutputPath -DestinationPath $OutputPath
-        $CandidateCreated = $false
-    }
-    elseif ((Get-EuropeViennaMeasurementWindowStatus).IsBlocked) {
+    if ((Get-EuropeViennaMeasurementWindowStatus).IsBlocked) {
         $PerformanceContaminated = $true
     }
 
@@ -103,21 +86,13 @@ try {
     }
 
     $Status = 'PASS'
-    $NextAction = if ($RecordBaseline) {
-        'Review the versioned baseline diff before commit.'
-    }
-    else {
-        'Compare the current result with the versioned baseline.'
-    }
+    $NextAction = 'Compare the current result with the versioned baseline.'
 }
 catch {
     $FailureCount = [Math]::Max(1, $FailureCount)
     $FailureMessage = $_.Exception.Message
 }
 finally {
-    if ($CandidateCreated -and -not [string]::IsNullOrWhiteSpace($RunOutputPath) -and (Test-Path -LiteralPath $RunOutputPath -PathType Leaf)) {
-        Remove-Item -LiteralPath $RunOutputPath -Force
-    }
     $ReportPath = if ([string]::IsNullOrWhiteSpace($OutputPath)) { '[not-created]' } else { $OutputPath }
     [pscustomobject]@{
         Status         = $Status

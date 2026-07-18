@@ -35,7 +35,7 @@ Filesystem byte and entry counters are derived from successful structured result
 
 ## Clean baseline workflow
 
-The preliminary dirty Windows artifact was removed. Baseline creation now has two commits: first the corrected implementation commit without platform baselines, then a separate artifact commit containing clean Windows and native Linux baselines generated from that same implementation commit. Both launch scripts reject baseline recording on a dirty tree before the run and again immediately before publishing the candidate file. Ordinary dirty-tree development runs remain supported and accurately record `working_tree_dirty: true`.
+The preliminary dirty Windows artifact was removed. Baseline creation has two commits: first the corrected implementation commit without platform baselines, then a separate artifact commit containing clean Windows and native Linux baselines generated from that same implementation commit. The legacy wrapper record flags now fail closed before any Go command or write. Authoritative attempts use the documented two-phase prebuilt workflow with a minimum 180-second quiet period, one three-block preflight, prepared binaries, intermediate and final host gates, local Windows workspace isolation, and native Linux files under `/home`. Ordinary dirty-tree development runs remain supported and accurately record `working_tree_dirty: true`.
 
 The corrected deterministic workflow budgets are:
 

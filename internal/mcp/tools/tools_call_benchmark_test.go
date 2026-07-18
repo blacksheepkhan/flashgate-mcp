@@ -336,20 +336,6 @@ func TestCallToolResultSerializationBudgets(t *testing.T) {
 			t.Fatalf("serialization fixture %q payload=%d exceeds budget %d", fixture.name, len(payload), budget.MaxPayloadBytes)
 		}
 
-		var allocationErr error
-		allocations := testing.AllocsPerRun(100, func() {
-			result, serializeErr := serializeStructuredCallToolResult(fixture.value)
-			if serializeErr != nil {
-				allocationErr = serializeErr
-			}
-			runtime.KeepAlive(result)
-		})
-		if allocationErr != nil {
-			t.Fatal(allocationErr)
-		}
-		if allocations > float64(budget.MaxAllocsPerOp) {
-			t.Fatalf("serialization fixture %q allocations/op=%.0f exceeds budget %d", fixture.name, allocations, budget.MaxAllocsPerOp)
-		}
 	}
 	for budgetName := range budgets {
 		if _, ok := usedBudgets[budgetName]; !ok {
@@ -358,5 +344,44 @@ func TestCallToolResultSerializationBudgets(t *testing.T) {
 	}
 	if len(usedBudgets) != len(budgets) {
 		t.Fatalf("serialization fixtures=%d budgets=%d", len(usedBudgets), len(budgets))
+	}
+}
+
+func TestCallToolResultSerializationAllocationBudgets(t *testing.T) {
+	if raceDetectorEnabled {
+		t.Skip("Allocation budgets are evaluated only without race instrumentation because the race detector changes allocation behavior. Functional serialization coverage remains active under race.")
+	}
+
+	budgetPath := filepath.Join("..", "..", "..", "benchmarks", "budgets.json")
+	budgets, err := benchmarkrunner.LoadSerializationBudgets(budgetPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, fixture := range callToolResultBenchmarkFixtures() {
+		fixture := fixture
+		t.Run(fixture.name, func(t *testing.T) {
+			budgetName := fixture.name + "_text_plus_structured"
+			budget, ok := budgets[budgetName]
+			if !ok {
+				t.Fatalf("serialization fixture %q has no budget", fixture.name)
+			}
+
+			var allocationErr error
+			allocations := testing.AllocsPerRun(100, func() {
+				result, serializeErr := serializeStructuredCallToolResult(fixture.value)
+				if serializeErr != nil {
+					allocationErr = serializeErr
+				}
+				runtime.KeepAlive(result)
+			})
+			if allocationErr != nil {
+				t.Fatal(allocationErr)
+			}
+			t.Logf("allocations/op=%.0f budget=%d", allocations, budget.MaxAllocsPerOp)
+			if allocations > float64(budget.MaxAllocsPerOp) {
+				t.Fatalf("serialization fixture %q allocations/op=%.0f exceeds budget %d", fixture.name, allocations, budget.MaxAllocsPerOp)
+			}
+		})
 	}
 }

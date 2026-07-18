@@ -24,19 +24,19 @@ Windows quick run (one first process plus 10 subsequent processes and 10 repetit
 & ".\scripts\benchmark.ps1" -Quick
 ```
 
-Record an explicitly reviewable Windows baseline from a clean working tree:
-
-```powershell
-& ".\scripts\benchmark.ps1" -Quick -RecordBaseline
-```
-
 Linux equivalents:
 
 ```bash
 bash scripts/benchmark.sh
 bash scripts/benchmark.sh --quick
-bash scripts/benchmark.sh --quick --record-baseline
 ```
+
+The legacy `-RecordBaseline` and `--record-baseline` flags remain recognized for
+compatibility but fail closed before any Go command, build, directory creation,
+benchmark execution, or output write. These wrappers are diagnostic development
+entry points, not an authoritative baseline-recording path. They also reject an
+explicit non-authoritative output below `benchmarks/` whose name matches the
+canonical `baseline.*-*.json` convention.
 
 ## Measurement environment
 
@@ -44,7 +44,7 @@ The primary Windows development host has a known resource-intensive scheduled wo
 
 The time window is necessary but not sufficient: known or unusual additional host load invalidates a baseline even during otherwise allowed hours. The measurement report must record the time zone, start/end window, and host-load status. Quick runs are diagnostic observations, not automatic release baselines. Contaminated runs remain diagnosis evidence but are not approval artifacts, and they must never be replaced or selectively cherry-picked in favor of more favorable individual measurements.
 
-Functional tests, builds, vet, and lint remain valid during the blocked window, but any incidental timing or resource values from those commands are not performance evidence. Normal benchmark runs may execute during the blocked window and are explicitly marked contaminated. Baseline-recording modes fail before build/measurement and check the window again immediately before publishing the candidate.
+Functional tests, builds, vet, and lint remain valid during the blocked window, but any incidental timing or resource values from those commands are not performance evidence. Normal benchmark runs may execute during the blocked window and are explicitly marked contaminated. The diagnostic wrappers cannot record or publish a baseline.
 
 Run only the in-process benchmarks:
 
@@ -54,7 +54,7 @@ go test -run '^$' -bench 'Benchmark(CallToolResultSerialization|CallToolHandlerP
 
 ## Start and resource semantics
 
-`first_process_start` is the first new server process started by the benchmark immediately after the scripts build both binaries. `subsequent_process_start` contains later new processes in the same run. These labels do not claim that an operating-system cold filesystem or executable cache was guaranteed or cleared.
+`first_process_start` is the first new server process started by the benchmark command. In a diagnostic wrapper run it follows the wrapper build; in an authoritative run it uses the previously prepared binary after the required quiet period and host gate. `subsequent_process_start` contains later new processes in the same run. These labels do not claim that an operating-system cold filesystem or executable cache was guaranteed or cleared.
 
 Startup duration begins immediately before the operating-system process start call and ends when a valid `initialize` response has been received. The runner validates the negotiated protocol version, `serverInfo`, and `capabilities`, then sends the no-ID `notifications/initialized` notification before any later request or controlled exit. Workflow duration begins at process start and ends when the final valid response has been received. Controlled stdin closure and process exit validation happen after the measured response interval.
 
@@ -97,7 +97,28 @@ It is an orientation only, is not model-specific, does not use a tokenizer, and 
 
 `baseline.schema.json` defines result format `flashgate-benchmark/v1`. A result records project, commit, whether the binary came from a dirty working tree, Go version, OS, architecture, repetitions, starts, resources, `tools/list`, workflows, warnings, budget evaluation, unsupported metrics, and stable suite/catalog/corpus plus runtime/transport/backend/profile/parallelism provenance.
 
-Versioned baseline creation is deliberately two-stage. First commit the implementation without a platform baseline. Then, on that clean implementation commit and within the valid measurement window, generate Windows and native Linux baselines and commit those artifacts separately. `-RecordBaseline` and `--record-baseline` reject the scheduled host-load window and a dirty tree before measurement, then recheck both the time window and tree immediately before the candidate file is moved into its versioned location. Ordinary local benchmark results remain allowed on dirty trees and record `working_tree_dirty: true` accurately, but results collected during the scheduled host-load window are contaminated diagnosis only.
+Versioned baseline creation is deliberately two-stage. First complete tests, vet,
+lint, parser validation, and builds in isolated Windows and native Linux checkouts
+from the same clean implementation commit. After the final preparation operation,
+wait at least 180 seconds without further build, Git, scan, archive, or analysis
+work. Then run exactly one authoritative three-block host preflight that records
+CPU, disk activity, memory, and per-process CPU deltas. Only a passed preflight may
+be followed by direct invocation of the already prepared benchmark and server
+binaries. Run a 15-second intermediate gate before Linux and a final host gate
+before copying, hashing, verifying, or archiving results.
+
+The Windows source bundle, checkout, prepared binaries, output, logs, verification,
+and controller stay below `C:\Voxtronic\Codex\Temp\Benchmarks` on local fixed NTFS
+storage without reparse points. OneDrive, Dropbox, redirected folders, network
+shares, and other synchronized paths are prohibited during the measured phase.
+The Linux checkout and temporary output stay on native ext4 under `/home`, never
+under `/mnt` or `/media`. OneDrive archival occurs only after the final host gate.
+The legacy wrapper record flags are intentionally blocked; a policy-compliant
+controller is prepared and independently reviewed for each authoritative attempt.
+
+Ordinary local benchmark results remain allowed on dirty trees and record
+`working_tree_dirty: true` accurately, but results collected during the scheduled
+host-load window are contaminated diagnosis only.
 
 Versioned results must not contain absolute host paths, user names, secrets, temporary directory names, or raw private environment variables. The runner never serializes its binary path, corpus root, or environment and replaces known paths in captured stderr.
 
@@ -105,6 +126,14 @@ Versioned results must not contain absolute host paths, user names, secrets, tem
 
 - Hard: complete and exact tool-profile/workflow measurement sets, tool/schema counts, wire/result byte maxima, reference workflow calls/counters, and all six selected-result allocation/payload records loaded from `budgets.json`.
 - Soft: startup p95, workflow p95, idle/peak working set, and CPU time.
+
+Payload and allocation contracts are both validated in ordinary tests. Under race
+instrumentation the functional serialization, payload, fixture, and budget-contract
+checks still run, while only the `testing.AllocsPerRun` assertion is skipped because
+the race detector changes allocation behavior. The authoritative race gate runs on
+a supported race platform; for the current Windows host, missing CGO/GCC is an
+infrastructure limitation and does not justify relaxing allocation budgets. Native
+Linux `go test -race ./...` remains required.
 
 A hard failure makes the local benchmark command fail after writing its JSON result. A soft excess is recorded as a warning for review. Sprint 3.45d does not add the full process benchmark to CI; cross-run baseline comparison and CI enforcement remain BL-247 and BL-248.
 

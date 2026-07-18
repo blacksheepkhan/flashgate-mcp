@@ -398,13 +398,13 @@ bash scripts/benchmark.sh
 bash scripts/benchmark.sh --quick
 ```
 
-The standard mode records one `first_process_start` and 30 `subsequent_process_start` samples. Quick mode records one first and 10 subsequent samples. The first label means first process after the script build step; it does not claim an enforced OS cold cache.
+The standard diagnostic mode records one `first_process_start` and 30 `subsequent_process_start` samples. Quick mode records one first and 10 subsequent samples. The first label means the first process started by that benchmark command; it does not claim an enforced OS cold cache.
 
 Detailed counter semantics, platform behavior, reference workflows, result schema, baseline, and hard-versus-soft budgets are documented in [`benchmarks/README.md`](benchmarks/README.md). The approximation `approx_tokens_bytes4 = ceil(UTF-8 bytes / 4)` is not model-specific and is not suitable for billing.
 
-Versioned baselines are recorded only from a clean tree and only after the implementation commit. Generate the clean Windows and native Linux baselines from that same commit, then commit those artifacts separately. Ordinary local runs may use a dirty tree and record that provenance explicitly.
+Versioned baselines are recorded only from clean isolated checkouts of the same implementation commit using the documented two-phase prebuilt workflow. Validation and builds finish before a minimum 180-second quiet period, one authoritative three-block host preflight, direct measurement with prepared binaries, an intermediate gate, and a final host gate. Windows work remains below `C:\Voxtronic\Codex\Temp\Benchmarks`; native Linux work remains under `/home`; synchronized and Windows-mounted Linux paths are prohibited until post-gate archival. The legacy `-RecordBaseline` and `--record-baseline` wrapper flags fail closed and cannot create baselines. Ordinary local runs may use a dirty tree and record that provenance explicitly.
 
-`cmd/benchmark` is development-only. It is built by the local benchmark scripts and is not included in release artifacts.
+`cmd/benchmark` is development-only. Diagnostic wrappers build it locally; authoritative runs invoke a separately prepared binary. It is not included in release artifacts.
 
 ## Release Builds
 
