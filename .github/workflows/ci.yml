@@ -1,4 +1,4 @@
-﻿name: CI
+name: CI
 
 on:
   push:
@@ -13,19 +13,23 @@ permissions:
 
 jobs:
   test:
-    name: Test
+    name: Test (${{ matrix.platform }})
     runs-on: ${{ matrix.os }}
 
     strategy:
       fail-fast: false
       matrix:
-        os:
-          - ubuntu-latest
-          - windows-latest
+        include:
+          - os: windows-latest
+            platform: windows
+            minimum_coverage: "71.4"
+          - os: ubuntu-latest
+            platform: linux
+            minimum_coverage: "0.0"
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@v6
 
       - name: Set up Go
         uses: actions/setup-go@v6
@@ -42,8 +46,18 @@ jobs:
       - name: Vet
         run: go vet ./...
 
-      - name: Test
-        run: go test ./...
+      - name: Test with coverage
+        shell: pwsh
+        run: ./scripts/Test-GoCoverage.ps1 -PlatformName '${{ matrix.platform }}' -MinimumCoverage ${{ matrix.minimum_coverage }}
+
+      - name: Upload coverage report
+        if: ${{ always() && !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: go-coverage-${{ matrix.platform }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/coverage/${{ matrix.platform }}/
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Build
         shell: bash
@@ -106,7 +120,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@v6
 
       - name: Set up Go
         uses: actions/setup-go@v6
@@ -119,4 +133,3 @@ jobs:
 
       - name: Run golangci-lint
         run: golangci-lint run
-
