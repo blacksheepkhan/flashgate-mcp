@@ -23,6 +23,11 @@ $failureCount = 1
 $exitCode = 1
 $totalCoverage = $null
 $errorMessage = $null
+$coverageProfile = $null
+$textReport = $null
+$htmlReport = $null
+$testLog = $null
+$summaryJson = $null
 
 function Resolve-OutputPath {
     [CmdletBinding()]
@@ -161,23 +166,6 @@ try {
         throw "go tool cover -html ist mit Exitcode $htmlExitCode fehlgeschlagen.$([Environment]::NewLine)$tail"
     }
 
-    $summary = [ordered]@{
-        status = 'PASS'
-        platform = $PlatformName
-        total_coverage_percent = $totalCoverage
-        minimum_coverage_percent = $MinimumCoverage
-        coverage_profile = $coverageProfile
-        text_report = $textReport
-        html_report = $htmlReport
-        test_log = $testLog
-    }
-
-    [IO.File]::WriteAllText(
-        $summaryJson,
-        ($summary | ConvertTo-Json -Depth 4) + [Environment]::NewLine,
-        [Text.UTF8Encoding]::new($false)
-    )
-
     if ($env:GITHUB_STEP_SUMMARY) {
         $summaryMarkdown = @"
 ## Go Code Coverage — $PlatformName
@@ -211,6 +199,41 @@ catch {
     $errorMessage = $_.Exception.Message
 }
 finally {
+    if ($summaryJson) {
+        $summary = [ordered]@{
+            status = $status
+            platform = $PlatformName
+            total_coverage_percent = $totalCoverage
+            minimum_coverage_percent = $MinimumCoverage
+            coverage_profile = $coverageProfile
+            text_report = $textReport
+            html_report = $htmlReport
+            test_log = $testLog
+            error = $errorMessage
+        }
+
+        try {
+            [IO.File]::WriteAllText(
+                $summaryJson,
+                ($summary | ConvertTo-Json -Depth 4) + [Environment]::NewLine,
+                [Text.UTF8Encoding]::new($false)
+            )
+        }
+        catch {
+            $summaryWriteError = $_.Exception.Message
+            $status = 'FAIL'
+            $failureCount = 1
+            $exitCode = 1
+
+            if ($errorMessage) {
+                $errorMessage += " Summary konnte nicht geschrieben werden: $summaryWriteError"
+            }
+            else {
+                $errorMessage = "Summary konnte nicht geschrieben werden: $summaryWriteError"
+            }
+        }
+    }
+
     [pscustomobject]@{
         Status          = $status
         Platform        = $PlatformName
