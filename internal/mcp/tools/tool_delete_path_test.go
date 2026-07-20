@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/blacksheepkhan/flashgate-mcp/internal/fs"
-	"github.com/blacksheepkhan/flashgate-mcp/internal/protocol"
+	"github.com/thomasweidner/flashgate-mcp/internal/fs"
+	"github.com/thomasweidner/flashgate-mcp/internal/protocol"
 )
 
 func TestDeletePathToolDefinition(t *testing.T) {

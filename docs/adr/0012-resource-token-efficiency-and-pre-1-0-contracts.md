@@ -64,7 +64,7 @@ A development-only runner starts the real built server over STDIO, validates ini
 
 Windows uses Win32 current/peak working set and user/kernel CPU time. Linux uses procfs `VmRSS`, `VmHWM`, and user/system CPU ticks. Other platforms explicitly report `not_supported` and omit numeric resource fields. Ten read-only reference workflows define request, response, result, filesystem-byte, entry, call, duration, and approximate-token measurements without adding counters to MCP tool results.
 
-Machine-readable format `flashgate-benchmark/v1` excludes host paths and private environment data. Deterministic tool/schema counts, wire sizes, stable allocation records, workflow calls, and counters are hard local budgets. Startup, p50/p95, working set, and CPU are soft review budgets. Full CI execution and cross-run baseline comparison remain deferred to BL-247 and BL-248.
+Machine-readable format `flashgate-benchmark/v1` excludes host paths and private environment data. Deterministic tool/schema counts, wire sizes, stable allocation records, workflow calls, and counters are hard local budgets. Startup, p50/p95, working set, and CPU are soft review budgets. Full CI execution and cross-run baseline comparison remain deferred to BL-249 and BL-250.
 
 The sole token orientation is `ceil(UTF-8 bytes / 4)`. It is not model-specific, does not use a tokenizer, and is not suitable for billing.
 ## Planning Amendment - 2026-07-17

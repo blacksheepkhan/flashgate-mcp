@@ -3,8 +3,8 @@ package initialize
 import (
 	"encoding/json"
 
-	"github.com/blacksheepkhan/flashgate-mcp/internal/mcp/handlers"
-	"github.com/blacksheepkhan/flashgate-mcp/internal/protocol"
+	"github.com/thomasweidner/flashgate-mcp/internal/mcp/handlers"
+	"github.com/thomasweidner/flashgate-mcp/internal/protocol"
 )
 
 const method = "initialize"

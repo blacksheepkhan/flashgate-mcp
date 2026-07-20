@@ -20,7 +20,7 @@ Version 1.0 shall:
 6. remain local-only with no remote TCP/HTTP listener;
 7. provide deterministic bounded contracts and reproducible performance/security evidence;
 8. publish an explicit protocol and extension compatibility matrix;
-9. meet the release gate in `BL-261`.
+9. meet the release gate in `BL-263`.
 
 ## Runtime modes
 

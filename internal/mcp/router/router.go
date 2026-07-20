@@ -3,8 +3,8 @@ package router
 import (
 	"sync"
 
-	"github.com/blacksheepkhan/flashgate-mcp/internal/mcp/handlers"
-	"github.com/blacksheepkhan/flashgate-mcp/internal/protocol"
+	"github.com/thomasweidner/flashgate-mcp/internal/mcp/handlers"
+	"github.com/thomasweidner/flashgate-mcp/internal/protocol"
 )
 
 // Router dispatches method calls to registered handlers.

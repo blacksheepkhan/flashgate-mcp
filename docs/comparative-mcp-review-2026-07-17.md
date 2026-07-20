@@ -213,3 +213,10 @@ The comparison records architectural ideas, not a stable feature guarantee for e
 - [Version 1.0 scope](version-1-scope-and-release-boundary.md)
 - [Architecture](architecture.md)
 - [Authoritative backlog](../BACKLOG.md)
+
+## Backlog ID correction - 2026-07-20
+
+This dated comparative review retains the identifier valid when it was written.
+The active reproducible cross-project efficiency benchmark task moved from historical `BL-259` to current `BL-261`.
+
+The authoritative mapping is recorded in `docs/backlog-id-migration-2026-07-20.md`.

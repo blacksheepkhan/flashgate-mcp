@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/blacksheepkhan/flashgate-mcp/internal/mcp/handlers"
-	"github.com/blacksheepkhan/flashgate-mcp/internal/protocol"
+	"github.com/thomasweidner/flashgate-mcp/internal/mcp/handlers"
+	"github.com/thomasweidner/flashgate-mcp/internal/protocol"
 )
 
 const toolsCallMethod = "tools/call"

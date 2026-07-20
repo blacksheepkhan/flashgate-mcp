@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/blacksheepkhan/flashgate-mcp/internal/protocol"
+	"github.com/thomasweidner/flashgate-mcp/internal/protocol"
 )
 
 // Tool defines an executable MCP tool.

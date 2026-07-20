@@ -7,9 +7,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/blacksheepkhan/flashgate-mcp/internal/fs"
-	"github.com/blacksheepkhan/flashgate-mcp/internal/protocol"
-	"github.com/blacksheepkhan/flashgate-mcp/internal/security"
+	"github.com/thomasweidner/flashgate-mcp/internal/fs"
+	"github.com/thomasweidner/flashgate-mcp/internal/protocol"
+	"github.com/thomasweidner/flashgate-mcp/internal/security"
 )
 
 func TestGetPathInfoExistingAndMissing(t *testing.T) {

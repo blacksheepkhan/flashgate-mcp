@@ -1,4 +1,4 @@
-﻿name: Release Build
+name: Release Build
 
 on:
   workflow_dispatch:
@@ -50,7 +50,7 @@ jobs:
         run: |
           go build \
             -trimpath \
-            -ldflags="-s -w -X github.com/blacksheepkhan/flashgate-mcp/internal/version.version=${{ inputs.version }} -X github.com/blacksheepkhan/flashgate-mcp/internal/version.commit=${{ github.sha }} -X github.com/blacksheepkhan/flashgate-mcp/internal/version.date=${{ steps.build_date.outputs.date }}" \
+            -ldflags="-s -w -X github.com/thomasweidner/flashgate-mcp/internal/version.version=${{ inputs.version }} -X github.com/thomasweidner/flashgate-mcp/internal/version.commit=${{ github.sha }} -X github.com/thomasweidner/flashgate-mcp/internal/version.date=${{ steps.build_date.outputs.date }}" \
             -o "${{ matrix.output_path }}" \
             ./cmd/server
 

@@ -6,11 +6,11 @@ import (
 	"errors"
 	"io"
 
-	"github.com/blacksheepkhan/flashgate-mcp/internal/diagnostics"
-	"github.com/blacksheepkhan/flashgate-mcp/internal/mcp/handlers"
-	"github.com/blacksheepkhan/flashgate-mcp/internal/mcp/router"
-	"github.com/blacksheepkhan/flashgate-mcp/internal/mcp/transport"
-	"github.com/blacksheepkhan/flashgate-mcp/internal/protocol"
+	"github.com/thomasweidner/flashgate-mcp/internal/diagnostics"
+	"github.com/thomasweidner/flashgate-mcp/internal/mcp/handlers"
+	"github.com/thomasweidner/flashgate-mcp/internal/mcp/router"
+	"github.com/thomasweidner/flashgate-mcp/internal/mcp/transport"
+	"github.com/thomasweidner/flashgate-mcp/internal/protocol"
 )
 
 // Server is the MCP server runtime.

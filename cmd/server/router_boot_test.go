@@ -9,10 +9,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/blacksheepkhan/flashgate-mcp/internal/fs"
-	"github.com/blacksheepkhan/flashgate-mcp/internal/mcp/handlers"
-	"github.com/blacksheepkhan/flashgate-mcp/internal/mcptest"
-	"github.com/blacksheepkhan/flashgate-mcp/internal/protocol"
+	"github.com/thomasweidner/flashgate-mcp/internal/fs"
+	"github.com/thomasweidner/flashgate-mcp/internal/mcp/handlers"
+	"github.com/thomasweidner/flashgate-mcp/internal/mcptest"
+	"github.com/thomasweidner/flashgate-mcp/internal/protocol"
 )
 
 func TestCreateRouterRegistersInitialize(t *testing.T) {

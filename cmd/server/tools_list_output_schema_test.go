@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	mcpserver "github.com/blacksheepkhan/flashgate-mcp/internal/mcp/server"
-	"github.com/blacksheepkhan/flashgate-mcp/internal/protocol"
+	mcpserver "github.com/thomasweidner/flashgate-mcp/internal/mcp/server"
+	"github.com/thomasweidner/flashgate-mcp/internal/protocol"
 )
 
 var benchmarkToolsListWireSink []byte

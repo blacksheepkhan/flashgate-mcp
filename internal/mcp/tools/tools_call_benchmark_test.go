@@ -10,10 +10,10 @@ import (
 	"sync"
 	"testing"
 
-	benchmarkrunner "github.com/blacksheepkhan/flashgate-mcp/internal/benchmark"
-	"github.com/blacksheepkhan/flashgate-mcp/internal/fs"
-	"github.com/blacksheepkhan/flashgate-mcp/internal/mcp/handlers"
-	"github.com/blacksheepkhan/flashgate-mcp/internal/protocol"
+	benchmarkrunner "github.com/thomasweidner/flashgate-mcp/internal/benchmark"
+	"github.com/thomasweidner/flashgate-mcp/internal/fs"
+	"github.com/thomasweidner/flashgate-mcp/internal/mcp/handlers"
+	"github.com/thomasweidner/flashgate-mcp/internal/protocol"
 )
 
 var benchmarkResultSink []byte

@@ -8,7 +8,7 @@ import (
 	"os"
 	"regexp"
 
-	benchmarkrunner "github.com/blacksheepkhan/flashgate-mcp/internal/benchmark"
+	benchmarkrunner "github.com/thomasweidner/flashgate-mcp/internal/benchmark"
 )
 
 var commitPattern = regexp.MustCompile(`^(unknown|[0-9a-f]{7,40})$`)

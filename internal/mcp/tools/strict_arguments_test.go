@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/blacksheepkhan/flashgate-mcp/internal/protocol"
+	"github.com/thomasweidner/flashgate-mcp/internal/protocol"
 )
 
 func TestAllToolsRejectMalformedUnknownTrailingAndWrongTypes(t *testing.T) {

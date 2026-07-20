@@ -11,7 +11,7 @@
 - `Later` means accepted post-Version-1.0 work;
 - a task may change milestone only through an explicit backlog and documentation decision.
 
-Version 1.0 is reached after Sprint 3.58 only when `BL-261` passes.
+Version 1.0 is reached after Sprint 3.58 only when `BL-263` passes.
 
 ## Version 1.0 product objective
 
@@ -194,7 +194,7 @@ The following remain outside the accepted local Version 1.0 architecture and req
 
 ## Version 1.0 release gate
 
-`BL-261` must verify at minimum:
+`BL-263` must verify at minimum:
 
 1. all canonical `Planned` tasks are `Done` or have a documented explicit waiver approved in the release record;
 2. all remaining `Later` tasks are correctly described as post-Version-1.0 and are not required by released contracts;

@@ -6,7 +6,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/blacksheepkhan/flashgate-mcp/internal/protocol"
+	"github.com/thomasweidner/flashgate-mcp/internal/protocol"
 )
 
 func decodeStrictArguments(raw json.RawMessage, target any) *protocol.Error {

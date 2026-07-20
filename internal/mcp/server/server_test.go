@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/blacksheepkhan/flashgate-mcp/internal/mcp/handlers"
-	"github.com/blacksheepkhan/flashgate-mcp/internal/mcp/router"
-	"github.com/blacksheepkhan/flashgate-mcp/internal/protocol"
+	"github.com/thomasweidner/flashgate-mcp/internal/mcp/handlers"
+	"github.com/thomasweidner/flashgate-mcp/internal/mcp/router"
+	"github.com/thomasweidner/flashgate-mcp/internal/protocol"
 )
 
 func TestServerRunHandlesValidRequest(t *testing.T) {

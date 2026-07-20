@@ -8,13 +8,13 @@ import (
 	"os"
 	"reflect"
 
-	"github.com/blacksheepkhan/flashgate-mcp/internal/config"
-	"github.com/blacksheepkhan/flashgate-mcp/internal/diagnostics"
-	"github.com/blacksheepkhan/flashgate-mcp/internal/fs"
-	"github.com/blacksheepkhan/flashgate-mcp/internal/mcp/router"
-	"github.com/blacksheepkhan/flashgate-mcp/internal/mcp/server"
-	"github.com/blacksheepkhan/flashgate-mcp/internal/mcp/tools"
-	"github.com/blacksheepkhan/flashgate-mcp/internal/security"
+	"github.com/thomasweidner/flashgate-mcp/internal/config"
+	"github.com/thomasweidner/flashgate-mcp/internal/diagnostics"
+	"github.com/thomasweidner/flashgate-mcp/internal/fs"
+	"github.com/thomasweidner/flashgate-mcp/internal/mcp/router"
+	"github.com/thomasweidner/flashgate-mcp/internal/mcp/server"
+	"github.com/thomasweidner/flashgate-mcp/internal/mcp/tools"
+	"github.com/thomasweidner/flashgate-mcp/internal/security"
 )
 
 const developmentCWDWarning = "flashgate-mcp: warning: development CWD root enabled"

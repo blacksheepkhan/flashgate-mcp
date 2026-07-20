@@ -519,7 +519,7 @@ Deliverables:
 
 ### Sprint 3.58 — validation and release readiness
 
-Backlog: `BL-241`–`BL-244` plus applicable CI/release/documentation tasks through `BL-261` and `BL-313`.
+Backlog: `BL-241`–`BL-244` plus applicable CI/release/documentation tasks through `BL-263` and `BL-315`.
 
 Deliverables:
 

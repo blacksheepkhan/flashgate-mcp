@@ -5,8 +5,8 @@
 FlashGate MCP is a resource-efficient cross-platform Model Context Protocol server for controlled filesystem, process, and operating-system operations. Deterministic work runs locally to minimize CPU, memory, latency, response size, model round trips, and token use.
 
 > Sprint 3.42 completed the technical rename. FlashGate MCP uses repository
-> `blacksheepkhan/flashgate-mcp`, module
-> `github.com/blacksheepkhan/flashgate-mcp`, binary `flashgate-mcp`, and MCP
+> `thomasweidner/flashgate-mcp`, module
+> `github.com/thomasweidner/flashgate-mcp`, binary `flashgate-mcp`, and MCP
 > server implementation name (`serverInfo.name`) `flashgate`.
 
 It exposes secure filesystem operations to MCP-compatible clients through JSON-RPC over STDIO. The server is designed for predictable behavior, low operational overhead, clear security boundaries, and maintainable enterprise-style code.
@@ -229,6 +229,7 @@ Architecture and security references:
 - [Native runtime and service plan](docs/native-multi-mode-runtime-and-service-plan.md)
 - [Comparative MCP review](docs/comparative-mcp-review-2026-07-17.md)
 - [Security model](docs/security.md)
+- [Code coverage](docs/development/code-coverage.md)
 - [Protocol and local transport](docs/protocol.md)
 - [Version 1.0 product and technical specification](docs/specification.md)
 - [Architecture decisions](docs/adr/)
@@ -264,6 +265,8 @@ docs/
   protocol.md           MCP and local IPC protocol architecture
   specification.md      Consolidated Version 1.0 requirements
   coding-style.md       Go, native adapter, lifecycle, and payload rules
+  development/
+    code-coverage.md  Windows/Linux coverage gates and maintenance rules
   mcp-tool-catalog.json Machine-readable MCP tool catalog
   tool-conventions.md   Tool implementation and interface conventions
   tools.md              Human-readable MCP tool reference
@@ -278,7 +281,7 @@ docs/
 Clone the repository:
 
 ```bash
-git clone https://github.com/blacksheepkhan/flashgate-mcp.git
+git clone https://github.com/thomasweidner/flashgate-mcp.git
 cd flashgate-mcp
 ```
 
@@ -316,6 +319,31 @@ On Windows:
 ```powershell
 go build -o build/flashgate-mcp.exe ./cmd/server
 ```
+
+### Code Coverage
+
+FlashGate enforces separate repository-wide Go statement-coverage gates for Windows and Linux. The current minimum values are:
+
+| Platform | Minimum |
+|---|---:|
+| Windows | 71.4% |
+| Linux | 70.6% |
+
+Run the Windows coverage gate with PowerShell 7.6.3:
+
+```powershell
+.\scripts\Test-GoCoverage.ps1 -PlatformName windows -MinimumCoverage 71.4
+```
+
+Run the Linux gate with PowerShell 7 on the native Linux validation environment:
+
+```bash
+pwsh -NoLogo -NoProfile -File ./scripts/Test-GoCoverage.ps1 -PlatformName linux -MinimumCoverage 70.6
+```
+
+Each run writes `coverage.out`, `coverage.txt`, `coverage.html`, `test.log`, and `summary.json` below `build/coverage/<platform>/`. GitHub Actions uploads separate Windows and Linux artifacts for 14 days.
+
+The technically authoritative thresholds are maintained in `.github/workflows/ci.yml`. Windows and Linux values are evaluated independently and must not be averaged. Detailed operation and baseline-maintenance rules are documented in [docs/development/code-coverage.md](docs/development/code-coverage.md).
 
 Run the JSON-RPC smoke test on Windows:
 

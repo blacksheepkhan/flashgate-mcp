@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/blacksheepkhan/flashgate-mcp/internal/security"
+	"github.com/thomasweidner/flashgate-mcp/internal/security"
 )
 
 func TestNewLocalFileSystemRejectsEmptyRoot(t *testing.T) {

@@ -170,7 +170,7 @@ a supported race platform; for the current Windows host, missing CGO/GCC is an
 infrastructure limitation and does not justify relaxing allocation budgets. Native
 Linux `go test -race ./...` remains required.
 
-A hard failure makes the local benchmark command fail after writing its JSON result. A soft excess is recorded as a warning for review. Sprint 3.45d does not add the full process benchmark to CI; cross-run baseline comparison and CI enforcement remain BL-247 and BL-248.
+A hard failure makes the local benchmark command fail after writing its JSON result. A soft excess is recorded as a warning for review. Sprint 3.45d does not add the full process benchmark to CI; cross-run baseline comparison and CI enforcement remain BL-249 and BL-250.
 
 ## Version 1.0 benchmark expansion
 
@@ -207,7 +207,7 @@ Windows and Linux results remain separate. A platform result must not substitute
 
 ## Cross-project comparison
 
-`BL-259` adds a reproducible comparison against pinned versions or commits of:
+`BL-261` adds a reproducible comparison against pinned versions or commits of:
 
 1. FlashGate MCP;
 2. the official Node.js filesystem reference server;
@@ -218,7 +218,7 @@ The comparison uses the same host, corpus, requested functionality, warm-up poli
 
 ## Version 1.0 release use
 
-The Version 1.0 gate in `BL-261` requires approved hard budgets for deterministic protocol/catalog/payload contracts and reviewed soft budgets for host-sensitive latency, CPU, and memory. New optional accelerators or external programs are not accepted into the initial release unless they demonstrate a material benefit and pass the same security and portability review.
+The Version 1.0 gate in `BL-263` requires approved hard budgets for deterministic protocol/catalog/payload contracts and reviewed soft budgets for host-sensitive latency, CPU, and memory. New optional accelerators or external programs are not accepted into the initial release unless they demonstrate a material benefit and pass the same security and portability review.
 
 <!-- FLASHGATE_PERFORMANCE_WORKSPACE_POLICY_START -->
 ## Primary Windows host workspace isolation

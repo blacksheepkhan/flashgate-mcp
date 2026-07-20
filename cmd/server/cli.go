@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/blacksheepkhan/flashgate-mcp/internal/config"
-	"github.com/blacksheepkhan/flashgate-mcp/internal/version"
+	"github.com/thomasweidner/flashgate-mcp/internal/config"
+	"github.com/thomasweidner/flashgate-mcp/internal/version"
 )
 
 var errInvalidCLIArguments = errors.New("invalid CLI arguments")

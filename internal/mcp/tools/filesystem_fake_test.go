@@ -1,6 +1,6 @@
 package tools
 
-import "github.com/blacksheepkhan/flashgate-mcp/internal/fs"
+import "github.com/thomasweidner/flashgate-mcp/internal/fs"
 
 type fakeFileSystem struct {
 	entries         []fs.Entry

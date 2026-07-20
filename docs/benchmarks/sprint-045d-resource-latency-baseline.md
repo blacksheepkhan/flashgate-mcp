@@ -77,3 +77,13 @@ The only token field is `approx_tokens_bytes4 = ceil(UTF-8 bytes / 4)`. It is ap
 Results exclude binary paths, corpus roots, user names, raw environment variables, and secrets. Known local paths are replaced in captured stderr before serialization. The corpus is deleted after the run.
 
 `cmd/benchmark` is not added to release workflows. Release artifacts remain server binaries built from `cmd/server`.
+
+## Backlog ID correction - 2026-07-20
+
+This sprint report retains the identifiers valid when it was written.
+The deferred benchmark CI tasks referenced above moved as follows:
+
+- historical `BL-247` -> current `BL-249`
+- historical `BL-248` -> current `BL-250`
+
+The authoritative mapping is recorded in `docs/backlog-id-migration-2026-07-20.md`.

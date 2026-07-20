@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/blacksheepkhan/flashgate-mcp/internal/mcp/initialize"
-	"github.com/blacksheepkhan/flashgate-mcp/internal/mcp/router"
-	"github.com/blacksheepkhan/flashgate-mcp/internal/mcp/tools"
+	"github.com/thomasweidner/flashgate-mcp/internal/mcp/initialize"
+	"github.com/thomasweidner/flashgate-mcp/internal/mcp/router"
+	"github.com/thomasweidner/flashgate-mcp/internal/mcp/tools"
 )
 
 func createRouter(serverName string, serverVersion string, toolRegistry *tools.Registry) *router.Router {

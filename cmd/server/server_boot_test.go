@@ -4,7 +4,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/blacksheepkhan/flashgate-mcp/internal/config"
+	"github.com/thomasweidner/flashgate-mcp/internal/config"
 )
 
 func TestSecurityPolicyFromConfigUsesSecureDefaults(t *testing.T) {

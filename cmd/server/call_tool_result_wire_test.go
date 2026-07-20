@@ -9,11 +9,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/blacksheepkhan/flashgate-mcp/internal/fs"
-	mcpserver "github.com/blacksheepkhan/flashgate-mcp/internal/mcp/server"
-	"github.com/blacksheepkhan/flashgate-mcp/internal/mcp/tools"
-	"github.com/blacksheepkhan/flashgate-mcp/internal/mcptest"
-	"github.com/blacksheepkhan/flashgate-mcp/internal/protocol"
+	"github.com/thomasweidner/flashgate-mcp/internal/fs"
+	mcpserver "github.com/thomasweidner/flashgate-mcp/internal/mcp/server"
+	"github.com/thomasweidner/flashgate-mcp/internal/mcp/tools"
+	"github.com/thomasweidner/flashgate-mcp/internal/mcptest"
+	"github.com/thomasweidner/flashgate-mcp/internal/protocol"
 )
 
 type callToolWireResponse struct {

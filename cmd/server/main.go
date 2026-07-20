@@ -7,7 +7,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/blacksheepkhan/flashgate-mcp/internal/config"
+	"github.com/thomasweidner/flashgate-mcp/internal/config"
 )
 
 func main() {

@@ -3,7 +3,7 @@ package fs
 import (
 	"errors"
 
-	"github.com/blacksheepkhan/flashgate-mcp/internal/security"
+	"github.com/thomasweidner/flashgate-mcp/internal/security"
 )
 
 var (

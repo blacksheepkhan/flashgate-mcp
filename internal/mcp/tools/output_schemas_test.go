@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/blacksheepkhan/flashgate-mcp/internal/fs"
+	"github.com/thomasweidner/flashgate-mcp/internal/fs"
 )
 
 func TestFilesystemRuntimeOutputSchemas(t *testing.T) {

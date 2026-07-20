@@ -25,3 +25,30 @@ BL-258, BL-260, and BL-307 do not independently cover the complete review
 finding, so the new tasks link the precise acceptance boundaries without
 changing those older tasks. None of BL-314 through BL-321 is implemented by the
 baseline-output blocker fix.
+
+## Backlog ID correction - 2026-07-20
+
+This dated review record preserves the identifiers valid when it was written.
+The active canonical IDs changed through `docs/backlog-id-migration-2026-07-20.md`.
+
+Current mappings for this document:
+
+| Historical ID | Current ID |
+|---|---|
+| BL-247 | BL-249 |
+| BL-248 | BL-250 |
+| BL-250 | BL-252 |
+| BL-258 | BL-260 |
+| BL-260 | BL-262 |
+| BL-307 | BL-309 |
+| BL-314 | BL-316 |
+| BL-315 | BL-317 |
+| BL-316 | BL-318 |
+| BL-317 | BL-319 |
+| BL-318 | BL-320 |
+| BL-319 | BL-321 |
+| BL-320 | BL-322 |
+| BL-321 | BL-323 |
+
+The active PR #15 follow-up range is therefore `BL-316` through `BL-323`.
+The original review text above remains unchanged as historical evidence.
