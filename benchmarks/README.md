@@ -160,7 +160,9 @@ soft limits have been validated. The result is compared exactly with the embedde
 evaluation, and any hard failure is rejected before the independent Windows/Linux
 consistency check. Matching soft warnings retain their review-only meaning through
 the complete platform gate and are excluded from deterministic cross-platform
-projection; general result `warnings` remain forbidden in clean versioned baselines.
+projection. Runner result construction records budget messages only in
+`budget_evaluation`; general result `warnings` contain only non-budget runtime
+warnings and remain forbidden in clean versioned baselines.
 
 Payload and allocation contracts are both validated in ordinary tests. Under race
 instrumentation the functional serialization, payload, fixture, and budget-contract

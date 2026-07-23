@@ -39,11 +39,9 @@ func TestStrictArtifactValidatorRejectsSecurityRelevantMutations(t *testing.T) {
 					if result.StartMeasurements.SubsequentProcessStart.DurationNS.Max < 100_000_001 {
 						result.StartMeasurements.SubsequentProcessStart.DurationNS.Max = 100_000_001
 					}
-					evaluation, err := EvaluateBudgets(budgetPath, *result)
-					if err != nil {
+					if err := applyBudgetEvaluation(budgetPath, result); err != nil {
 						t.Fatal(err)
 					}
-					result.BudgetEvaluation = evaluation
 					result.StartMeasurements.SubsequentProcessStart.DurationNS = original
 				})
 			},
@@ -97,11 +95,9 @@ func TestStrictArtifactValidatorRejectsSecurityRelevantMutations(t *testing.T) {
 			mutate: func(windows, linux *[]byte) {
 				mutation := func(result *Result) {
 					result.ToolsList[0].RequestBytes = 60
-					evaluation, err := EvaluateBudgets(budgetPath, *result)
-					if err != nil {
+					if err := applyBudgetEvaluation(budgetPath, result); err != nil {
 						t.Fatal(err)
 					}
-					result.BudgetEvaluation = evaluation
 				}
 				*windows = mutateResultArtifact(t, *windows, mutation)
 				*linux = mutateResultArtifact(t, *linux, mutation)
@@ -181,37 +177,65 @@ func TestStrictArtifactValidatorRejectsSecurityRelevantMutations(t *testing.T) {
 	}
 }
 
-func TestPlatformArtifactSetAcceptsMatchingSoftWarnings(t *testing.T) {
+func TestPlatformArtifactSetAcceptsRunnerProducedSoftWarnings(t *testing.T) {
 	benchmarkDirectory := filepath.Join("..", "..", "benchmarks")
 	budgetPath := filepath.Join(benchmarkDirectory, "budgets.json")
-	directory := t.TempDir()
-
-	for _, platform := range []string{"windows", "linux"} {
-		artifactPath := filepath.Join(benchmarkDirectory, "baseline."+platform+"-amd64.json")
-		result, _, err := loadValidatedBaselineArtifact(artifactPath, budgetPath)
-		if err != nil {
-			t.Fatal(err)
-		}
-		result.StartMeasurements.SubsequentProcessStart.DurationNS.P95 = 100_000_001
-		if result.StartMeasurements.SubsequentProcessStart.DurationNS.Max < 100_000_001 {
-			result.StartMeasurements.SubsequentProcessStart.DurationNS.Max = 100_000_001
-		}
-		result.BudgetEvaluation, err = EvaluateBudgets(budgetPath, result)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if result.BudgetEvaluation.HardFailures != 0 || result.BudgetEvaluation.SoftWarnings != 1 || len(result.BudgetEvaluation.Messages) != 1 || !strings.HasPrefix(result.BudgetEvaluation.Messages[0], "soft: ") {
-			t.Fatalf("%s soft evaluation=%+v, want zero hard and one soft warning", platform, result.BudgetEvaluation)
-		}
-		writeTestBaseline(t, filepath.Join(directory, "baseline."+platform+"-amd64.json"), result)
+	tests := []struct {
+		name          string
+		softPlatforms map[string]bool
+	}{
+		{name: "both platforms", softPlatforms: map[string]bool{"windows": true, "linux": true}},
+		{name: "Windows only", softPlatforms: map[string]bool{"windows": true}},
+		{name: "Linux only", softPlatforms: map[string]bool{"linux": true}},
+		{name: "no budget warning", softPlatforms: map[string]bool{}},
 	}
 
-	if err := validatePlatformArtifactSet(directory, budgetPath); err != nil {
-		t.Fatalf("matching recomputed soft warnings must pass the complete platform gate: %v", err)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			directory := t.TempDir()
+			for _, platform := range []string{"windows", "linux"} {
+				artifactPath := filepath.Join(benchmarkDirectory, "baseline."+platform+"-amd64.json")
+				result, _, err := loadValidatedBaselineArtifact(artifactPath, budgetPath)
+				if err != nil {
+					t.Fatal(err)
+				}
+				result.Warnings = collectWarnings(nil)
+				if tc.softPlatforms[platform] {
+					result.StartMeasurements.SubsequentProcessStart.DurationNS.P95 = 100_000_001
+					if result.StartMeasurements.SubsequentProcessStart.DurationNS.Max < 100_000_001 {
+						result.StartMeasurements.SubsequentProcessStart.DurationNS.Max = 100_000_001
+					}
+				}
+				if err := applyBudgetEvaluation(budgetPath, &result); err != nil {
+					t.Fatal(err)
+				}
+
+				wantSoft := 0
+				if tc.softPlatforms[platform] {
+					wantSoft = 1
+				}
+				if result.BudgetEvaluation.HardFailures != 0 || result.BudgetEvaluation.SoftWarnings != wantSoft {
+					t.Fatalf("%s budget evaluation=%+v, want zero hard and %d soft", platform, result.BudgetEvaluation, wantSoft)
+				}
+				if wantSoft == 1 && (len(result.BudgetEvaluation.Messages) != 1 || !strings.HasPrefix(result.BudgetEvaluation.Messages[0], "soft: ")) {
+					t.Fatalf("%s budget messages=%q, want one soft message", platform, result.BudgetEvaluation.Messages)
+				}
+				for _, warning := range result.Warnings {
+					if strings.HasPrefix(warning, "soft: ") {
+						t.Fatalf("%s general warnings contain budget message %q", platform, warning)
+					}
+				}
+				writeTestBaseline(t, filepath.Join(directory, "baseline."+platform+"-amd64.json"), result)
+			}
+
+			if err := validatePlatformArtifactSet(directory, budgetPath); err != nil {
+				t.Fatalf("runner-produced matching soft warnings must pass the complete platform gate: %v", err)
+			}
+		})
 	}
 }
 
-func TestPlatformArtifactSetAcceptsPlatformSpecificMatchingSoftWarning(t *testing.T) {
+func TestPlatformArtifactSetRejectsGeneralRunnerWarning(t *testing.T) {
 	benchmarkDirectory := filepath.Join("..", "..", "benchmarks")
 	budgetPath := filepath.Join(benchmarkDirectory, "budgets.json")
 	directory := t.TempDir()
@@ -222,24 +246,20 @@ func TestPlatformArtifactSetAcceptsPlatformSpecificMatchingSoftWarning(t *testin
 		if err != nil {
 			t.Fatal(err)
 		}
+		var samples []processSample
 		if platform == "windows" {
-			result.StartMeasurements.SubsequentProcessStart.DurationNS.P95 = 100_000_001
-			if result.StartMeasurements.SubsequentProcessStart.DurationNS.Max < 100_000_001 {
-				result.StartMeasurements.SubsequentProcessStart.DurationNS.Max = 100_000_001
-			}
-			result.BudgetEvaluation, err = EvaluateBudgets(budgetPath, result)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if result.BudgetEvaluation.HardFailures != 0 || result.BudgetEvaluation.SoftWarnings != 1 {
-				t.Fatalf("Windows soft evaluation=%+v, want zero hard and one soft warning", result.BudgetEvaluation)
-			}
+			samples = []processSample{{warnings: []string{"runtime warning"}}}
+		}
+		result.Warnings = collectWarnings(samples)
+		if err := applyBudgetEvaluation(budgetPath, &result); err != nil {
+			t.Fatal(err)
 		}
 		writeTestBaseline(t, filepath.Join(directory, "baseline."+platform+"-amd64.json"), result)
 	}
 
-	if err := validatePlatformArtifactSet(directory, budgetPath); err != nil {
-		t.Fatalf("platform-specific matching soft warning must pass the complete platform gate: %v", err)
+	err := validatePlatformArtifactSet(directory, budgetPath)
+	if err == nil || !strings.Contains(err.Error(), "warnings must be empty") {
+		t.Fatalf("general runner warning error=%v, want fatal completeness rejection", err)
 	}
 }
 
@@ -379,8 +399,7 @@ func TestArtifactBudgetValidationPreservesSoftAndHardSemantics(t *testing.T) {
 	if soft.StartMeasurements.SubsequentProcessStart.DurationNS.Max < 100_000_001 {
 		soft.StartMeasurements.SubsequentProcessStart.DurationNS.Max = 100_000_001
 	}
-	soft.BudgetEvaluation, err = EvaluateBudgets(budgetPath, soft)
-	if err != nil {
+	if err := applyBudgetEvaluation(budgetPath, &soft); err != nil {
 		t.Fatal(err)
 	}
 	if soft.BudgetEvaluation.HardFailures != 0 || soft.BudgetEvaluation.SoftWarnings != 1 {
@@ -392,8 +411,7 @@ func TestArtifactBudgetValidationPreservesSoftAndHardSemantics(t *testing.T) {
 
 	hard := cloneBenchmarkResult(t, result)
 	hard.ToolsList[0].RequestBytes = 60
-	hard.BudgetEvaluation, err = EvaluateBudgets(budgetPath, hard)
-	if err != nil {
+	if err := applyBudgetEvaluation(budgetPath, &hard); err != nil {
 		t.Fatal(err)
 	}
 	if err := validateArtifactBudgets("hard-failure.json", budgetPath, hard); err == nil || !strings.Contains(err.Error(), "hard-failure.json budget failure") {

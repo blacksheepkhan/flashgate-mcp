@@ -3,6 +3,7 @@ package benchmark
 import (
 	"bytes"
 	"encoding/json"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -27,6 +28,31 @@ func TestBenchmarkEnvironmentIsMinimalAndDeterministic(t *testing.T) {
 		if strings.Contains(joined, forbidden) {
 			t.Fatalf("benchmark environment copied %q", forbidden)
 		}
+	}
+}
+
+func TestApplyBudgetEvaluationKeepsWarningChannelsSeparate(t *testing.T) {
+	result := completeBudgetTestResult()
+	result.Warnings = collectWarnings([]processSample{{warnings: []string{"runtime warning"}}})
+	result.Workflows[0].DurationNS = MetricSummary{
+		Samples: 1,
+		Min:     100_000_001,
+		P50:     100_000_001,
+		P95:     100_000_001,
+		Max:     100_000_001,
+	}
+
+	if err := applyBudgetEvaluation(filepath.Join("..", "..", "benchmarks", "budgets.json"), &result); err != nil {
+		t.Fatal(err)
+	}
+	if result.BudgetEvaluation.HardFailures != 0 || result.BudgetEvaluation.SoftWarnings != 1 {
+		t.Fatalf("budget evaluation=%+v, want zero hard and one soft warning", result.BudgetEvaluation)
+	}
+	if len(result.BudgetEvaluation.Messages) != 1 || !strings.HasPrefix(result.BudgetEvaluation.Messages[0], "soft: ") {
+		t.Fatalf("budget messages=%q, want one soft message", result.BudgetEvaluation.Messages)
+	}
+	if len(result.Warnings) != 1 || result.Warnings[0] != "runtime warning" {
+		t.Fatalf("general warnings=%q, want only the runtime warning", result.Warnings)
 	}
 }
 

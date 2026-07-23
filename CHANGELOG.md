@@ -111,7 +111,7 @@ The format follows the spirit of [Keep a Changelog](https://keepachangelog.com/)
 
 ### Changed
 
-- BL-316 makes versioned benchmark artifact validation authoritative: Windows and Linux artifacts are strictly decoded, independently reevaluated against complete fail-closed hard/soft budget definitions, compared exactly with embedded budget results, and rejected before cross-platform comparison on any hard failure; matching soft warnings remain review-only through the complete platform gate.
+- BL-316 makes versioned benchmark artifact validation authoritative: Windows and Linux artifacts are strictly decoded, independently reevaluated against complete fail-closed hard/soft budget definitions, compared exactly with embedded budget results, and rejected before cross-platform comparison on any hard failure; matching soft warnings remain review-only through the complete platform gate, while general runner warnings remain separately fatal.
 - Registered the three Minor findings and two Notes from the independent PR #16 review as canonical post-merge tasks `BL-325` through `BL-329` without implementing them in the Major-finding correction.
 - CI now enforces separate repository-wide Go statement-coverage gates of 71.4% on Windows and 70.6% on Linux. The values are evaluated independently, and `summary.json` reports threshold failures consistently as `FAIL`.
 - Non-authoritative benchmark output now binds the validated parent through `os.Root`, writes and syncs an exclusive temporary file through that stable handle, and publishes with a handle-relative rename that never follows the final target; all diagnostic names, final symlinks/reparse points, protected-directory aliases, and late output/protected-directory exchanges fail closed.
@@ -172,6 +172,7 @@ The format follows the spirit of [Keep a Changelog](https://keepachangelog.com/)
 
 ### Fixed
 
+- Fixed benchmark runner result construction so soft budget messages remain exclusively in `budget_evaluation` instead of being duplicated into general `warnings`.
 - Fixed coverage summaries so a failed minimum-coverage gate produces `status: FAIL` instead of a misleading successful artifact.
 - Fixed successful FlashGate tool responses that strict MCP clients such as Codex rejected as `Unexpected response type` because domain objects were returned directly instead of inside `CallToolResult.content[]`.
 
