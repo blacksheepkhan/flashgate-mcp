@@ -236,6 +236,7 @@ Architecture and security references:
 - [Authoritative backlog](BACKLOG.md)
 - [High-level roadmap](docs/roadmap.md)
 - [Project identity](docs/project-identity.md)
+- [Documentation quality gate](docs/documentation-quality-gate.md)
 
 ## Project Structure
 
@@ -298,6 +299,14 @@ go build -o build/flashgate-mcp.exe ./cmd/server
 ```
 
 ## Testing and Quality Checks
+
+Run the documentation consistency gate with PowerShell 7.6.3:
+
+```powershell
+.\scripts\Test-DocumentationConsistency.ps1
+```
+
+The detailed checklist and exit-code contract are documented in [docs/documentation-quality-gate.md](docs/documentation-quality-gate.md).
 
 Run the standard validation chain:
 

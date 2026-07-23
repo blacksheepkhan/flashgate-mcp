@@ -34,30 +34,35 @@ Backlog IDs: `BL-023`, `BL-024`, `BL-025`.
 
 Completed sprint numbers through Sprint 3.40 are historical and are not renumbered. Task IDs were migrated into the continuous catalog below.
 
-## Planned sprint sequence
+## Sprint sequence and status
 
 `Planned` tasks form the Version 1.0 scope. `Later` tasks are accepted post-Version-1.0 work and must not delay the initial stable release. Cross-cutting security, CI, release, governance, and documentation gates apply throughout the implementation sprints and are complete only when their canonical tasks are `Done`.
 
-| Sprint | Backlog IDs | Scope |
-|---|---|---|
-| Sprint 3.41 | BL-026–BL-035 | FlashGate architecture baseline and backlog consolidation |
-| Sprint 3.42 | BL-264–BL-280 | Technical project rename to FlashGate MCP |
-| Sprint 3.43 | BL-281–BL-294 | Pre-1.0 filesystem tool contract cleanup |
-| Sprint 3.44 | BL-174, BL-295–BL-303 | Codex read-only activation preparation |
-| Sprint 3.45 | BL-189–BL-216, BL-218–BL-220 | Efficiency, MCP contracts, payload/result architecture, catalog budgets, and native-adapter policy |
-| Sprint 3.46 | BL-084–BL-099, BL-164 | Operations/Job Manager, identity-bound handles, quotas, fairness, and cleanup |
-| Sprint 3.47 | BL-036–BL-049 | Efficient filesystem listing, reading, batch inspection, MIME/binary handling, and large-result handoff |
-| Sprint 3.48 | BL-050–BL-061, BL-063–BL-067 | Targeted edits, conditional writes, bounded filesystem plans, and filesystem integration benchmarks |
-| Sprint 3.49 | BL-068–BL-080, BL-082 | Filesystem and text search |
-| Sprint 3.50 | BL-100–BL-111, BL-159–BL-161, BL-171 | Named roots, read-only safe default, capabilities, dynamic tool profiles, and negative authorization tests |
-| Sprint 3.51 | BL-113, BL-129, BL-132, BL-162, BL-165, BL-168, BL-170 | Process architecture, execution identity, residual-risk, and security model |
-| Sprint 3.52 | BL-114–BL-118 | Process observation |
-| Sprint 3.53 | BL-119–BL-126, BL-130–BL-135, BL-252–BL-254 | Managed process execution, output cursors, resource control, race tests, and CI jobs |
-| Sprint 3.54 | BL-136–BL-149, BL-151–BL-152, BL-163, BL-167–BL-168, BL-170 | Typed allowlisted command execution, OS isolation, redaction, and security tests |
-| Sprint 3.55 | BL-062, BL-153–BL-157 | Scoped and redacted system information |
-| Sprint 3.56 | BL-221–BL-225, BL-233–BL-239, BL-166 | Multi-mode architecture, IPC/configuration contracts, hybrid execution-identity backend design, audit lifecycle, and Variant A security |
-| Sprint 3.57 | BL-226–BL-231 | Named Pipe/Unix socket transports, proxy/auto modes, Windows SCM service, Linux systemd service, and Variant A service-account execution |
-| Sprint 3.58 | BL-172–BL-173, BL-177–BL-179, BL-241–BL-263, BL-305–BL-312, BL-314–BL-329 | Version 1.0 validation, packaging, cross-project benchmarks, supply-chain evidence, governance, documentation, Dependabot maintenance, and PR #15/#16 benchmark-review follow-up |
+Sprint 3.45 is tracked through the completed evidence-bearing subsets 3.45a, 3.45b, and 3.45d plus a remaining planned scope. No Sprint 3.45c is defined in the current planning or historical implementation evidence; the suffix is therefore intentionally unused rather than inferred or retroactively assigned.
+
+| Sprint | Status | Backlog IDs | Scope |
+|---|---|---|---|
+| Sprint 3.41 | Done | BL-026–BL-035 | FlashGate architecture baseline and backlog consolidation |
+| Sprint 3.42 | Done | BL-264–BL-280 | Technical project rename to FlashGate MCP |
+| Sprint 3.43 | Done | BL-281–BL-294 | Pre-1.0 filesystem tool contract cleanup |
+| Sprint 3.44 | Done | BL-174, BL-295–BL-303 | Codex read-only activation preparation |
+| Sprint 3.45a | Done | BL-201 | MCP `CallToolResult` foundation and `structuredContent` |
+| Sprint 3.45b | Done | BL-200 | MCP runtime `outputSchema` integration and parity |
+| Sprint 3.45d | Done | BL-189–BL-199 | Resource, latency, payload, catalog, workflow, and baseline benchmarking |
+| Sprint 3.45 remaining | Planned | BL-202–BL-216, BL-218–BL-220 | Remaining MCP contracts, payload/result architecture, catalog budgets, and native-adapter policy |
+| Sprint 3.46 | Planned | BL-084–BL-099, BL-164 | Operations/Job Manager, identity-bound handles, quotas, fairness, and cleanup |
+| Sprint 3.47 | Planned | BL-036–BL-049 | Efficient filesystem listing, reading, batch inspection, MIME/binary handling, and large-result handoff |
+| Sprint 3.48 | Planned | BL-050–BL-061, BL-063–BL-067 | Targeted edits, conditional writes, bounded filesystem plans, and filesystem integration benchmarks |
+| Sprint 3.49 | Planned | BL-068–BL-080, BL-082 | Filesystem and text search |
+| Sprint 3.50 | Planned | BL-100–BL-111, BL-159–BL-161, BL-171 | Named roots, read-only safe default, capabilities, dynamic tool profiles, and negative authorization tests |
+| Sprint 3.51 | Planned | BL-113, BL-129, BL-162, BL-165 | Process architecture, execution identity, and stateful security model |
+| Sprint 3.52 | Planned | BL-114–BL-118 | Process observation |
+| Sprint 3.53 | Planned | BL-119–BL-126, BL-130–BL-135, BL-252–BL-254 | Managed process execution, output cursors, resource control, race tests, and CI jobs |
+| Sprint 3.54 | Planned | BL-136–BL-149, BL-151–BL-152, BL-163, BL-167–BL-168, BL-170 | Typed allowlisted command execution, OS isolation, redaction, and security tests |
+| Sprint 3.55 | Planned | BL-062, BL-153–BL-157 | Scoped and redacted system information |
+| Sprint 3.56 | Planned | BL-221–BL-225, BL-233–BL-239, BL-166 | Multi-mode architecture, IPC/configuration contracts, hybrid execution-identity backend design, audit lifecycle, and Variant A security |
+| Sprint 3.57 | Planned | BL-226–BL-231 | Named Pipe/Unix socket transports, proxy/auto modes, Windows SCM service, Linux systemd service, and Variant A service-account execution |
+| Sprint 3.58 | Planned | BL-172–BL-173, BL-177–BL-179, BL-241–BL-251, BL-255–BL-263, BL-305–BL-312, BL-314–BL-329 | Version 1.0 validation, packaging, cross-project benchmarks, supply-chain evidence, governance, documentation, Dependabot maintenance, and PR #15/#16 benchmark-review follow-up |
 
 Version 1.0 is reached only after Sprint 3.58 and the release gate in `BL-263`. The following accepted work is intentionally post-Version 1.0 and has no committed implementation sprint before that release:
 
@@ -192,7 +197,7 @@ Sprint 3.44 replaces the former Sprint 3.41 Codex preparation plan and must use 
 | BL-095 | Planned | Prevent and detect job leaks | TTL sweep, ownership checks, and metrics |
 | BL-096 | Planned | Preserve domain ownership | Jobs execute work without becoming its business domain |
 | BL-097 | Planned | Implement goroutine/subprocess decision rules | External, isolation, cancellation, identity, and platform gates |
-| BL-098 | Planned | Add Windows and Linux job tests | Deadline, cancellation, cleanup, shutdown, and temporary files |
+| BL-098 | Planned | Add cross-platform Operations/Job integration tests | Go package and integration tests for deadline, cancellation, cleanup, shutdown, and temporary-resource behavior on Windows and Linux; this task does not define CI workflow jobs |
 | BL-099 | Planned | Add job security tests and race detector | Handles, limits, lifecycle races, and leak checks |
 
 ### Named roots, capabilities, and profiles epic
@@ -210,7 +215,7 @@ Sprint 3.44 replaces the former Sprint 3.41 Codex preparation plan and must use 
 | BL-108 | Planned | Add per-root capability mapping | Tool and operation authorization |
 | BL-109 | Planned | Add process working-directory permission per root | Execution policy integration |
 | BL-110 | Planned | Implement dynamic tool registration | Effective profile/capability controls `tools/list` |
-| BL-111 | Planned | Add negative capability and `tools/list` tests | Hidden/unavailable tools and direct-call denial |
+| BL-111 | Planned | Add negative capability and `tools/list` catalog tests | Verify profile-driven tool visibility, dynamic registration, deterministic catalog output, and denial when a tool is absent from the effective catalog; generic server-side authorization bypass tests belong to `BL-160` |
 | BL-112 | Later | Evaluate deprecated MCP Roots only for legacy client compatibility | No architectural dependency; server configuration and explicit root IDs remain authoritative; implement only for a supported legacy client; document deprecation and protocol-version scope |
 
 ### Process epic
@@ -279,7 +284,7 @@ Sprint 3.44 replaces the former Sprint 3.41 Codex preparation plan and must use 
 | ID | Status | Task | Scope and acceptance notes |
 |---|---|---|---|
 | BL-159 | Planned | Enforce capabilities server-side | Registration is not the authorization boundary |
-| BL-160 | Planned | Add negative capability tests | Every high-risk path and direct-call attempt |
+| BL-160 | Planned | Add server-side authorization bypass tests | Verify capability enforcement after tool resolution, including crafted direct calls, stale catalog assumptions, root/domain policy bypass attempts, and every high-risk operation; catalog visibility tests belong to `BL-111` |
 | BL-161 | Planned | Add per-root policy security tests | Read/write, types, limits, links/reparse, working directory |
 | BL-162 | Planned | Define process policy model | Observe/manage/external-control separation, managed identity, risk classifications, and policy inputs; enforcement remains in concrete implementation tasks |
 | BL-163 | Planned | Define and enforce execution policies | Executables, args, roots, environment, limits, isolation |
@@ -391,9 +396,9 @@ Sprint 3.44 replaces the former Sprint 3.41 Codex preparation plan and must use 
 | BL-249 | Planned | Run benchmark suite in CI | Stable selection and artifacted results |
 | BL-250 | Planned | Compare benchmark baselines in CI | Budgets from `BL-199` |
 | BL-251 | Planned | Validate PowerShell and Bash scripts | Syntax/lint and smoke portability |
-| BL-252 | Planned | Run race detector for stateful components | Jobs, process registry, output buffers, shutdown |
-| BL-253 | Planned | Add Windows/Linux process test jobs | Observation and managed lifecycle |
-| BL-254 | Planned | Add Operations/Job test jobs | Cancellation, timeout, cleanup, and race coverage |
+| BL-252 | Planned | Run race detector for stateful components | Execute Go race detection against jobs, process registry, output buffers, cancellation, and shutdown; provide the reusable race-test command and failure gate consumed by CI tasks such as `BL-254` |
+| BL-253 | Planned | Add Windows/Linux process CI jobs | Dedicated CI matrix for process observation and managed lifecycle behavior on supported Windows and Linux runners; reuse implementation tests from the process packages rather than redefining them |
+| BL-254 | Planned | Add Operations/Job CI jobs | Dedicated CI execution for the Operations/Job integration suite from `BL-098`, including cancellation, timeout, cleanup, leak checks, and the race gate from `BL-252`; this task owns workflow orchestration, not duplicate test implementation |
 | BL-255 | Planned | Verify FlashGate release artifact names | After Sprint 3.42, including archives and summaries |
 | BL-256 | Planned | Enforce profile-specific catalog and initialization budgets | `tools/list`, tool count, schema bytes/tokens, server instructions, deterministic ordering, and fingerprint regression |
 | BL-257 | Planned | Run schema snapshot checks in CI | Contract changes require explicit review |

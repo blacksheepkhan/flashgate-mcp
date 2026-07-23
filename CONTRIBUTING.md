@@ -73,6 +73,8 @@ Review and update all affected documents, including as applicable:
 
 Do not rewrite historical migration documents. Add a new dated migration when canonical IDs or released contracts change.
 
+Run `scripts/Test-DocumentationConsistency.ps1` for documentation changes and complete the manual checklist in [docs/documentation-quality-gate.md](docs/documentation-quality-gate.md). The automated gate does not replace validation of implementation and status claims against code, CI, reports, and Git history.
+
 ## Validation
 
 Run the checks relevant to the change. The normal code chain is:

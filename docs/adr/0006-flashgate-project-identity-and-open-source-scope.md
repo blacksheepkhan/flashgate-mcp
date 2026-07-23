@@ -47,3 +47,7 @@ Use FlashGate MCP for the public project. Use `fileserver-mcp` only when describ
 ## Amendment - 2026-07-11
 
 Sprint 3.42 completed the technical rename. The repository is `blacksheepkhan/flashgate-mcp`, the Go module is `github.com/blacksheepkhan/flashgate-mcp`, the binary is `flashgate-mcp`, and the MCP server implementation name (`serverInfo.name`) is `flashgate`. The original context, decision, and transition rationale remain historical records.
+
+## Amendment - 2026-07-20
+
+Repository ownership was migrated from `blacksheepkhan/flashgate-mcp` to `thomasweidner/flashgate-mcp`. The current Go module is `github.com/thomasweidner/flashgate-mcp`; the binary and MCP server implementation identifiers remain `flashgate-mcp` and `flashgate`. Earlier owner references in this ADR record the state at the time and are retained as historical context.

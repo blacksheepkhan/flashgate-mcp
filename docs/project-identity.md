@@ -35,7 +35,7 @@ Sprint 3.42 completed the technical rename. Current identifiers are:
 
 | Item | Current value |
 |---|---|
-| Repository | `flashgate-mcp` |
+| Repository | `thomasweidner/flashgate-mcp` |
 | Binary | `flashgate-mcp` |
 | MCP server implementation name (`serverInfo.name`) | `flashgate` |
 | Go module | `github.com/thomasweidner/flashgate-mcp` |

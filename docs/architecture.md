@@ -10,7 +10,7 @@ Current identifiers:
 
 | Item | Value |
 |---|---|
-| Repository | `flashgate-mcp` |
+| Repository | `thomasweidner/flashgate-mcp` |
 | Binary | `flashgate-mcp` |
 | MCP server implementation name (`serverInfo.name`) | `flashgate` |
 | Go module | `github.com/thomasweidner/flashgate-mcp` |

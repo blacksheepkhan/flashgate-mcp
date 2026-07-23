@@ -74,10 +74,10 @@ Considered, but Go was chosen because of its simpler development workflow, faste
 
 ## Current Impact
 
-The repository is initialized as a Go module:
+The repository is initialized as the FlashGate MCP Go module:
 
 ```text
-github.com/blacksheepkhan/fileserver-mcp
+github.com/thomasweidner/flashgate-mcp
 ```
 
 The minimum expected Go version is Go 1.26 or newer.
@@ -89,3 +89,7 @@ The public project name is FlashGate MCP. The repository, Go module, binary, and
 ## Amendment - 2026-07-11
 
 Sprint 3.42 completed the technical rename: the Go module is now `github.com/blacksheepkhan/flashgate-mcp`, the binary is `flashgate-mcp`, and the MCP server implementation name (`serverInfo.name`) is `flashgate`. This amendment preserves the historical context and original Go decision.
+
+## Amendment - 2026-07-20
+
+Repository ownership was migrated to `thomasweidner/flashgate-mcp`. The current Go module is `github.com/thomasweidner/flashgate-mcp`. The former `blacksheepkhan` and `fileserver-mcp` identifiers remain only where they document historical decisions or completed migrations. This amendment does not change the decision to use Go.
