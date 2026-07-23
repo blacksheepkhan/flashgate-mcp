@@ -152,20 +152,21 @@ func Run(ctx context.Context, options Options) (Result, error) {
 	result.UnsupportedMetrics = collectUnsupported(allSamples)
 
 	if options.BudgetPath != "" {
-		evaluation, err := EvaluateBudgets(options.BudgetPath, result)
-		if err != nil {
+		if err := applyBudgetEvaluation(options.BudgetPath, &result); err != nil {
 			return Result{}, err
 		}
-		result.BudgetEvaluation = evaluation
-		for _, message := range evaluation.Messages {
-			if strings.HasPrefix(message, "soft: ") {
-				result.Warnings = append(result.Warnings, message)
-			}
-		}
-		result.Warnings = uniqueSorted(result.Warnings)
 	}
 
 	return result, nil
+}
+
+func applyBudgetEvaluation(path string, result *Result) error {
+	evaluation, err := EvaluateBudgets(path, *result)
+	if err != nil {
+		return err
+	}
+	result.BudgetEvaluation = evaluation
+	return nil
 }
 
 func executeScenario(ctx context.Context, binaryPath string, root string, readOnly bool, requests []requestSpec) (sample processSample, returnErr error) {

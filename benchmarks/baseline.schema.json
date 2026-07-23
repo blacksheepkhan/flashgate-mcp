@@ -70,6 +70,7 @@
     },
     "budget_evaluation": {
       "type": "object",
+      "additionalProperties": false,
       "required": ["schema_version", "hard_failures", "soft_warnings", "messages"],
       "properties": {
         "schema_version": { "const": "flashgate-benchmark-budgets/v1" },
@@ -96,6 +97,7 @@
     },
     "resources": {
       "type": "object",
+      "additionalProperties": false,
       "required": ["status"],
       "properties": {
         "status": { "enum": ["supported", "not_supported"] },
@@ -107,6 +109,7 @@
     },
     "startMeasurement": {
       "type": "object",
+      "additionalProperties": false,
       "required": ["repetitions", "duration_ns", "request_bytes", "response_bytes", "result_bytes", "resources", "exit_statuses", "stderr_warnings", "stderr_warning_count"],
       "properties": {
         "repetitions": { "type": "integer", "minimum": 1 },
@@ -122,6 +125,7 @@
     },
     "toolsListMeasurement": {
       "type": "object",
+      "additionalProperties": false,
       "required": ["profile", "tool_count", "schema_count", "request_bytes", "response_bytes", "result_bytes", "approx_tokens_bytes4"],
       "properties": {
         "profile": { "enum": ["read_only", "default"] },
@@ -135,6 +139,7 @@
     },
     "workflowMeasurement": {
       "type": "object",
+      "additionalProperties": false,
       "required": ["name", "repetitions", "calls", "request_bytes", "response_bytes", "result_bytes", "duration_ns", "read_bytes", "written_bytes", "scanned_bytes", "entries", "approx_tokens_bytes4", "resources", "exit_statuses", "stderr_warnings", "stderr_warning_count"],
       "properties": {
         "name": { "type": "string", "minLength": 1 },

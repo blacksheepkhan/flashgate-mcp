@@ -13,8 +13,48 @@ func TestLoadSerializationBudgetsRejectsDuplicateFixture(t *testing.T) {
 	if err := os.WriteFile(path, data, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := LoadSerializationBudgets(path); err == nil || !strings.Contains(err.Error(), "duplicate serialization budget fixture") {
+	if _, err := LoadSerializationBudgets(path); err == nil || !strings.Contains(err.Error(), "duplicate JSON field") {
 		t.Fatalf("duplicate serialization fixture was not rejected: %v", err)
+	}
+}
+
+func TestLoadBudgetFileRejectsNonCanonicalJSON(t *testing.T) {
+	canonical, err := os.ReadFile(filepath.Join("..", "..", "benchmarks", "budgets.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	tests := []struct {
+		name   string
+		want   string
+		mutate func([]byte) []byte
+	}{
+		{
+			name: "unknown field", want: "$.unexpected: unknown field",
+			mutate: func(data []byte) []byte {
+				return mutateJSONObject(t, data, func(object map[string]any) { object["unexpected"] = true })
+			},
+		},
+		{
+			name: "missing required field", want: "$.soft: missing required field",
+			mutate: func(data []byte) []byte {
+				return mutateJSONObject(t, data, func(object map[string]any) { delete(object, "soft") })
+			},
+		},
+		{
+			name: "trailing content", want: "trailing JSON data",
+			mutate: func(data []byte) []byte { return append(append([]byte{}, data...), []byte("\n{}")...) },
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "budgets.json")
+			if err := os.WriteFile(path, tc.mutate(canonical), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := loadBudgetFile(path); err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("strict budget decoder error=%v, want substring %q", err, tc.want)
+			}
+		})
 	}
 }
 

@@ -34,13 +34,10 @@ func TestVersionedBenchmarkArtifacts(t *testing.T) {
 		}
 	}
 
-	budgetData, err := os.ReadFile(filepath.Join(benchmarkDirectory, "budgets.json"))
+	budgetPath := filepath.Join(benchmarkDirectory, "budgets.json")
+	budgets, err := loadBudgetFile(budgetPath)
 	if err != nil {
 		t.Fatal(err)
-	}
-	var budgets budgetFile
-	if err := json.Unmarshal(budgetData, &budgets); err != nil {
-		t.Fatalf("invalid budgets JSON: %v", err)
 	}
 	if budgets.SchemaVersion != BudgetSchemaVersion {
 		t.Fatalf("budget schema=%q, want %q", budgets.SchemaVersion, BudgetSchemaVersion)
@@ -70,13 +67,9 @@ func TestVersionedBenchmarkArtifacts(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, baselinePath := range baselinePaths {
-		baselineData, err := os.ReadFile(baselinePath)
+		baseline, baselineData, err := loadValidatedBaselineArtifact(baselinePath, budgetPath)
 		if err != nil {
 			t.Fatal(err)
-		}
-		var baseline Result
-		if err := json.Unmarshal(baselineData, &baseline); err != nil {
-			t.Fatalf("invalid baseline JSON %s: %v", baselinePath, err)
 		}
 		if err := validateVersionedBaseline(baseline); err != nil {
 			t.Fatalf("invalid versioned baseline %s: %v", baselinePath, err)

@@ -150,6 +150,20 @@ identity fields.
 - Hard: complete and exact tool-profile/workflow measurement sets, tool/schema counts, wire/result byte maxima, reference workflow calls/counters, and all six selected-result allocation/payload records loaded from `budgets.json`.
 - Soft: startup p95, workflow p95, idle/peak working set, and CPU time.
 
+The versioned-artifact gate does not trust embedded `budget_evaluation`. It strictly
+decodes each platform artifact and the canonical budget/workflow definitions,
+rejecting unknown, duplicate, missing, mistyped, null, or trailing JSON content.
+Typed Go invariants cover the complete current `baseline.schema.json` contract
+without a third-party schema dependency. Hard and soft results are recomputed from
+the loaded measurements only after exact hard/soft workflow key sets and positive
+soft limits have been validated. The result is compared exactly with the embedded
+evaluation, and any hard failure is rejected before the independent Windows/Linux
+consistency check. Matching soft warnings retain their review-only meaning through
+the complete platform gate and are excluded from deterministic cross-platform
+projection. Runner result construction records budget messages only in
+`budget_evaluation`; general result `warnings` contain only non-budget runtime
+warnings and remain forbidden in clean versioned baselines.
+
 Payload and allocation contracts are both validated in ordinary tests. Under race
 instrumentation the functional serialization, payload, fixture, and budget-contract
 checks still run, while only the `testing.AllocsPerRun` assertion is skipped because
