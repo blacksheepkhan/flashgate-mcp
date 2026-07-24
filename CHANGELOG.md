@@ -14,7 +14,7 @@ The format follows the spirit of [Keep a Changelog](https://keepachangelog.com/)
 - Added payload-class result contracts, single-transmission rules for large content, opaque identity-bound result resources, wire-amplification metrics, profile catalog/instruction budgets, deterministic catalog fingerprints, and bounded server instructions.
 - Added Version 1.0 plans for per-principal quotas and fair scheduling, typed no-shell command definitions, native OS adapter precedence, audit lifecycle/correlation, MCP 2026 compatibility preparation, supply-chain evidence, and a pinned cross-project efficiency benchmark.
 - Added ADR-0015, Version 1.0 scope, execution-identity backend, efficiency-improvement, comparative-review, runtime/service, protocol, specification, and roadmap documentation.
-- Expanded the canonical backlog to the continuous range `BL-001` through `BL-329`; the current renumbering through `BL-324` is documented in [Backlog ID migration - 2026-07-20](docs/backlog-id-migration-2026-07-20.md), layered over the immutable earlier migration records. PR #16 adds `BL-325` through `BL-329` without changing existing canonical IDs.
+- Expanded the canonical backlog to the continuous range `BL-001` through `BL-332`; the current renumbering through `BL-324` is documented in [Backlog ID migration - 2026-07-20](docs/backlog-id-migration-2026-07-20.md), layered over the immutable earlier migration records. PR #16 adds `BL-325` through `BL-329` and the final PR #21 review adds `BL-330` through `BL-332` without changing existing canonical IDs.
 
 ### Migration
 
@@ -117,6 +117,7 @@ The format follows the spirit of [Keep a Changelog](https://keepachangelog.com/)
 
 ### Changed
 
+- Registered the three accepted non-blocking Minor findings from the final independent PR #21 review as canonical follow-up tasks `BL-330` through `BL-332`; the findings remain unfixed and no follow-up implementation is included in this registration-only change.
 - BL-316 makes versioned benchmark artifact validation authoritative: Windows and Linux artifacts are strictly decoded, independently reevaluated against complete fail-closed hard/soft budget definitions, compared exactly with embedded budget results, and rejected before cross-platform comparison on any hard failure; matching soft warnings remain review-only through the complete platform gate, while general runner warnings remain separately fatal.
 - Registered the three Minor findings and two Notes from the independent PR #16 review as canonical post-merge tasks `BL-325` through `BL-329` without implementing them in the Major-finding correction.
 - CI now enforces separate repository-wide Go statement-coverage gates of 71.4% on Windows and 70.6% on Linux. The values are evaluated independently, and `summary.json` reports threshold failures consistently as `FAIL`.
